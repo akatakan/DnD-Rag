@@ -1,0 +1,13 @@
+PlayerDnDBasicRules:
+  description: >
+    D&D oyuncu kuralları kitabı. Karakter oluşturma, ırklar, sınıflar (savaşçı,
+    büyücü, rahip vb.), yetenekler, büyüler, ekipman ve savaş mekaniği hakkında
+    bilgi içerir. Oyuncuların ne yapabileceği, hangi yeteneklere sahip olduğu ve
+    nasıl aksiyon alacağı sorularında bu kaynağa başvur.
+
+DMBasicRules:
+  description: >
+    D&D Dungeon Master kuralları kitabı. Oyun yönetimi, encounter tasarımı,
+    canavar istatistikleri, tuzak ve engeller, ödül sistemi, macera oluşturma ve
+    genel oyun akışı hakkında bilgi içerir. Oyunun nasıl yönetileceği, düşman
+    özellikleri ve DM'e özgü mekanikler için bu kaynağa başvur.

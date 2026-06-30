@@ -1,0 +1,17 @@
+[project]
+name = "dnd-rag"
+version = "0.1.0"
+description = "D&D RAG chatbot using Mistral and LangChain"
+requires-python = ">=3.10"
+dependencies = [
+    "llama-index>=0.14.23",
+    "llama-index-embeddings-ollama>=0.9.0",
+    "llama-index-llms-ollama>=0.10.1",
+    "llama-index-llms-openai-like>=0.7.2",
+    "llama-index-readers-file>=0.6.0",
+    "llama-index-vector-stores-qdrant>=0.10.1",
+    "pymupdf>=1.28.0",
+    "python-dotenv>=1.2.2",
+    "qdrant-client>=1.18.0",
+    "streamlit>=1.58.0",
+]
