@@ -1,63 +1,55 @@
-# DnD RAG Chatbot - Mistral
+# D&D RAG Chatbot
 
-Bu depo, Dungeons and Dragons (DnD) ile ilgili soruları yanıtlamak için Retrieval-Augmented Generation (RAG) ve Mistral dil modelini kullanan bir Streamlit tabanlı sohbet uygulamasının implementasyonunu içerir.
+D&D kural kitaplarına soru soran bir RAG chatbot. LlamaIndex + Qdrant + Streamlit ile kurulu, LLM olarak Ollama (lokal) veya Gemini (API) seçilebilir.
 
-## İçindekiler
-- [Kurulum](#kurulum)
-- [Kullanım](#kullanım)
+## Mimari
+
+Soru gelince `RouterQueryEngine` hangi kitabın ilgili olduğuna karar verir, o kitabın vektör indeksinden chunk'ları çeker ve LLM ile yanıt üretir.
+
+```
+Soru → Router (LLM) → Kitap seçimi → Qdrant retrieval → LLM → Cevap
+```
+
+- **Vektör DB:** Qdrant (Docker) — her kitap ayrı collection
+- **Embedding:** nomic-embed-text (Ollama)
+- **LLM:** llama3.2:3b (Ollama) veya gemini-2.0-flash-lite (Gemini API)
+- **PDF okuma:** PyMuPDF
 
 ## Kurulum
 
-### Gereksinimler
-- Python 3.9 veya daha üstü
-- [Streamlit](https://streamlit.io/)
+**Gereksinimler**
 
-### Adımlar
-1. Depoyu klonlayın:
-    ```sh
-    git clone https://github.com/kullanici-adi/dnd-rag.git
-    cd dnd-rag
-    ```
+- [uv](https://docs.astral.sh/uv/)
+- [Ollama](https://ollama.com/) — `ollama pull llama3.2:3b && ollama pull nomic-embed-text`
+- [Docker](https://www.docker.com/) — Qdrant için
 
-2. Sanal bir ortam oluşturun ve etkinleştirin:
-    ```sh
-    python -m venv venv
-    source venv/bin/activate  # Windows için `venv\Scripts\activate` kullanın
-    ```
+**Adımlar**
 
-3. Gerekli paketleri yükleyin
+```bash
+git clone <repo-url>
+cd Project
 
-4. PDF belgelerinizi kodda belirtilen dizine indirin, örneğin `C:\Users\ataka\OneDrive\Desktop\HomeREG\Dnd-RAG`.
+uv sync
+
+# Qdrant başlat
+docker run -d -p 6333:6333 -p 6334:6334 \
+  -v qdrant_storage:/qdrant/storage qdrant/qdrant
+
+# PDF'leri data/ klasörüne koy, ardından ingest et
+uv run python ingestion.py
+
+# Uygulamayı başlat
+uv run streamlit run main.py
+```
+
+**Gemini kullanmak için** proje kökünde `.env` oluştur:
+
+```
+GEMINI_API_KEY=your_api_key_here
+```
 
 ## Kullanım
 
-Streamlit uygulamasını başlatmak için:
-```sh
-streamlit run dnd-rag.py
-```
+Uygulama açılınca sol sidebar'dan **Ollama** veya **Gemini** seçilir. Sohbet kutusuna soru yazılır.
 
-### İş Akışı
-1. Uygulama belirtilen dizinden PDF belgelerini yükler ve yönetilebilir parçalara böler.
-2. Bu parçalar Chroma vektör deposu ve Ollama gömmeleri kullanılarak gömülür ve saklanır.
-3. Bir kullanıcı sorgu gönderdiğinde, uygulama sorgunun birden çok varyasyonunu oluşturmak için Mistral dil modelini kullanır.
-4. Bu sorgu varyasyonları, vektör deposundan en ilgili belge parçalarını geri getirmeye yardımcı olur.
-5. Geri getirilen parçalar kullanıcının sorgusuna yanıt oluşturmak için kullanılır.
-
-## Detaylı Kod Açıklaması
-
-### `pdf_loader()`
-Bu fonksiyon:
-1. Belirtilen dizinden PDF belgelerini yükler.
-2. Yüklenen belgeleri `RecursiveCharacterTextSplitter` kullanarak parçalara böler.
-3. Belge parçalarını gömer ve bunları bir Chroma vektör veritabanında saklar.
-
-### `get_llm_response(form_input)`
-Bu fonksiyon:
-1. Mistral dil modelini başlatır.
-2. Sorgunun birden çok varyasyonunu oluşturmak için bir şablon tanımlar.
-3. Sorgu varyasyonlarına dayalı en ilgili belge parçalarını geri getirmek için bir `MultiQueryRetriever` kullanır.
-4. Bağlam ve sorguyu biçimlendirmek için bir zincir kullanır ve Mistral dil modelini kullanarak bir yanıt oluşturur.
-
-### Streamlit Uygulaması
-1. Bir başlık ve kullanıcı sorgusu için bir giriş alanı görüntüler.
-2. Gönderim üzerine, `get_llm_response()` fonksiyonunu çağırır ve yanıtı görüntüler.
+Yeni PDF eklemek için `data/` klasörüne koy, `ingestion.py`'ı tekrar çalıştır (mevcut collection'lar atlanır) ve `metadata.yaml`'a kitap açıklamasını ekle.
