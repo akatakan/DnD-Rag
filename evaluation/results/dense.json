@@ -1,0 +1,914 @@
+{
+  "created_at": "2026-07-16T09:35:33.232244+00:00",
+  "provider": "ollama",
+  "case_count": 40,
+  "retrieval": {
+    "mode": "dense",
+    "count": 45,
+    "page_hit_rate@10": 0.9555555555555556,
+    "mean_reciprocal_rank": 0.7506172839506173,
+    "source_metadata_rate": 1.0,
+    "rows": [
+      {
+        "id": "player-01",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          7,
+          57,
+          8,
+          57,
+          58,
+          58,
+          7,
+          58,
+          4,
+          8
+        ]
+      },
+      {
+        "id": "player-02",
+        "book": "PlayerDnDBasicRules",
+        "hit": false,
+        "rank": null,
+        "reciprocal_rank": 0.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          19,
+          34,
+          19,
+          19,
+          18,
+          107,
+          18,
+          49,
+          47,
+          43
+        ]
+      },
+      {
+        "id": "player-03",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 3,
+        "reciprocal_rank": 0.3333333333333333,
+        "metadata_valid": true,
+        "returned_pages": [
+          65,
+          65,
+          13,
+          12,
+          13,
+          66,
+          12,
+          60,
+          101,
+          12
+        ]
+      },
+      {
+        "id": "player-04",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          15,
+          14,
+          15,
+          15,
+          19,
+          19,
+          15,
+          14,
+          14,
+          34
+        ]
+      },
+      {
+        "id": "player-05",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 2,
+        "reciprocal_rank": 0.5,
+        "metadata_valid": true,
+        "returned_pages": [
+          57,
+          17,
+          17,
+          16,
+          16,
+          16,
+          16,
+          16,
+          17,
+          16
+        ]
+      },
+      {
+        "id": "player-06",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 3,
+        "reciprocal_rank": 0.3333333333333333,
+        "metadata_valid": true,
+        "returned_pages": [
+          20,
+          20,
+          21,
+          21,
+          22,
+          22,
+          23,
+          23,
+          23,
+          37
+        ]
+      },
+      {
+        "id": "player-07",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          25,
+          25,
+          24,
+          70,
+          24,
+          60,
+          24,
+          7,
+          25,
+          74
+        ]
+      },
+      {
+        "id": "player-08",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          27,
+          64,
+          27,
+          26,
+          60,
+          60,
+          26,
+          27,
+          28,
+          28
+        ]
+      },
+      {
+        "id": "player-09",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          31,
+          31,
+          78,
+          81,
+          30,
+          29,
+          83,
+          30,
+          32,
+          99
+        ]
+      },
+      {
+        "id": "player-10",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 2,
+        "reciprocal_rank": 0.5,
+        "metadata_valid": true,
+        "returned_pages": [
+          19,
+          36,
+          18,
+          36,
+          19,
+          18,
+          36,
+          18,
+          19,
+          12
+        ]
+      },
+      {
+        "id": "player-11",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          44,
+          9,
+          44,
+          45,
+          45,
+          45,
+          45,
+          65,
+          44,
+          44
+        ]
+      },
+      {
+        "id": "player-12",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 2,
+        "reciprocal_rank": 0.5,
+        "metadata_valid": true,
+        "returned_pages": [
+          19,
+          45,
+          49,
+          50,
+          19,
+          47,
+          47,
+          60,
+          18,
+          64
+        ]
+      },
+      {
+        "id": "player-13",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          58,
+          58,
+          58,
+          59,
+          59,
+          59,
+          59,
+          57,
+          59,
+          58
+        ]
+      },
+      {
+        "id": "player-14",
+        "book": "PlayerDnDBasicRules",
+        "hit": false,
+        "rank": null,
+        "reciprocal_rank": 0.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          19,
+          47,
+          52,
+          37,
+          33,
+          49,
+          19,
+          36,
+          45,
+          43
+        ]
+      },
+      {
+        "id": "player-15",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          69,
+          61,
+          69,
+          69,
+          74,
+          69,
+          70,
+          72,
+          71,
+          72
+        ]
+      },
+      {
+        "id": "player-16",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 8,
+        "reciprocal_rank": 0.125,
+        "metadata_valid": true,
+        "returned_pages": [
+          74,
+          73,
+          4,
+          74,
+          73,
+          77,
+          26,
+          72,
+          57,
+          65
+        ]
+      },
+      {
+        "id": "player-17",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          74,
+          74,
+          106,
+          73,
+          71,
+          60,
+          74,
+          70,
+          71,
+          77
+        ]
+      },
+      {
+        "id": "player-18",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 9,
+        "reciprocal_rank": 0.1111111111111111,
+        "metadata_valid": true,
+        "returned_pages": [
+          19,
+          45,
+          19,
+          19,
+          33,
+          18,
+          28,
+          111,
+          76,
+          73
+        ]
+      },
+      {
+        "id": "player-19",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          80,
+          80,
+          84,
+          79,
+          72,
+          79,
+          97,
+          92,
+          88,
+          80
+        ]
+      },
+      {
+        "id": "player-20",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 4,
+        "reciprocal_rank": 0.25,
+        "metadata_valid": true,
+        "returned_pages": [
+          70,
+          70,
+          76,
+          107,
+          106,
+          76,
+          76,
+          26,
+          19,
+          64
+        ]
+      },
+      {
+        "id": "dm-01",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          3,
+          6,
+          3,
+          4,
+          2,
+          6,
+          4,
+          46,
+          16,
+          56
+        ]
+      },
+      {
+        "id": "dm-02",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 2,
+        "reciprocal_rank": 0.5,
+        "metadata_valid": true,
+        "returned_pages": [
+          57,
+          5,
+          57,
+          5,
+          4,
+          61,
+          5,
+          56,
+          56,
+          62
+        ]
+      },
+      {
+        "id": "dm-03",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          4,
+          4,
+          23,
+          5,
+          4,
+          44,
+          12,
+          49,
+          44,
+          36
+        ]
+      },
+      {
+        "id": "dm-04",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          6,
+          60,
+          49,
+          18,
+          38,
+          46,
+          32,
+          49,
+          18,
+          9
+        ]
+      },
+      {
+        "id": "dm-05",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          6,
+          7,
+          6,
+          8,
+          5,
+          5,
+          6,
+          22,
+          31,
+          58
+        ]
+      },
+      {
+        "id": "dm-06",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          7,
+          8,
+          31,
+          31,
+          6,
+          8,
+          55,
+          8,
+          8,
+          6
+        ]
+      },
+      {
+        "id": "dm-07",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          8,
+          7,
+          8,
+          8,
+          8,
+          6,
+          31,
+          8,
+          6,
+          52
+        ]
+      },
+      {
+        "id": "dm-08",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 2,
+        "reciprocal_rank": 0.5,
+        "metadata_valid": true,
+        "returned_pages": [
+          3,
+          30,
+          13,
+          23,
+          32,
+          54,
+          43,
+          13,
+          17,
+          35
+        ]
+      },
+      {
+        "id": "dm-09",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          39,
+          39,
+          26,
+          26,
+          13,
+          31,
+          49,
+          6,
+          42,
+          13
+        ]
+      },
+      {
+        "id": "dm-10",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 8,
+        "reciprocal_rank": 0.125,
+        "metadata_valid": true,
+        "returned_pages": [
+          24,
+          32,
+          26,
+          15,
+          35,
+          40,
+          37,
+          43,
+          48,
+          15
+        ]
+      },
+      {
+        "id": "dm-11",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          52,
+          50,
+          52,
+          22,
+          4,
+          3,
+          22,
+          37,
+          50,
+          49
+        ]
+      },
+      {
+        "id": "dm-12",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          39,
+          39,
+          35,
+          35,
+          6,
+          30,
+          38,
+          18,
+          2,
+          35
+        ]
+      },
+      {
+        "id": "dm-13",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          5,
+          57,
+          56,
+          56,
+          57,
+          56,
+          5,
+          5,
+          57,
+          4
+        ]
+      },
+      {
+        "id": "dm-14",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 2,
+        "reciprocal_rank": 0.5,
+        "metadata_valid": true,
+        "returned_pages": [
+          42,
+          4,
+          5,
+          22,
+          22,
+          12,
+          42,
+          14,
+          41,
+          51
+        ]
+      },
+      {
+        "id": "dm-15",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          5,
+          4,
+          6,
+          2,
+          3,
+          4,
+          2,
+          6,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "both-01",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          65,
+          65,
+          66,
+          58,
+          58,
+          4,
+          86,
+          106,
+          57,
+          58
+        ]
+      },
+      {
+        "id": "both-01",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          4,
+          4,
+          4,
+          2,
+          44,
+          3,
+          3,
+          44,
+          57,
+          4
+        ]
+      },
+      {
+        "id": "both-02",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          76,
+          74,
+          76,
+          7,
+          76,
+          73,
+          73,
+          74,
+          75,
+          45
+        ]
+      },
+      {
+        "id": "both-02",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 6,
+        "reciprocal_rank": 0.16666666666666666,
+        "metadata_valid": true,
+        "returned_pages": [
+          46,
+          30,
+          43,
+          13,
+          18,
+          3,
+          34,
+          54,
+          54,
+          35
+        ]
+      },
+      {
+        "id": "both-03",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          78,
+          78,
+          78,
+          79,
+          78,
+          79,
+          114,
+          79,
+          79,
+          79
+        ]
+      },
+      {
+        "id": "both-03",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          5,
+          5,
+          55,
+          6,
+          4,
+          58,
+          60,
+          6,
+          44,
+          4
+        ]
+      },
+      {
+        "id": "both-04",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 3,
+        "reciprocal_rank": 0.3333333333333333,
+        "metadata_valid": true,
+        "returned_pages": [
+          70,
+          70,
+          106,
+          76,
+          106,
+          19,
+          107,
+          19,
+          18,
+          74
+        ]
+      },
+      {
+        "id": "both-04",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          34,
+          25,
+          36,
+          18,
+          50,
+          51,
+          25,
+          18,
+          16,
+          59
+        ]
+      },
+      {
+        "id": "both-05",
+        "book": "PlayerDnDBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          70,
+          72,
+          69,
+          69,
+          71,
+          58,
+          74,
+          70,
+          75,
+          106
+        ]
+      },
+      {
+        "id": "both-05",
+        "book": "DMBasicRules",
+        "hit": true,
+        "rank": 1,
+        "reciprocal_rank": 1.0,
+        "metadata_valid": true,
+        "returned_pages": [
+          38,
+          44,
+          38,
+          44,
+          6,
+          6,
+          57,
+          57,
+          59,
+          36
+        ]
+      }
+    ]
+  }
+}

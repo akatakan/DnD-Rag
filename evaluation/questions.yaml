@@ -1,0 +1,160 @@
+- id: player-01
+  question: "How are the standard ability scores assigned during character creation?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [7, 8]}
+- id: player-02
+  question: "Karakter oluştururken 4d6 yöntemi nasıl uygulanır?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [7, 8]}
+- id: player-03
+  question: "What does darkvision allow a dwarf to see?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [13, 15]}
+- id: player-04
+  question: "Bir elf trans özelliğiyle ne kadar dinlenir?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [15, 16]}
+- id: player-05
+  question: "How does the halfling Lucky trait work?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [17, 18]}
+- id: player-06
+  question: "Bir cleric Channel Divinity kullanımını ne zaman geri kazanır?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [21, 25]}
+- id: player-07
+  question: "What is a fighter's Second Wind feature?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [25, 27]}
+- id: player-08
+  question: "Rogue Sneak Attack hangi şartlarda uygulanır?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [27, 30]}
+- id: player-09
+  question: "How does a wizard recover spell slots with Arcane Recovery?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [29, 33]}
+- id: player-10
+  question: "Bir background karaktere hangi tür yeterlilikler verir?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [35, 43]}
+- id: player-11
+  question: "What Armor Class does light armor provide?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [44, 45]}
+- id: player-12
+  question: "Finesse silah özelliği nasıl çalışır?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [45, 47]}
+- id: player-13
+  question: "How is an ability check resolved?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [57, 59]}
+- id: player-14
+  question: "Sürpriz olan bir yaratık ilk turunda ne yapabilir?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [64, 66]}
+- id: player-15
+  question: "How is initiative calculated at the start of combat?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [68, 70]}
+- id: player-16
+  question: "Opportunity attack ne zaman tetiklenir?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [70, 72]}
+- id: player-17
+  question: "What are the rules for grappling a creature?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [73, 75]}
+- id: player-18
+  question: "Ölüm kurtarma zarında 1 veya 20 atılırsa ne olur?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [75, 77]}
+- id: player-19
+  question: "How does spell concentration end?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [78, 80]}
+- id: player-20
+  question: "Prone durumundaki bir yaratığa saldırılar nasıl etkilenir?"
+  expected_books: [PlayerDnDBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [105, 107]}
+- id: dm-01
+  question: "How is a monster's hit point average calculated from Hit Dice?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [3]}
+- id: dm-02
+  question: "Canavarın challenge rating değeri neyi ifade eder?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [4, 5]}
+- id: dm-03
+  question: "What does a monster's blindsight sense do?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [4]}
+- id: dm-04
+  question: "Recharge 5-6 özelliği ne zaman geri gelir?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [6]}
+- id: dm-05
+  question: "How do legendary actions work?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [6, 7]}
+- id: dm-06
+  question: "Lair action hangi initiative count değerinde kullanılır?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [7, 8]}
+- id: dm-07
+  question: "What lair actions can an adult red dragon use?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [8, 9]}
+- id: dm-08
+  question: "Bir goblinin Armor Class ve Hit Points değerleri nedir?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [30, 32]}
+- id: dm-09
+  question: "What actions can an owlbear take?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [39, 40]}
+- id: dm-10
+  question: "Skeleton hangi hasar türlerine karşı savunmasızdır?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [43, 44]}
+- id: dm-11
+  question: "What is a zombie's Undead Fortitude trait?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [50, 52]}
+- id: dm-12
+  question: "Orc Aggressive özelliğini nasıl kullanır?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [39]}
+- id: dm-13
+  question: "How much XP is a challenge rating 5 monster worth?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [5]}
+- id: dm-14
+  question: "Bir canavarın tremorsense duyusu nasıl çalışır?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [4]}
+- id: dm-15
+  question: "What does the monster stat block's Languages entry mean?"
+  expected_books: [DMBasicRules]
+  expected_pages: {DMBasicRules: [4, 5]}
+- id: both-01
+  question: "Compare player darkvision rules with the darkvision entry in monster statistics."
+  expected_books: [PlayerDnDBasicRules, DMBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [64, 65], DMBasicRules: [4]}
+- id: both-02
+  question: "Oyuncu ve canavar hit point kurallarını birlikte açıkla."
+  expected_books: [PlayerDnDBasicRules, DMBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [75, 77], DMBasicRules: [3]}
+- id: both-03
+  question: "How do spell slots work for player spellcasters and spellcasting monsters?"
+  expected_books: [PlayerDnDBasicRules, DMBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [78, 84], DMBasicRules: [5]}
+- id: both-04
+  question: "Prone durumunu ve prone saldırısı olan canavarları iki kaynaktan karşılaştır."
+  expected_books: [PlayerDnDBasicRules, DMBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [105, 107], DMBasicRules: [34]}
+- id: both-05
+  question: "Compare player reaction rules with the ochre jelly Split reaction."
+  expected_books: [PlayerDnDBasicRules, DMBasicRules]
+  expected_pages: {PlayerDnDBasicRules: [69, 72], DMBasicRules: [38]}

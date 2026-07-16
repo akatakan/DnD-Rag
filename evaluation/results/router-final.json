@@ -1,0 +1,504 @@
+{
+  "created_at": "2026-07-16T09:47:58.344847+00:00",
+  "provider": "ollama",
+  "case_count": 40,
+  "router": {
+    "count": 40,
+    "exact_accuracy": 1.0,
+    "macro_precision": 1.0,
+    "macro_recall": 1.0,
+    "multi_book_exact_accuracy": 1.0,
+    "rows": [
+      {
+        "id": "player-01",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-02",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-03",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-04",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-05",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-06",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-07",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-08",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-09",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-10",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-11",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-12",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-13",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-14",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-15",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-16",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-17",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-18",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-19",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "player-20",
+        "expected": [
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-01",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-02",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-03",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-04",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-05",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-06",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-07",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-08",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-09",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-10",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-11",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-12",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-13",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-14",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "dm-15",
+        "expected": [
+          "DMBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "both-01",
+        "expected": [
+          "DMBasicRules",
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules",
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "both-02",
+        "expected": [
+          "DMBasicRules",
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules",
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "both-03",
+        "expected": [
+          "DMBasicRules",
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules",
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "both-04",
+        "expected": [
+          "DMBasicRules",
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules",
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      {
+        "id": "both-05",
+        "expected": [
+          "DMBasicRules",
+          "PlayerDnDBasicRules"
+        ],
+        "predicted": [
+          "DMBasicRules",
+          "PlayerDnDBasicRules"
+        ],
+        "exact": true,
+        "precision": 1.0,
+        "recall": 1.0
+      }
+    ]
+  }
+}

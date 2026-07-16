@@ -1,9 +1,11 @@
 [project]
 name = "dnd-rag"
-version = "0.1.0"
-description = "D&D RAG chatbot using Mistral and LangChain"
+version = "0.4.0"
+description = "Multiplayer D&D assistant with authoritative game state and evaluated RAG"
 requires-python = ">=3.10"
 dependencies = [
+    "fastapi>=0.116.0",
+    "fastembed>=0.7.3",
     "llama-index>=0.14.23",
     "llama-index-embeddings-ollama>=0.9.0",
     "llama-index-llms-ollama>=0.10.1",
@@ -14,4 +16,5 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "qdrant-client>=1.18.0",
     "streamlit>=1.58.0",
+    "uvicorn[standard]>=0.35.0",
 ]
