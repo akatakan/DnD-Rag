@@ -71,6 +71,13 @@ h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; g
 .check-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
 .check-grid label { padding: 9px 11px; grid-template-columns: auto 1fr; align-items: center; background: #fafbf9; border: 1px solid #d8dbd7; border-radius: 4px; }
 .check-grid input { width: 18px; min-height: 18px; }
+.check-grid label.checked { border-color: #789081; background: #f0f6f1; }
+.check-grid label.required { border-color: #d3bd83; background: #fff8e7; }
+.check-grid label span { display: grid; gap: 2px; }
+.check-grid label small { color: #737a75; font-size: 10px; font-weight: 500; }
+.proficiency-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.proficiency-summary span { padding: 10px 12px; display: grid; gap: 3px; color: #646b67; background: #f4f6f3; border: 1px solid #d4d8d4; border-radius: 5px; font-size: 11px; }
+.proficiency-summary strong { color: #303633; font-size: 13px; }
 .review-grid { margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .review-grid div { padding: 13px; background: #f3f4f2; border-radius: 5px; }
 .review-grid dt { color: #747a76; font-size: 11px; text-transform: uppercase; }
@@ -86,6 +93,7 @@ h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; g
 .builder-message { min-width: 0; margin-bottom: 14px; padding: 11px 14px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; color: #7b332e; background: #fff0ee; border: 1px solid #e7b8b4; border-radius: 5px; }
 .builder-message button { min-height: 34px; }
 .builder-message-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.builder-inline-validation { margin: 22px 0 0; padding: 10px 12px; color: #7b332e; background: #fff6f5; border-left: 3px solid #b43b34; font-size: 13px; line-height: 1.45; }
 .builder-state { min-height: calc(100vh - 58px); padding: 24px; display: grid; place-content: center; justify-items: center; text-align: center; color: #59605c; }
 .builder-state svg { color: #a92f28; }
 .builder-state h1 { margin-top: 12px; }
@@ -727,7 +735,7 @@ h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; g
   .builder-progress { grid-template-columns: repeat(9, 34px); overflow-x: auto; justify-content: start; padding-bottom: 8px; }
   .builder-progress small { display: none; }
   .builder-card { min-height: 0; padding: 18px; }
-  .ability-grid, .check-grid, .review-grid { grid-template-columns: 1fr; }
+  .ability-grid, .check-grid, .review-grid, .proficiency-summary { grid-template-columns: 1fr; }
   .ability-method, .background-abilities { grid-template-columns: 1fr; }
   .background-abilities p { grid-column: auto; }
   .ability-summary { grid-template-columns: repeat(3, 1fr); }

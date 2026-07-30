@@ -46,6 +46,18 @@ const SKILLS: CharacterSkill[] = [
 const POINT_COSTS: Record<number, number> = {
   8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9,
 };
+const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
+const FIGHTER_SKILL_OPTIONS = new Set<CharacterSkill>([
+  "acrobatics",
+  "animal_handling",
+  "athletics",
+  "history",
+  "insight",
+  "intimidation",
+  "perception",
+  "persuasion",
+  "survival",
+]);
 const FIGHTER_STANDARD_ARRAY: Record<CharacterAbility, number> = {
   strength: 15,
   dexterity: 14,
@@ -198,6 +210,7 @@ export default function CharacterBuilder({
     field: K, value: CharacterDraftData[K],
   ) {
     if (!draft || draft.status === "published") return;
+    if (saveState !== "conflict" && saveState !== "error") setError("");
     setDraft((current) => current ? {
       ...current,
       data: { ...current.data, [field]: value },
@@ -385,6 +398,9 @@ export default function CharacterBuilder({
   );
 
   const stepIndex = STEPS.findIndex((step) => step.id === draft.current_step);
+  const localStepError = stepValidationMessage(
+    draft.current_step, draft.data, byType,
+  );
   return (
     <main className="builder-shell" id="main-content">
       <header className="builder-header">
@@ -447,6 +463,15 @@ export default function CharacterBuilder({
           byType={byType}
           change={change}
         />
+        {localStepError && (
+          <p
+            className="builder-inline-validation"
+            id="builder-step-validation"
+            role="status"
+          >
+            {localStepError}
+          </p>
+        )}
       </section>
       <footer className="builder-actions">
         <button
@@ -468,7 +493,8 @@ export default function CharacterBuilder({
         ) : (
           <button
             className="primary-button"
-            disabled={transitioning || blockedRef.current}
+            aria-describedby={localStepError ? "builder-step-validation" : undefined}
+            disabled={Boolean(localStepError) || transitioning || blockedRef.current}
             onClick={() => { void navigate("next"); }}
           >
             İleri <ArrowRight size={17} />
@@ -582,10 +608,55 @@ function StepContent({
       {!(byType.get(step) ?? []).length && <p className="muted">Bu ruleset için seçenek bulunamadı.</p>}
     </div>;
   }
-  if (step === "proficiencies") return <div className="builder-step">
-    <StepHeading title="Skill proficiency seç" text="Background tarafından zorunlu kılınan seçimler korunmalıdır." />
-    <div className="check-grid">{SKILLS.map((skill) => <label key={skill}><input type="checkbox" checked={data.skill_proficiencies.includes(skill)} onChange={() => change("skill_proficiencies", toggle(data.skill_proficiencies, skill))} /><span>{title(skill)}</span></label>)}</div>
-  </div>;
+  if (step === "proficiencies") {
+    const policy = proficiencyPolicy(data, byType);
+    const selected = new Set(data.skill_proficiencies);
+    const extras = data.skill_proficiencies.filter(
+      (skill) => !policy.backgroundSkills.has(skill),
+    );
+    const backgroundSelected = data.skill_proficiencies.filter(
+      (skill) => policy.backgroundSkills.has(skill),
+    ).length;
+    const classEligible = extras.filter(
+      (skill) => policy.classOptions.has(skill),
+    ).length;
+    return <div className="builder-step">
+      <StepHeading
+        title="Skill proficiency seç"
+        text="Acolyte iki sabit skill verir. Fighter listesinden iki seçim ve Human Skillful için bir serbest seçim yap."
+      />
+      <div className="proficiency-summary" role="status">
+        <span>Background <strong>{backgroundSelected}/{policy.backgroundSkills.size} sabit</strong></span>
+        <span>Ek seçim <strong>{extras.length}/{policy.extraChoiceCount}</strong></span>
+        <span>Fighter uyumlu <strong>{Math.min(classEligible, policy.classChoiceCount)}/{policy.classChoiceCount}</strong></span>
+      </div>
+      <div className="check-grid">{SKILLS.map((skill) => {
+        const required = policy.backgroundSkills.has(skill);
+        const checked = selected.has(skill);
+        const atLimit = extras.length >= policy.extraChoiceCount;
+        return <label
+          key={skill}
+          className={`${required ? "required" : ""} ${checked ? "checked" : ""}`}
+        >
+          <input
+            type="checkbox"
+            aria-label={title(skill)}
+            checked={checked}
+            disabled={(required && checked) || (!required && !checked && atLimit)}
+            onChange={() => change(
+              "skill_proficiencies",
+              toggle(data.skill_proficiencies, skill),
+            )}
+          />
+          <span>
+            {title(skill)}
+            {required && <small>Acolyte</small>}
+            {!required && policy.classOptions.has(skill) && <small>Fighter seçeneği</small>}
+          </span>
+        </label>;
+      })}</div>
+    </div>;
+  }
   if (step === "equipment") return <div className="builder-step">
     <StepHeading title="Başlangıç ekipmanını seç" text="Item'lar identity-based inventory kaydı olarak publish edilir." />
     <div className="choice-grid">{(byType.get("item") ?? []).map((entry) => <button key={entry.id} className={data.equipment_catalog_ids.includes(entry.id) ? "selected" : ""} aria-pressed={data.equipment_catalog_ids.includes(entry.id)} onClick={() => change("equipment_catalog_ids", toggle(data.equipment_catalog_ids, entry.id))}><strong>{entry.name}</strong><small>{String(entry.data.weight_lb ?? "—")} lb</small></button>)}</div>
@@ -674,6 +745,94 @@ function BackgroundAbilityIncreases({
 function StepHeading({ title: heading, text }: { title: string; text: string }) {
   return <header className="step-heading"><h2>{heading}</h2><p>{text}</p></header>;
 }
+
+interface ProficiencyPolicy {
+  supported: boolean;
+  backgroundSkills: Set<CharacterSkill>;
+  classOptions: Set<CharacterSkill>;
+  classChoiceCount: number;
+  extraChoiceCount: number;
+}
+
+function proficiencyPolicy(
+  data: CharacterDraftData,
+  byType: Map<string, RulesCatalogEntry[]>,
+): ProficiencyPolicy {
+  const background = (byType.get("background") ?? []).find(
+    (entry) => entry.id === data.background_id,
+  );
+  const species = (byType.get("species") ?? []).find(
+    (entry) => entry.id === data.species_id,
+  );
+  const backgroundSkills = new Set(
+    ((background?.data.skill_proficiencies as string[] | undefined) ?? [])
+      .map((skill) => skill.toLowerCase().replaceAll(" ", "_") as CharacterSkill),
+  );
+  const traits = ((species?.data.traits as string[] | undefined) ?? [])
+    .map((trait) => trait.toLowerCase());
+  const classChoiceCount = data.class_id === "class:fighter" ? 2 : 0;
+  const speciesChoiceCount = traits.includes("skillful") ? 1 : 0;
+  return {
+    supported: data.class_id === "class:fighter",
+    backgroundSkills,
+    classOptions: data.class_id === "class:fighter"
+      ? FIGHTER_SKILL_OPTIONS
+      : new Set<CharacterSkill>(),
+    classChoiceCount,
+    extraChoiceCount: classChoiceCount + speciesChoiceCount,
+  };
+}
+
+function stepValidationMessage(
+  step: CharacterDraftStep,
+  data: CharacterDraftData,
+  byType: Map<string, RulesCatalogEntry[]>,
+): string | null {
+  if (step === "abilities") {
+    const scores = ABILITIES.map((ability) => data.ability_scores[ability]);
+    if (data.ability_score_method === "legacy_manual") {
+      return "Standard Array veya Point Cost yöntemini seç.";
+    }
+    if (data.ability_score_method === "standard_array") {
+      const sorted = [...scores].sort((left, right) => right - left);
+      if (sorted.some((score, index) => score !== STANDARD_ARRAY[index])) {
+        return "Standard Array değerlerinin her birini tam bir kez kullan: 15, 14, 13, 12, 10, 8.";
+      }
+      return null;
+    }
+    if (scores.some((score) => !(score in POINT_COSTS))) {
+      return "Point Cost skorları 8 ile 15 arasında olmalı.";
+    }
+    const spent = scores.reduce((total, score) => total + POINT_COSTS[score], 0);
+    return spent === 27
+      ? null
+      : `Point Cost için tam 27 puan kullan; şu anda ${spent} puan kullanıldı.`;
+  }
+  if (step !== "proficiencies") return null;
+
+  const policy = proficiencyPolicy(data, byType);
+  if (!policy.supported) {
+    return "Bu class için skill proficiency kuralı henüz desteklenmiyor.";
+  }
+  const selected = new Set(data.skill_proficiencies);
+  if ([...policy.backgroundSkills].some((skill) => !selected.has(skill))) {
+    return "Background tarafından verilen sabit skill proficiency seçimlerini tamamla.";
+  }
+  const extras = [...selected].filter(
+    (skill) => !policy.backgroundSkills.has(skill),
+  );
+  if (extras.length !== policy.extraChoiceCount) {
+    return `Background dışında tam ${policy.extraChoiceCount} skill seçmelisin: 2 Fighter ve 1 Human Skillful.`;
+  }
+  const classEligible = extras.filter(
+    (skill) => policy.classOptions.has(skill),
+  );
+  if (classEligible.length < policy.classChoiceCount) {
+    return "Ek seçimlerin en az ikisi Fighter skill listesinden olmalı.";
+  }
+  return null;
+}
+
 function toggle<T>(values: T[], value: T): T[] {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 }

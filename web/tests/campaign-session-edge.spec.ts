@@ -25,6 +25,25 @@ async function publishDefaultCharacter(
   expect(response.ok()).toBeTruthy();
   let draft = await response.json();
   while (draft.current_step !== "review") {
+    if (draft.current_step === "proficiencies") {
+      response = await request.patch(route, {
+        headers: auth(player.token),
+        data: {
+          expected_revision: draft.revision,
+          patch: {
+            skill_proficiencies: [
+              "arcana",
+              "athletics",
+              "insight",
+              "perception",
+              "religion",
+            ],
+          },
+        },
+      });
+      expect(response.ok()).toBeTruthy();
+      draft = await response.json();
+    }
     response = await request.post(`${route}/navigate`, {
       headers: auth(player.token),
       data: {

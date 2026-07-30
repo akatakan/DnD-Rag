@@ -301,6 +301,10 @@ the retrieval contract.
   multiset or Point Cost only as scores 8–15 totaling exactly 27 points. Background
   ability increases must follow the pinned catalog's allowed abilities and `+2/+1`
   or `+1/+1/+1` distribution. Do not add client-only or unproven random generation.
+- The current Fighter/Human/Acolyte foundation builder must publish exactly five
+  distinct skill proficiencies: two fixed Acolyte skills, two choices allocatable
+  to Fighter's allowed list, and one Human Skillful choice. The backend is
+  authoritative; the UI limit is guidance, not the security boundary.
 - Draft updates are strict top-level patches guarded by `expected_revision`. Forward
   navigation validates the current step, backward navigation is non-destructive, and
   publish always revalidates the complete draft against the pinned campaign catalog.
@@ -398,6 +402,11 @@ explicitly when a change touches the area.
   migrating the database and fails if it is unavailable or invalid. Catalog reads use
   immutable process-local indexes and copy only returned data; deploying a changed file
   requires a process restart.
+- The foundation Fighter record predates structured class skill-choice metadata.
+  `CharacterDraftEngine` and the builder therefore use an ID- and ruleset-pinned
+  Fighter compatibility policy while background skills and Human Skillful are derived
+  from catalog data. A future catalog version should normalize this field and remove
+  both compatibility constants together.
 - Bearer tokens and invites expire, rotate, revoke, and are stored only as HMAC hashes;
   WebSockets use single-use tickets. Browser credentials still live in `localStorage`,
   so public deployments require strict XSS controls, TLS, a private pepper, and explicit

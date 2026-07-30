@@ -59,9 +59,36 @@ test("DM and player receive separate live workspaces", async ({ browser, request
     path: "test-results/character-builder-mobile.png",
     fullPage: true,
   });
-  for (let step = 0; step < 7; step += 1) {
-    await playerPage.getByRole("button", { name: "İleri" }).click();
-  }
+  const nextButton = playerPage.getByRole("button", { name: "İleri" });
+  await playerPage.getByLabel("Strength").fill("14");
+  await expect(nextButton).toBeDisabled();
+  await expect(playerPage.getByText(/Standard Array değerlerinin/)).toBeVisible();
+  await playerPage.getByLabel("Strength").fill("15");
+  await expect(nextButton).toBeEnabled();
+  await expect(playerPage.getByText(/Standard Array değerlerinin/)).toHaveCount(0);
+  await nextButton.click();
+  await expect(playerPage.getByRole("heading", { name: "Class seç" })).toBeVisible();
+  await nextButton.click();
+  await expect(playerPage.getByRole("heading", { name: "Species seç" })).toBeVisible();
+  await nextButton.click();
+  await expect(playerPage.getByRole("heading", { name: "Background seç" })).toBeVisible();
+  await nextButton.click();
+  await expect(playerPage.getByRole("heading", { name: "Skill proficiency seç" })).toBeVisible();
+  await expect(playerPage.getByLabel("Insight")).toBeChecked();
+  await expect(playerPage.getByLabel("Insight")).toBeDisabled();
+  await expect(playerPage.getByLabel("Religion")).toBeChecked();
+  await expect(playerPage.getByLabel("Religion")).toBeDisabled();
+  await expect(nextButton).toBeDisabled();
+  await playerPage.getByLabel("Athletics").check();
+  await playerPage.getByLabel("Perception").check();
+  await playerPage.getByLabel("Arcana").check();
+  await expect(nextButton).toBeEnabled();
+  await expect(playerPage.getByLabel("Deception")).toBeDisabled();
+  await nextButton.click();
+  await expect(playerPage.getByRole("heading", { name: "Başlangıç ekipmanını seç" })).toBeVisible();
+  await nextButton.click();
+  await expect(playerPage.getByRole("heading", { name: "Spell hazırlığını yap" })).toBeVisible();
+  await nextButton.click();
   await expect(playerPage.getByRole("heading", { name: "Karakterini kontrol et" })).toBeVisible();
   await playerPage.getByRole("button", { name: "Karakteri yayınla" }).click();
   await expect(playerPage.getByText("Character Sheet")).toBeVisible();

@@ -19,6 +19,27 @@ LEGACY_DRAFT_SCHEMA_VERSION = 1
 STANDARD_ARRAY = (15, 14, 13, 12, 10, 8)
 POINT_COSTS = {8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9}
 ABILITY_SCORE_METHODS = {"standard_array", "point_cost", "legacy_manual"}
+# The foundation SRD catalog deliberately keeps class records compact. Keep this
+# compatibility policy pinned to the stable catalog ID until a future catalog
+# version carries structured class skill-choice metadata.
+CLASS_SKILL_POLICIES = {
+    ("srd-5.2.1", "class:fighter"): {
+        "count": 2,
+        "options": frozenset(
+            {
+                "acrobatics",
+                "animal_handling",
+                "athletics",
+                "history",
+                "insight",
+                "intimidation",
+                "perception",
+                "persuasion",
+                "survival",
+            }
+        ),
+    }
+}
 DRAFT_STEPS = (
     "basics",
     "abilities",
@@ -310,24 +331,8 @@ class CharacterDraftEngine:
                     raise CharacterDraftValidationError(f"{field} turu gecersiz.")
         if step in {"background", "review"}:
             self._validate_background_increases(draft, ruleset_version)
-        if step in {"proficiencies", "review"} and not set(
-            draft["skill_expertise"]
-        ) <= set(draft["skill_proficiencies"]):
-            raise CharacterDraftValidationError(
-                "Expertise yalniz proficient skill icin secilebilir."
-            )
-        if step in {"proficiencies", "review"} and draft["background_id"]:
-            background = self.catalog.get_entry(
-                ruleset_version, draft["background_id"]
-            )["entry"]
-            required = {
-                value.casefold().replace(" ", "_")
-                for value in background["data"].get("skill_proficiencies", [])
-            }
-            if not required <= set(draft["skill_proficiencies"]):
-                raise CharacterDraftValidationError(
-                    "Background skill proficiencies eksik."
-                )
+        if step in {"proficiencies", "review"}:
+            self._validate_skill_proficiencies(draft, ruleset_version)
         if step in {"equipment", "review"}:
             for entry_id in draft["equipment_catalog_ids"]:
                 try:
@@ -474,4 +479,67 @@ class CharacterDraftEngine:
         ):
             raise CharacterDraftValidationError(
                 "Background artisi ability score'u 20 uzerine cikaramaz."
+            )
+
+    def _validate_skill_proficiencies(
+        self, draft: dict[str, Any], ruleset_version: str
+    ) -> None:
+        selected = set(draft["skill_proficiencies"])
+        if not set(draft["skill_expertise"]) <= selected:
+            raise CharacterDraftValidationError(
+                "Expertise yalniz proficient skill icin secilebilir."
+            )
+        if not draft["background_id"]:
+            raise CharacterDraftValidationError("background_id zorunludur.")
+        if not draft["class_id"]:
+            raise CharacterDraftValidationError("class_id zorunludur.")
+        if not draft["species_id"]:
+            raise CharacterDraftValidationError("species_id zorunludur.")
+
+        try:
+            background = self.catalog.get_entry(
+                ruleset_version, draft["background_id"]
+            )["entry"]
+            species = self.catalog.get_entry(
+                ruleset_version, draft["species_id"]
+            )["entry"]
+        except KeyError as error:
+            raise CharacterDraftValidationError(
+                "Skill proficiency kaynagi katalogda bulunamadi."
+            ) from error
+
+        background_skills = {
+            value.casefold().replace(" ", "_")
+            for value in background["data"].get("skill_proficiencies", [])
+        }
+        if not background_skills <= selected:
+            raise CharacterDraftValidationError(
+                "Background skill proficiencies eksik."
+            )
+
+        policy = CLASS_SKILL_POLICIES.get(
+            (ruleset_version, draft["class_id"])
+        )
+        if policy is None:
+            raise CharacterDraftValidationError(
+                "Class skill proficiency kurali desteklenmiyor."
+            )
+        species_traits = {
+            value.casefold()
+            for value in species["data"].get("traits", [])
+            if isinstance(value, str)
+        }
+        species_choice_count = 1 if "skillful" in species_traits else 0
+        extra_skills = selected - background_skills
+        expected_extra_count = int(policy["count"]) + species_choice_count
+        if len(extra_skills) != expected_extra_count:
+            raise CharacterDraftValidationError(
+                "Skill proficiency sayisi gecersiz: background disinda "
+                f"tam {expected_extra_count} secim yapilmalidir."
+            )
+        class_eligible = extra_skills & policy["options"]
+        if len(class_eligible) < int(policy["count"]):
+            raise CharacterDraftValidationError(
+                "Fighter icin izin verilen listeden tam 2 skill "
+                "proficiency ayrilabilmelidir."
             )

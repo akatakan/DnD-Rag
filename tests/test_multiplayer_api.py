@@ -64,6 +64,25 @@ class MultiplayerAPITest(unittest.TestCase):
     def navigate_draft_to_review(self, route, token, draft):
         current = draft
         while current["current_step"] != "review":
+            if current["current_step"] == "proficiencies":
+                response = self.client.patch(
+                    route,
+                    headers=self.auth(token),
+                    json={
+                        "expected_revision": current["revision"],
+                        "patch": {
+                            "skill_proficiencies": [
+                                "arcana",
+                                "athletics",
+                                "insight",
+                                "perception",
+                                "religion",
+                            ]
+                        },
+                    },
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                current = response.json()
             response = self.client.post(
                 route + "/navigate",
                 headers=self.auth(token),

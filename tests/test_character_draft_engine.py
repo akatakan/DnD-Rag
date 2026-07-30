@@ -37,7 +37,13 @@ class CharacterDraftEngineTest(unittest.TestCase):
                     "wisdom": 10,
                     "charisma": 12,
                 },
-                "skill_proficiencies": ["athletics", "insight", "religion"],
+                "skill_proficiencies": [
+                    "arcana",
+                    "athletics",
+                    "insight",
+                    "perception",
+                    "religion",
+                ],
                 "equipment_catalog_ids": ["item:shield"],
             },
         )
@@ -86,6 +92,18 @@ class CharacterDraftEngineTest(unittest.TestCase):
         )
 
         draft = self.engine.new_creation_draft(character)
+        draft = self.engine.patch(
+            draft,
+            {
+                "skill_proficiencies": [
+                    "arcana",
+                    "athletics",
+                    "insight",
+                    "perception",
+                    "religion",
+                ]
+            },
+        )
 
         self.assertEqual(len(draft["equipment_catalog_ids"]), 50)
         self.assertEqual(
@@ -134,6 +152,43 @@ class CharacterDraftEngineTest(unittest.TestCase):
             self.engine.validate_step(
                 invalid_background, "background", "srd-5.2.1"
             )
+
+    def test_fighter_human_acolyte_skill_choices_are_bounded(self):
+        valid = self.engine.patch(
+            self.draft,
+            {
+                "skill_proficiencies": [
+                    "arcana",
+                    "athletics",
+                    "insight",
+                    "perception",
+                    "religion",
+                ]
+            },
+        )
+        self.engine.validate_step(valid, "proficiencies", "srd-5.2.1")
+
+        for invalid_skills in (
+            ["insight", "religion"],
+            [
+                "arcana",
+                "athletics",
+                "deception",
+                "insight",
+                "perception",
+                "religion",
+            ],
+            ["arcana", "deception", "insight", "religion", "stealth"],
+        ):
+            with self.subTest(skills=invalid_skills):
+                invalid = self.engine.patch(
+                    self.draft,
+                    {"skill_proficiencies": invalid_skills},
+                )
+                with self.assertRaises(CharacterDraftValidationError):
+                    self.engine.validate_step(
+                        invalid, "proficiencies", "srd-5.2.1"
+                    )
 
 
 if __name__ == "__main__":
