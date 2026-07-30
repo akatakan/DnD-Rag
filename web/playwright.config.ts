@@ -6,6 +6,9 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL || "http://localhost:5173",
     channel: "msedge",
+    launchOptions: {
+      slowMo: Number(process.env.E2E_SLOW_MO || 0),
+    },
     viewport: { width: 1440, height: 1000 },
     screenshot: "only-on-failure",
   },

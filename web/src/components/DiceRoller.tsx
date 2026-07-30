@@ -476,11 +476,18 @@ export default function DiceRoller({
                   key={option.value}
                   className={mode === option.value ? "selected" : ""}
                   aria-pressed={mode === option.value}
+                  title={option.value === "normal"
+                    ? "Seçilen zarı normal şekilde at"
+                    : `${option.label}, D&D kuralları gereği yalnız D20 Testlerine uygulanır`}
                   onClick={() => chooseMode(option.value)}
                 >
                   {option.label}
                 </button>
               ))}
+              <small className="roll-mode-rule">
+                Avantaj/dezavantaj zar adedini genel olarak artırmaz. Yalnız D20
+                Testinde iki d20 atılır; yüksek veya düşük sonuç tutulur.
+              </small>
             </fieldset>
 
             <div className="dice-settings">

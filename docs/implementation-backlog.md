@@ -298,7 +298,8 @@ animasyon authoritative sonuca görsel olarak ulaşır. Reduced-motion korunur.
 
 Tamamlanan kapsam: lazy Three.js/cannon-es renderer; d4–d100 mesh ve görünmeyen bounded
 physics; tray çizmeden yüksek z-index'li şeffaf ekran canvas'ı; authoritative sonucu
-üst yüzeye, d6 yan yüz sayılarını doğrudan mesh'e yerleştiren yüzey etiketleri;
+kullanıcıya bakan gerçek yüze, d4–d20 yüz sayılarını doğrudan mesh geometrisine
+yerleştiren ışıklı kazıma decal'ları ve bounded d100 yüz etiketleri;
 bounded 12-die scene; collision audio ve
 üç tema; migration v21 üye tercihleri; reduced-motion'da vendor yüklemeyen static
 fallback; WebGL/context-loss/lazy import error boundary; tam RAF/body/material/context

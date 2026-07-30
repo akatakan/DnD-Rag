@@ -509,6 +509,12 @@ h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; g
   font-weight: 700;
 }
 .roll-mode button.selected { color: #fff; background: #282d2b; border-color: #282d2b; }
+.roll-mode-rule {
+  grid-column: 1 / -1;
+  color: #69706c;
+  font-size: 11px;
+  line-height: 1.45;
+}
 .dice-settings { display: grid; grid-template-columns: 1.35fr 1fr 1.2fr; gap: 12px; }
 .dice-presentation-settings {
   margin-top: 10px;

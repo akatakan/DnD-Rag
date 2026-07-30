@@ -422,9 +422,11 @@ d6, d8, d10, d12, d20 ve tam 100 triangle yüzlü d100 meshini üretir. cannon-e
 gravity, friction, restitution ve görünmeyen fizik sınırlarıyla çarpışma/sekme
 koreografisini çalıştırır. Görsel masa çizilmez; canvas yüksek z-index'li, şeffaf bir
 ekran katmanıdır. Görsel fizik RNG değildir: sonuç, kept/discarded ayrımı ve toplam
-backend payload'ından gelir. Her mesh settle olduğunda authoritative sonuç üst yüzeye
-düz bir yüzey etiketi olarak yerleşir; d6'nın görünen yan yüzlerinde de sayılar bulunur
-ve sonuç ayrı bir rozet/yuvarlak içinde tekrarlanmaz.
+backend payload'ından gelir. Her mesh settle olduğunda authoritative sonuç kameraya,
+yani kullanıcıya en çok bakan gerçek zar yüzüne yerleşir. d4–d20'nin diğer yüz sayıları
+geometrinin yüz merkezine ve yüz normaline bağlı, ışık alan kazıma decal'larıdır; d100
+mobil GPU yükünü sınırlamak için görünür yüzlerde bounded etiket kullanır. Sonuç ayrı
+bir rozet/yuvarlak içinde tekrarlanmaz.
 İlk 12 zar 3B çizilir, kalanı bounded overflow sayacıyla belirtilir.
 
 Migration v21 üye kapsamlı `crimson`, `arcane`, `ivory` tema ve ses tercihini saklar.

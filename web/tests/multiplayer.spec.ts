@@ -84,6 +84,14 @@ test("DM and player receive separate live workspaces", async ({ browser, request
   await playerPage.getByRole("button", { name: /Zar panelini kapat/ }).click();
   await playerPage.getByRole("button", { name: /Zar atma panelini aç/ }).click();
   await expect(playerPage.getByRole("dialog", { name: "Zar at" })).toBeVisible();
+  await expect(
+    playerPage.getByText(/Yalnız D20 Testinde iki d20 atılır/),
+  ).toBeVisible();
+  await playerPage.getByRole("button", { name: "Avantaj", exact: true }).click();
+  await expect(
+    playerPage.getByLabel("Atış ifadesi 2d20kh1"),
+  ).toBeVisible();
+  await playerPage.getByRole("button", { name: "Normal", exact: true }).click();
   const preferenceSaved = playerPage.waitForResponse((response) =>
     response.url().includes("/api/me/dice-preferences")
     && response.request().method() === "PATCH"
@@ -101,10 +109,20 @@ test("DM and player receive separate live workspaces", async ({ browser, request
   await expect(diceTray).toHaveAttribute("data-renderer", "webgl");
   await expect(diceTray).toHaveAttribute("data-animation-state", /running|settled/);
   await expect(diceTray).toHaveAttribute("data-result-faces", /^\d+,\d+$/);
+  await expect(diceTray).toHaveAttribute("data-result-orientation", "camera");
+  await expect(diceTray).toHaveAttribute("data-engraved-face-count", "12");
   await expect(diceTray).toBeVisible();
   await expect(diceTray.locator(".dice-3d-value")).toHaveCount(0);
   await playerPage.waitForTimeout(1_350);
   await playerPage.screenshot({ path: "test-results/dice-3d-mobile.png" });
+  await playerPage.getByRole("button", { name: "Avantaj", exact: true }).click();
+  await playerPage.getByRole("button", { name: "2d20kh1 at" }).click();
+  await expect(diceTray).toHaveAttribute("data-result-orientation", "camera");
+  await expect(diceTray).toHaveAttribute("data-engraved-face-count", "40");
+  await playerPage.waitForTimeout(1_350);
+  await playerPage.screenshot({
+    path: "test-results/dice-3d-advantage-mobile.png",
+  });
   await expect(playerPage.getByLabel("Değiştirici")).toHaveValue("0");
   await playerPage.getByRole("button", { name: /Zar panelini kapat/ }).click();
   await playerPage.getByRole("tab", { name: "Inventory" }).click();

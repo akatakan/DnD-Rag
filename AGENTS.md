@@ -268,7 +268,8 @@ the retrieval contract.
   version must remain coupled by migration/store validation.
 - 3D dice is presentation only. Three/cannon must lazy-load after an authoritative
   result; never use visual body orientation, Math.random, or physics state as game RNG.
-  The settled label must come from the server roll payload.
+  The settled, user-facing result label must come from the server roll payload. Other
+  face labels are presentation-only geometry decals and must never determine the roll.
 - Bound the 3D scene to 12 rendered dice, use the overflow indicator for the rest,
   throttle collision audio, and release RAF, bodies, geometries, materials, labels,
   canvas, and WebGL context after the presentation window. Preserve static output for

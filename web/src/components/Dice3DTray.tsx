@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import * as CANNON from "cannon-es";
 import {
   BoxGeometry,
+  type BufferGeometry,
   CanvasTexture,
   DirectionalLight,
   DodecahedronGeometry,
@@ -10,7 +11,6 @@ import {
   IcosahedronGeometry,
   type Material,
   Mesh,
-  MeshBasicMaterial,
   MeshStandardMaterial,
   OctahedronGeometry,
   PCFSoftShadowMap,
@@ -18,10 +18,12 @@ import {
   PlaneGeometry,
   PointLight,
   PolyhedronGeometry,
+  Quaternion,
   Scene,
   SphereGeometry,
   SRGBColorSpace,
   TetrahedronGeometry,
+  Vector3,
   WebGLRenderer,
 } from "three";
 import { playDiceImpact } from "../diceAudio";
@@ -131,11 +133,83 @@ function shownResultFaces(result: DiceRollPayload) {
   return result.rolls.slice(0, 12).join(",");
 }
 
+const LABEL_FORWARD = new Vector3(0, 0, 1);
+const USER_VIEW = new Vector3(0, 4.4, 12).normalize();
+
+type FacePlacement = {
+  center: Vector3;
+  normal: Vector3;
+};
+
+function facePlacements(geometry: BufferGeometry): FacePlacement[] {
+  const positions = geometry.getAttribute("position");
+  const index = geometry.index;
+  const groups: Array<{
+    normal: Vector3;
+    weightedCenter: Vector3;
+    weight: number;
+    distance: number;
+  }> = [];
+  const triangleCount = (index?.count ?? positions.count) / 3;
+  const vertex = (triangle: number, corner: number) => {
+    const offset = triangle * 3 + corner;
+    const vertexIndex = index ? index.getX(offset) : offset;
+    return new Vector3().fromBufferAttribute(positions, vertexIndex);
+  };
+
+  for (let triangle = 0; triangle < triangleCount; triangle += 1) {
+    const a = vertex(triangle, 0);
+    const b = vertex(triangle, 1);
+    const c = vertex(triangle, 2);
+    const cross = new Vector3()
+      .subVectors(b, a)
+      .cross(new Vector3().subVectors(c, a));
+    const area = cross.length() / 2;
+    if (area < 0.000001) continue;
+    const normal = cross.normalize();
+    const center = a.add(b).add(c).multiplyScalar(1 / 3);
+    if (normal.dot(center) < 0) normal.negate();
+    const distance = normal.dot(center);
+    const group = groups.find((candidate) =>
+      candidate.normal.dot(normal) > 0.999
+      && Math.abs(candidate.distance - distance) < 0.012
+    );
+    if (group) {
+      group.weightedCenter.addScaledVector(center, area);
+      group.weight += area;
+    } else {
+      groups.push({
+        normal,
+        weightedCenter: center.clone().multiplyScalar(area),
+        weight: area,
+        distance,
+      });
+    }
+  }
+
+  return groups.map((group) => ({
+    center: group.weightedCenter.multiplyScalar(1 / group.weight),
+    normal: group.normal,
+  }));
+}
+
+function labelSize(sides: DiceSides, result: boolean) {
+  const base: Record<DiceSides, number> = {
+    4: 0.3,
+    6: 0.34,
+    8: 0.24,
+    10: 0.18,
+    12: 0.17,
+    20: 0.14,
+    100: 0.065,
+  };
+  return base[sides] * (result ? 1.18 : 1);
+}
+
 function faceLabel(
   value: number,
   color: string,
-  position: [number, number, number],
-  rotation: [number, number, number],
+  placement: FacePlacement,
   size: number,
   visible = true,
 ) {
@@ -149,19 +223,25 @@ function faceLabel(
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.lineJoin = "round";
-  context.lineWidth = 12;
-  context.strokeStyle = "rgba(255, 255, 255, .28)";
+  context.shadowColor = "rgba(255, 255, 255, .36)";
+  context.shadowOffsetX = -3;
+  context.shadowOffsetY = -3;
+  context.lineWidth = 18;
+  context.strokeStyle = "rgba(0, 0, 0, .72)";
   context.strokeText(String(value), 128, 134);
+  context.shadowColor = "transparent";
   context.fillStyle = color;
   context.fillText(String(value), 128, 134);
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
   texture.needsUpdate = true;
-  const material = new MeshBasicMaterial({
+  const material = new MeshStandardMaterial({
     map: texture,
     transparent: true,
     alphaTest: 0.08,
     side: DoubleSide,
+    roughness: 0.9,
+    metalness: 0,
     depthTest: true,
     depthWrite: false,
     polygonOffset: true,
@@ -169,44 +249,43 @@ function faceLabel(
   });
   const geometry = new PlaneGeometry(size, size);
   const mesh = new Mesh(geometry, material);
-  mesh.position.set(...position);
-  mesh.rotation.set(...rotation);
+  mesh.position.copy(placement.center).addScaledVector(placement.normal, 0.007);
+  mesh.quaternion.setFromUnitVectors(LABEL_FORWARD, placement.normal);
   mesh.visible = visible;
   mesh.renderOrder = 2;
   return { mesh, material, texture, geometry };
 }
 
-function labelsForDie(value: number, sides: DiceSides, color: string) {
-  const radius = sides === 6 ? 0.446 : 0.57;
-  const size = sides === 6 ? 0.42 : 0.34;
-  const nextValue = (offset: number) => ((value - 1 + offset) % sides) + 1;
-  const top = faceLabel(
-    value,
-    color,
-    [0, radius + 0.004, 0],
-    [-Math.PI / 2, 0, 0],
-    size,
-    false,
+function labelsForDie(
+  value: number,
+  sides: DiceSides,
+  color: string,
+  geometry: BufferGeometry,
+) {
+  const placements = facePlacements(geometry)
+    .sort((left, right) =>
+      right.normal.dot(USER_VIEW) - left.normal.dot(USER_VIEW)
+    );
+  const labelLimit = Math.min(placements.length, sides === 100 ? 20 : sides);
+  const visiblePlacements = placements.slice(0, labelLimit);
+  const values = [value];
+  for (let candidate = 1; values.length < labelLimit; candidate += 1) {
+    if (candidate !== value) values.push(candidate);
+  }
+  const all = visiblePlacements.map((placement, index) =>
+    faceLabel(
+      values[index],
+      color,
+      placement,
+      labelSize(sides, index === 0),
+      index !== 0,
+    )
   );
-  const sideLabels = sides === 6
-    ? [
-        faceLabel(
-          nextValue(1),
-          color,
-          [0, 0, radius + 0.004],
-          [0, 0, 0],
-          size,
-        ),
-        faceLabel(
-          nextValue(2),
-          color,
-          [radius + 0.004, 0, 0],
-          [0, Math.PI / 2, 0],
-          size,
-        ),
-      ]
-    : [];
-  return { top, all: [top, ...sideLabels] };
+  return {
+    result: all[0],
+    resultNormal: visiblePlacements[0].normal.clone(),
+    all,
+  };
 }
 
 export default function Dice3DTray({
@@ -271,6 +350,7 @@ export default function Dice3DTray({
     host.dataset.renderer = "webgl";
     host.dataset.animationState = "running";
     host.dataset.resultFaces = shownResultFaces(result);
+    host.dataset.resultOrientation = "camera";
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFSoftShadowMap;
     renderer.outputColorSpace = SRGBColorSpace;
@@ -371,7 +451,10 @@ export default function Dice3DTray({
       const labels = labelsForDie(
         value,
         sides,
-        `#${colors.edge.toString(16).padStart(6, "0")}`,
+        isKept
+          ? `#${colors.edge.toString(16).padStart(6, "0")}`
+          : "#f5efe5",
+        geometry,
       );
       labels.all.forEach((label) => mesh.add(label.mesh));
       scene.add(mesh);
@@ -428,6 +511,9 @@ export default function Dice3DTray({
       world.addBody(body);
       objects.push({ body, mesh, labels, settled: false, impact });
     });
+    host.dataset.engravedFaceCount = String(
+      objects.reduce((total, item) => total + item.labels.all.length, 0),
+    );
 
     let frame = 0;
     let lastTime = performance.now();
@@ -442,10 +528,22 @@ export default function Dice3DTray({
         if (time - startedAt > 1_150 && !item.settled) {
           body.velocity.set(0, 0, 0);
           body.angularVelocity.set(0, 0, 0);
-          body.quaternion.set(0, 0, 0, 1);
+          const cameraDirection = camera.position.clone()
+            .sub(new Vector3(body.position.x, body.position.y, body.position.z))
+            .normalize();
+          const settledRotation = new Quaternion().setFromUnitVectors(
+            labels.resultNormal,
+            cameraDirection,
+          );
+          body.quaternion.set(
+            settledRotation.x,
+            settledRotation.y,
+            settledRotation.z,
+            settledRotation.w,
+          );
           body.sleep();
           item.settled = true;
-          labels.top.mesh.visible = true;
+          labels.result.mesh.visible = true;
         }
         mesh.position.copy(body.position);
         mesh.quaternion.copy(body.quaternion);
