@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const API = "http://localhost:8000";
+const API = process.env.E2E_API_URL || "http://localhost:8000";
 
 test("DM and player receive separate live workspaces", async ({ browser, request }) => {
   test.setTimeout(60_000);
@@ -43,7 +43,29 @@ test("DM and player receive separate live workspaces", async ({ browser, request
     "scrollWidth",
     await playerPage.locator("html").evaluate((element) => element.clientWidth),
   );
+  await expect(playerPage.getByRole("heading", { name: "Kahramanını adlandır" })).toBeVisible();
+  await expect(playerPage.getByText(/Masaya katılmadan önce karakterini tamamla/)).toBeVisible();
+  await expect(playerPage.getByRole("button", { name: "Campaign" })).toBeDisabled();
+  await expect(playerPage.getByRole("button", { name: "Session" })).toBeDisabled();
+  await expect(playerPage.getByRole("button", { name: "Builder'ı kapat" })).toHaveCount(0);
+  await expect(playerPage.getByRole("button", { name: /Zar atma panelini aç/ })).toHaveCount(0);
+  await expect(playerPage.getByRole("button", { name: "Oturum token'ını yenile" })).toBeEnabled();
+  await expect(playerPage.getByRole("button", { name: "Oturumdan çık" })).toBeEnabled();
+  await playerPage.getByLabel("Karakter adı").fill("Riva Revised");
+  await playerPage.getByRole("button", { name: "İleri" }).click();
+  await expect(playerPage.getByRole("heading", { name: "Ability score'ları belirle" })).toBeVisible();
+  await expect(playerPage.getByRole("button", { name: /Standard Array/ })).toHaveAttribute("aria-pressed", "true");
+  await playerPage.screenshot({
+    path: "test-results/character-builder-mobile.png",
+    fullPage: true,
+  });
+  for (let step = 0; step < 7; step += 1) {
+    await playerPage.getByRole("button", { name: "İleri" }).click();
+  }
+  await expect(playerPage.getByRole("heading", { name: "Karakterini kontrol et" })).toBeVisible();
+  await playerPage.getByRole("button", { name: "Karakteri yayınla" }).click();
   await expect(playerPage.getByText("Character Sheet")).toBeVisible();
+  await expect(playerPage.getByText("Riva Revised")).toBeVisible();
   await expect(playerPage.getByText("HP Talebi")).toBeVisible();
   await expect(playerPage.getByText("Kurala Sor")).toBeVisible();
   await playerPage.getByRole("button", { name: "Campaign" }).click();
@@ -57,22 +79,6 @@ test("DM and player receive separate live workspaces", async ({ browser, request
   await playerPage.getByRole("button", { name: "Not ekle" }).click();
   await expect(playerPage.getByText("Kapıdaki rünleri inceledim.")).toBeVisible();
   await playerPage.getByRole("button", { name: "Session ekranını kapat" }).click();
-
-  await playerPage.getByRole("button", { name: "Karakter oluştur" }).click();
-  await expect(playerPage.getByRole("heading", { name: "Kahramanını adlandır" })).toBeVisible();
-  await playerPage.getByLabel("Karakter adı").fill("Riva Revised");
-  await playerPage.getByRole("button", { name: "İleri" }).evaluate((button) => {
-    (button as HTMLButtonElement).click();
-    (button as HTMLButtonElement).click();
-  });
-  await expect(playerPage.getByRole("heading", { name: "Ability score'ları belirle" })).toBeVisible();
-  for (let step = 0; step < 7; step += 1) {
-    await playerPage.getByRole("button", { name: "İleri" }).click();
-  }
-  await expect(playerPage.getByRole("heading", { name: "Karakterini kontrol et" })).toBeVisible();
-  await playerPage.getByRole("button", { name: "Karakteri yayınla" }).click();
-  await expect(playerPage.getByText("Character Sheet")).toBeVisible();
-  await expect(playerPage.getByText("Riva Revised")).toBeVisible();
   await playerPage.getByRole("button", { name: /Perception/ }).click();
   await expect(playerPage.getByRole("dialog", { name: "Perception" })).toBeVisible();
   await playerPage.getByRole("button", { name: /Zar panelini kapat/ }).click();
@@ -94,14 +100,10 @@ test("DM and player receive separate live workspaces", async ({ browser, request
   await expect(diceTray.locator("canvas")).toHaveCount(1);
   await expect(diceTray).toHaveAttribute("data-renderer", "webgl");
   await expect(diceTray).toHaveAttribute("data-animation-state", /running|settled/);
+  await expect(diceTray).toHaveAttribute("data-result-faces", /^\d+,\d+$/);
   await expect(diceTray).toBeVisible();
-  await expect(diceTray.locator(".dice-3d-value")).toHaveCount(2);
-  await expect(diceTray.locator(".dice-3d-value.settled")).toHaveCount(2, {
-    timeout: 2_500,
-  });
-  await expect(diceTray.locator(".dice-3d-value.settled").nth(0)).toBeVisible();
-  await expect(diceTray.locator(".dice-3d-value.settled").nth(1)).toBeVisible();
-  await playerPage.waitForTimeout(450);
+  await expect(diceTray.locator(".dice-3d-value")).toHaveCount(0);
+  await playerPage.waitForTimeout(1_350);
   await playerPage.screenshot({ path: "test-results/dice-3d-mobile.png" });
   await expect(playerPage.getByLabel("Değiştirici")).toHaveValue("0");
   await playerPage.getByRole("button", { name: /Zar panelini kapat/ }).click();
@@ -115,7 +117,7 @@ test("DM and player receive separate live workspaces", async ({ browser, request
   await playerPage.getByRole("button", { name: "Hasar" }).click();
   await expect(dmPage.getByText("Onay Bekleyenler")).toBeVisible();
   await dmPage.getByTitle("Onayla").click();
-  await expect(playerPage.getByText("9/10")).toBeVisible();
+  await expect(playerPage.getByText("10/11")).toBeVisible();
   await expect(diceTray).toHaveAttribute("data-animation-state", "released", {
     timeout: 5_000,
   });

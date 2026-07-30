@@ -363,8 +363,21 @@ character state, game revision, event ve idempotency receipt tek SQLite transact
 yazılır; validation veya revision çatışmasında hiçbir parça commit olmaz. Oyuncu yalnız
 kendi draft'ını, aktif DM ise kampanyadaki draft'ları yönetebilir.
 
-Oyuncu üst bardaki **Karakter oluştur** eylemiyle dokuz adımlı builder workspace'ini
-açar. Değişiklikler kısa bir debounce sonrasında sırayla autosave edilir; ekrandaki cloud
+Migration v26 yeni katılan oyuncuyu `character_ready=0` olarak kaydeder ve private
+oluşturma taslağını üyelikle aynı transaction içinde açar. Snapshot bu durumu
+`character_creation_required` olarak taşır; oyuncu geçerli karakterini yayınlayana kadar
+normal player workspace, Campaign/Session ekranları ve zar FAB'ı yerine zorunlu builder
+görür. Migration, mevcut oyunculardan yalnız published draft'ı bulunanları hazır kabul
+eder; draft'ı hiç olmayan veya hâlâ active olan oyuncular da oluşturma akışına alınır.
+
+Draft schema v2, ability score'ları pinned SRD kurallarıyla doğrular: Standard Array
+tam olarak `15, 14, 13, 12, 10, 8` çoklu kümesini; Point Cost ise 8–15 aralığı ve tam
+27 puan bütçesini gerektirir. Background ability artışları katalogdaki izinli
+ability'lerle sınırlıdır ve `+2/+1` ya da `+1/+1/+1` dağılımıyla uygulanır. Rastgele ability üretimi
+henüz authoritative roll provenance taşımadığı için builder seçeneği değildir.
+
+Oyuncu zorunlu akış dışında üst bardaki **Karakter oluştur** eylemiyle dokuz adımlı
+builder workspace'ini açar. Değişiklikler kısa bir debounce sonrasında sırayla autosave edilir; ekrandaki cloud
 durumu saved, pending, saving, error ve conflict hallerini ayırır. Başka sekme draft
 revision'ını ilerletirse yerel form sessizce ezilmez, kullanıcıya sunucudaki taslağı açıkça
 yeniden yükleme seçeneği verilir. İleri geçiş backend adım doğrulamasını, geri geçiş
@@ -402,13 +415,16 @@ sonucu üretir. Player-visible intent context internal encounter ID/turn index t
 FAB'daki görünürlük seçimi ile mevcut d4–d100, adet,
 advantage/disadvantage ve sonuç animasyonu bu sözleşmeye bağlıdır.
 
-### 3B Zar Tepsisi ve Fizik
+### 3B Zar ve Fizik Sunumu
 
 Authoritative zar sonucu geldikten sonra lazy-loaded `Dice3DTray`, Three.js ile d4,
 d6, d8, d10, d12, d20 ve tam 100 triangle yüzlü d100 meshini üretir. cannon-es world;
-gravity, friction, restitution, tray tabanı ve dört rail ile çarpışma/sekme koreografisini
-çalıştırır. Görsel fizik RNG değildir: sonuç, kept/discarded ayrımı ve toplam backend
-payload'ından gelir; her mesh settle olduğunda authoritative sayı overlay'i gösterilir.
+gravity, friction, restitution ve görünmeyen fizik sınırlarıyla çarpışma/sekme
+koreografisini çalıştırır. Görsel masa çizilmez; canvas yüksek z-index'li, şeffaf bir
+ekran katmanıdır. Görsel fizik RNG değildir: sonuç, kept/discarded ayrımı ve toplam
+backend payload'ından gelir. Her mesh settle olduğunda authoritative sonuç üst yüzeye
+düz bir yüzey etiketi olarak yerleşir; d6'nın görünen yan yüzlerinde de sayılar bulunur
+ve sonuç ayrı bir rozet/yuvarlak içinde tekrarlanmaz.
 İlk 12 zar 3B çizilir, kalanı bounded overflow sayacıyla belirtilir.
 
 Migration v21 üye kapsamlı `crimson`, `arcane`, `ivory` tema ve ses tercihini saklar.

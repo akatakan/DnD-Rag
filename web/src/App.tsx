@@ -173,6 +173,12 @@ export default function App() {
 
   const dmWorkspace = snapshot.me.role !== "player";
   const roleLabel = snapshot.me.role === "dm" ? "Dungeon Master" : snapshot.me.role === "co_dm" ? "Co-DM" : "Player";
+  const characterCreationRequired =
+    !dmWorkspace && snapshot.me.character_creation_required;
+  const builderVisible =
+    !dmWorkspace && (characterCreationRequired || builderOpen);
+  const workspaceLocked =
+    builderVisible || campaignOpen || sessionOpen || encounterOpen;
 
   return (
     <div className="app-shell">
@@ -182,32 +188,42 @@ export default function App() {
         <div className="topbar-meta">
           <span role="status" className={`connection ${connected ? "online" : ""}`}>{connected ? "Canli" : "Baglaniyor"}</span>
           <span className="role-label">{dmWorkspace ? <Shield size={16} /> : <UserRound size={16} />}{roleLabel}</span>
-          <button className="campaign-launch" disabled={builderOpen || campaignOpen || sessionOpen || encounterOpen} onClick={() => setCampaignOpen(true)}><Castle size={16} /> Campaign</button>
-          <button className="session-launch" disabled={builderOpen || campaignOpen || sessionOpen || encounterOpen} onClick={() => setSessionOpen(true)}><BookOpenText size={16} /> Session</button>
-          {dmWorkspace && <button className="encounter-launch" disabled={builderOpen || campaignOpen || sessionOpen || encounterOpen} onClick={() => setEncounterOpen(true)}><Library size={16} /> Encounters</button>}
-          {!dmWorkspace && <button className="builder-launch" disabled={campaignOpen || sessionOpen || encounterOpen} onClick={() => setBuilderOpen(true)}><Sparkles size={16} /> Karakter oluştur</button>}
+          <button className="campaign-launch" disabled={workspaceLocked} onClick={() => setCampaignOpen(true)}><Castle size={16} /> Campaign</button>
+          <button className="session-launch" disabled={workspaceLocked} onClick={() => setSessionOpen(true)}><BookOpenText size={16} /> Session</button>
+          {dmWorkspace && <button className="encounter-launch" disabled={workspaceLocked} onClick={() => setEncounterOpen(true)}><Library size={16} /> Encounters</button>}
+          {!dmWorkspace && !characterCreationRequired && <button className="builder-launch" disabled={campaignOpen || sessionOpen || encounterOpen} onClick={() => setBuilderOpen(true)}><Sparkles size={16} /> Karakter oluştur</button>}
           <button
             className="icon-button"
             onClick={rotateSession}
-            title={builderOpen || campaignOpen || sessionOpen || encounterOpen ? "Açık düzenleyici kapatıldıktan sonra oturumu yenile" : "Oturum token'ını yenile"}
+            title={workspaceLocked ? "Açık düzenleyici kapatıldıktan sonra oturumu yenile" : "Oturum token'ını yenile"}
             aria-label="Oturum token'ını yenile"
-            disabled={builderOpen || campaignOpen || sessionOpen || encounterOpen}
+            disabled={workspaceLocked && !characterCreationRequired}
           >
             <RefreshCw size={18} />
           </button>
           <button
             className="icon-button"
             onClick={logout}
-            title={builderOpen || campaignOpen || sessionOpen || encounterOpen ? "Açık düzenleyici kapatıldıktan sonra oturumdan çık" : "Oturumdan çık"}
+            title={workspaceLocked ? "Açık düzenleyici kapatıldıktan sonra oturumdan çık" : "Oturumdan çık"}
             aria-label="Oturumdan çık"
-            disabled={builderOpen || campaignOpen || sessionOpen || encounterOpen}
+            disabled={workspaceLocked && !characterCreationRequired}
           >
             <LogOut size={18} />
           </button>
         </div>
       </header>
       {error && <div className="error-banner" role="alert">{error}</div>}
-      {campaignOpen ? (
+      {builderVisible ? (
+        <CharacterBuilder
+          snapshot={snapshot}
+          token={credentials.token}
+          required={characterCreationRequired}
+          onClose={() => {
+            if (!characterCreationRequired) setBuilderOpen(false);
+          }}
+          onPublished={refresh}
+        />
+      ) : campaignOpen ? (
         <CampaignDashboard
           snapshot={snapshot}
           token={credentials.token}
@@ -228,13 +244,6 @@ export default function App() {
           onClose={() => setEncounterOpen(false)}
           onRefresh={refresh}
         />
-      ) : builderOpen && !dmWorkspace ? (
-        <CharacterBuilder
-          snapshot={snapshot}
-          token={credentials.token}
-          onClose={() => setBuilderOpen(false)}
-          onPublished={refresh}
-        />
       ) : dmWorkspace ? (
         <DMConsole
           snapshot={snapshot}
@@ -250,7 +259,7 @@ export default function App() {
           onRefresh={refresh}
         />
       )}
-      {!builderOpen && !campaignOpen && !sessionOpen && !encounterOpen && <DiceRoller
+      {!builderVisible && !campaignOpen && !sessionOpen && !encounterOpen && <DiceRoller
       token={credentials.token}
       revision={snapshot.revision}
       actorCharacterId={snapshot.me.character_id}

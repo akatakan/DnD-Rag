@@ -14,7 +14,11 @@ from api.character_engine import (
 from api.inventory_engine import InventoryEngine, InventoryValidationError
 
 
-DRAFT_SCHEMA_VERSION = 1
+DRAFT_SCHEMA_VERSION = 2
+LEGACY_DRAFT_SCHEMA_VERSION = 1
+STANDARD_ARRAY = (15, 14, 13, 12, 10, 8)
+POINT_COSTS = {8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9}
+ABILITY_SCORE_METHODS = {"standard_array", "point_cost", "legacy_manual"}
 DRAFT_STEPS = (
     "basics",
     "abilities",
@@ -29,6 +33,8 @@ DRAFT_STEPS = (
 DRAFT_FIELDS = {
     "name",
     "ability_scores",
+    "ability_score_method",
+    "background_ability_increases",
     "class_id",
     "species_id",
     "background_id",
@@ -37,6 +43,10 @@ DRAFT_FIELDS = {
     "equipment_catalog_ids",
     "spellcasting",
     "attacks",
+}
+LEGACY_DRAFT_FIELDS = DRAFT_FIELDS - {
+    "ability_score_method",
+    "background_ability_increases",
 }
 
 
@@ -84,6 +94,8 @@ class CharacterDraftEngine:
             "schema_version": DRAFT_SCHEMA_VERSION,
             "name": character["name"],
             "ability_scores": deepcopy(character["inputs"]["ability_scores"]),
+            "ability_score_method": "legacy_manual",
+            "background_ability_increases": {},
             "class_id": character.get("class_id"),
             "species_id": character.get("species_id"),
             "background_id": character.get("background_id"),
@@ -105,6 +117,40 @@ class CharacterDraftEngine:
             },
             "attacks": list(deepcopy(action_state["attacks"]).values()),
         }
+
+    def new_creation_draft(self, character: dict[str, Any]) -> dict[str, Any]:
+        draft = self.from_character(character)
+        draft["ability_score_method"] = "standard_array"
+        draft["ability_scores"] = {
+            "strength": 15,
+            "dexterity": 14,
+            "constitution": 13,
+            "intelligence": 8,
+            "wisdom": 10,
+            "charisma": 12,
+        }
+        draft["background_ability_increases"] = {
+            "intelligence": 2,
+            "wisdom": 1,
+        }
+        self.validate_shape(draft)
+        return draft
+
+    @staticmethod
+    def migrate_v1(draft: dict[str, Any]) -> dict[str, Any]:
+        if (
+            not isinstance(draft, dict)
+            or draft.get("schema_version") != LEGACY_DRAFT_SCHEMA_VERSION
+            or set(draft) != {"schema_version", *LEGACY_DRAFT_FIELDS}
+        ):
+            raise CharacterDraftValidationError(
+                "Legacy character draft schema gecersiz."
+            )
+        migrated = deepcopy(draft)
+        migrated["schema_version"] = DRAFT_SCHEMA_VERSION
+        migrated["ability_score_method"] = "legacy_manual"
+        migrated["background_ability_increases"] = {}
+        return migrated
 
     def patch(self, draft: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
         self.validate_shape(draft)
@@ -138,6 +184,25 @@ class CharacterDraftEngine:
             )
         ):
             raise CharacterDraftValidationError("Ability scores gecersiz.")
+        if draft["ability_score_method"] not in ABILITY_SCORE_METHODS:
+            raise CharacterDraftValidationError(
+                "Ability score yontemi gecersiz."
+            )
+        increases = draft["background_ability_increases"]
+        if (
+            not isinstance(increases, dict)
+            or set(increases) - set(ABILITY_KEYS)
+            or any(
+                not isinstance(value, int)
+                or isinstance(value, bool)
+                or value not in {1, 2}
+                for value in increases.values()
+            )
+            or sum(increases.values()) > 3
+        ):
+            raise CharacterDraftValidationError(
+                "Background ability artislari gecersiz."
+            )
         for field, prefix in (
             ("class_id", "class:"),
             ("species_id", "species:"),
@@ -218,6 +283,8 @@ class CharacterDraftEngine:
             raise CharacterDraftValidationError("Builder step gecersiz.")
         if step in {"basics", "review"} and not draft["name"].strip():
             raise CharacterDraftValidationError("Character adi zorunludur.")
+        if step in {"abilities", "review"}:
+            self._validate_ability_scores(draft)
         expected_types = {
             "class": ("class_id", "class"),
             "species": ("species_id", "species"),
@@ -241,6 +308,8 @@ class CharacterDraftEngine:
                     ) from error
                 if entry["type"] != entity_type:
                     raise CharacterDraftValidationError(f"{field} turu gecersiz.")
+        if step in {"background", "review"}:
+            self._validate_background_increases(draft, ruleset_version)
         if step in {"proficiencies", "review"} and not set(
             draft["skill_expertise"]
         ) <= set(draft["skill_proficiencies"]):
@@ -303,6 +372,11 @@ class CharacterDraftEngine:
         character = self.character_engine.new_character(
             character_id, owner_id, draft["name"].strip(), ruleset_version
         )
+        final_ability_scores = {
+            ability: draft["ability_scores"][ability]
+            + draft["background_ability_increases"].get(ability, 0)
+            for ability in ABILITY_KEYS
+        }
         try:
             character = self.character_engine.update(
                 character,
@@ -312,7 +386,7 @@ class CharacterDraftEngine:
                     "species_id": draft["species_id"],
                     "background_id": draft["background_id"],
                     "inputs": {
-                        "ability_scores": draft["ability_scores"],
+                        "ability_scores": final_ability_scores,
                         "skill_proficiencies": draft["skill_proficiencies"],
                         "skill_expertise": draft["skill_expertise"],
                     },
@@ -340,3 +414,64 @@ class CharacterDraftEngine:
             KeyError,
         ) as error:
             raise CharacterDraftValidationError(str(error)) from error
+
+    @staticmethod
+    def _validate_ability_scores(draft: dict[str, Any]) -> None:
+        method = draft["ability_score_method"]
+        scores = list(draft["ability_scores"].values())
+        if method == "legacy_manual":
+            raise CharacterDraftValidationError(
+                "Devam etmek icin Standard Array veya Point Cost secilmelidir."
+            )
+        if method == "standard_array":
+            if sorted(scores, reverse=True) != list(STANDARD_ARRAY):
+                raise CharacterDraftValidationError(
+                    "Standard Array 15, 14, 13, 12, 10 ve 8 degerlerini "
+                    "tam olarak birer kez kullanmalidir."
+                )
+            return
+        if any(score not in POINT_COSTS for score in scores):
+            raise CharacterDraftValidationError(
+                "Point Cost ability score'lari 8 ile 15 arasinda olmalidir."
+            )
+        spent = sum(POINT_COSTS[score] for score in scores)
+        if spent != 27:
+            raise CharacterDraftValidationError(
+                f"Point Cost tam 27 puan kullanmalidir; kullanilan {spent}."
+            )
+
+    def _validate_background_increases(
+        self, draft: dict[str, Any], ruleset_version: str
+    ) -> None:
+        background_id = draft["background_id"]
+        if background_id is None:
+            raise CharacterDraftValidationError("background_id zorunludur.")
+        try:
+            background = self.catalog.get_entry(
+                ruleset_version, background_id
+            )["entry"]
+        except KeyError as error:
+            raise CharacterDraftValidationError(
+                "Background katalogda bulunamadi."
+            ) from error
+        options = {
+            value.casefold()
+            for value in background["data"].get("ability_options", [])
+        }
+        increases = draft["background_ability_increases"]
+        if not set(increases) <= options:
+            raise CharacterDraftValidationError(
+                "Background ability artislari katalog secenekleriyle uyusmuyor."
+            )
+        distribution = sorted(increases.values(), reverse=True)
+        if distribution not in ([2, 1], [1, 1, 1]):
+            raise CharacterDraftValidationError(
+                "Background ability artislari +2/+1 veya +1/+1/+1 olmali."
+            )
+        if any(
+            draft["ability_scores"][ability] + bonus > 20
+            for ability, bonus in increases.items()
+        ):
+            raise CharacterDraftValidationError(
+                "Background artisi ability score'u 20 uzerine cikaramaz."
+            )

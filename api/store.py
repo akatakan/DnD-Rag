@@ -483,17 +483,22 @@ class GameStore:
             if game is None:
                 raise KeyError("Davet kodu bulunamadı.")
             state = json.loads(game["state_json"])
-            state["characters"][character_id] = self.character_engine.new_character(
+            character = self.character_engine.new_character(
                 character_id,
                 member_id,
                 player_name,
                 ruleset_version=game["ruleset_version"],
             )
+            state["characters"][character_id] = character
             db.execute(
                 """INSERT INTO members
-                (id, game_id, name, role, character_id, token, created_at)
-                VALUES (?, ?, ?, 'player', ?, ?, ?)""",
+                (id, game_id, name, role, character_id, token, created_at,
+                 character_ready)
+                VALUES (?, ?, ?, 'player', ?, ?, ?, 0)""",
                 (member_id, game["id"], player_name, character_id, f"hashed:{token_hash}", timestamp),
+            )
+            self.create_character_draft(
+                game["id"], character, initial_creation=True
             )
             db.execute(
                 """INSERT INTO campaign_members
@@ -890,6 +895,26 @@ class GameStore:
             raise KeyError("Üye bulunamadı.")
         return dict(row)
 
+    def character_creation_required(
+        self, game_id: str, member_id: str
+    ) -> bool:
+        with self.connect() as db:
+            row = db.execute(
+                """
+                SELECT role, character_id, character_ready
+                FROM members
+                WHERE game_id = ? AND id = ?
+                """,
+                (game_id, member_id),
+            ).fetchone()
+        if row is None:
+            raise KeyError("Uye bulunamadi.")
+        return (
+            row["role"] == "player"
+            and row["character_id"] is not None
+            and row["character_ready"] == 0
+        )
+
     def _draft_result(self, row: sqlite3.Row) -> dict:
         try:
             data = json.loads(row["draft_json"])
@@ -934,13 +959,21 @@ class GameStore:
         return self._draft_result(row) if row is not None else None
 
     def create_character_draft(
-        self, game_id: str, character: dict
+        self,
+        game_id: str,
+        character: dict,
+        *,
+        initial_creation: bool = False,
     ) -> dict:
         existing = self.character_draft(game_id, character["id"])
         if existing is not None:
             return existing
         timestamp = now()
-        data = self.character_draft_engine.from_character(character)
+        data = (
+            self.character_draft_engine.new_creation_draft(character)
+            if initial_creation
+            else self.character_draft_engine.from_character(character)
+        )
         with self.connect() as db:
             db.execute(
                 """
@@ -961,6 +994,23 @@ class GameStore:
                 ),
             )
         return self.character_draft(game_id, character["id"])
+
+    def mark_character_ready(
+        self, game_id: str, character_id: str
+    ) -> None:
+        with self.connect() as db:
+            cursor = db.execute(
+                """
+                UPDATE members
+                SET character_ready = 1
+                WHERE game_id = ? AND character_id = ? AND role = 'player'
+                """,
+                (game_id, character_id),
+            )
+            if cursor.rowcount != 1:
+                raise CharacterDraftStorageError(
+                    "Character owner member kaydi bulunamadi."
+                )
 
     def update_character_draft(
         self,

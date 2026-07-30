@@ -506,9 +506,18 @@ def _snapshot(auth: AuthContext) -> dict:
             "started_at": active_session["started_at"],
             "ended_at": active_session["ended_at"],
         },
-        "me": auth.model_dump(
-            exclude={"auth_token_id", "auth_expires_at"}
-        ),
+        "me": {
+            **auth.model_dump(
+                exclude={"auth_token_id", "auth_expires_at"}
+            ),
+            "character_creation_required": (
+                store.character_creation_required(
+                    auth.game_id, auth.member_id
+                )
+                if auth.role == "player"
+                else False
+            ),
+        },
         "members": members,
         "state": state,
         "map_scene": store.map_scene(auth, game),

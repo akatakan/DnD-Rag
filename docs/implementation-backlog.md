@@ -164,13 +164,21 @@ background proficiency, expertise, item, spell/slot/attack çapraz doğrulaması
 sırasında fresh authoritative character üretimi ve draft status, game state, revision,
 event, idempotency receipt'in tek transaction'da commit/rollback davranışı.
 
+**Takip tamamlandı:** Migration v26 yeni oyuncular için atomik active draft +
+`character_ready=0` üyelik kapısı ekledi; publish aynı transaction içinde üyeyi hazır
+duruma geçirir. Draft schema v2 Standard Array çoklu kümesini, 27 puanlık Point Cost'u
+ve katalog izinli `+2/+1` background ability artışlarını sunucuda doğrular. Eski üyeler
+published draft durumuna göre sınıflandırılır; eski draft'lar explicit `legacy_manual`
+olarak migrate edilir ve yeniden yayınlanmadan önce geçerli yöntem seçimi gerektirir.
+
 ### CHAR-07 — Rehberli character builder UI
 
 **Durum:** `completed`
 **Bağımlılık:** CHAR-06
 
 Temel bilgiler, ability, class, species, background, proficiency, equipment, spell ve
-review adımları; loading/empty/error/conflict halleri.
+review adımları; loading/empty/error/conflict halleri. Karaktersiz yeni oyuncu normal
+workspace yerine kapatılamayan builder'a yönlendirilir.
 
 **Çıktı:** Oyuncu konsolundan açılan odaklı, responsive dokuz adımlı builder workspace;
 pinned catalog-backed class/species/background/item/spell kartları; ability ve skill
@@ -285,16 +293,17 @@ review PASS: 200 Python test + 29 subtest ve frontend production build.
 **Durum:** `completed`
 **Bağımlılık:** DICE-01
 
-Gerçek d4–d100 geometrileri, tray, çarpışma/sekme, ses ve tema. RNG sunucuda kalır;
+Gerçek d4–d100 geometrileri, ekran katmanı, çarpışma/sekme, ses ve tema. RNG sunucuda kalır;
 animasyon authoritative sonuca görsel olarak ulaşır. Reduced-motion korunur.
 
-Tamamlanan kapsam: lazy Three.js/cannon-es renderer; d4–d100 mesh/tray/physics;
-authoritative kept/discarded settle değerleri; bounded 12-die scene; collision audio ve
+Tamamlanan kapsam: lazy Three.js/cannon-es renderer; d4–d100 mesh ve görünmeyen bounded
+physics; tray çizmeden yüksek z-index'li şeffaf ekran canvas'ı; authoritative sonucu
+üst yüzeye, d6 yan yüz sayılarını doğrudan mesh'e yerleştiren yüzey etiketleri;
+bounded 12-die scene; collision audio ve
 üç tema; migration v21 üye tercihleri; reduced-motion'da vendor yüklemeyen static
 fallback; WebGL/context-loss/lazy import error boundary; tam RAF/body/material/context
-cleanup. Bağımsız review PASS: 207 Python test + 29 subtest ve frontend production
-build. Browser runtime bulunmadığı için gerçek WebGL/ses/reduced-motion Playwright
-akışı çalıştırılmadı ve manuel gate olarak açıkça kaldı.
+cleanup. Mobil gerçek WebGL Playwright akışı canvas, authoritative yüz değerleri,
+rozet yokluğu ve ekran görüntüsüyle doğrulanır.
 
 ## Faz E — Maps ve VTT
 

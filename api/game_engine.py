@@ -418,6 +418,7 @@ class GameEngine:
                 published_draft = self.store.mark_character_draft_published(
                     auth.game_id, character_id, draft_revision
                 )
+                self.store.mark_character_ready(auth.game_id, character_id)
             except CharacterDraftValidationError as error:
                 raise CommandError(str(error)) from error
             event_type, event_payload = "character_draft_published", {

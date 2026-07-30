@@ -2,24 +2,26 @@ import { useEffect, useRef } from "react";
 import * as CANNON from "cannon-es";
 import {
   BoxGeometry,
+  CanvasTexture,
   DirectionalLight,
   DodecahedronGeometry,
-  FogExp2,
+  DoubleSide,
   HemisphereLight,
   IcosahedronGeometry,
   type Material,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   OctahedronGeometry,
   PCFSoftShadowMap,
   PerspectiveCamera,
+  PlaneGeometry,
   PointLight,
   PolyhedronGeometry,
   Scene,
   SphereGeometry,
   SRGBColorSpace,
   TetrahedronGeometry,
-  Vector3,
   WebGLRenderer,
 } from "three";
 import { playDiceImpact } from "../diceAudio";
@@ -125,6 +127,88 @@ function keptIndexes(result: DiceRollPayload) {
   return indexes;
 }
 
+function shownResultFaces(result: DiceRollPayload) {
+  return result.rolls.slice(0, 12).join(",");
+}
+
+function faceLabel(
+  value: number,
+  color: string,
+  position: [number, number, number],
+  rotation: [number, number, number],
+  size: number,
+  visible = true,
+) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Zar yuzeyi cizilemedi.");
+  context.clearRect(0, 0, 256, 256);
+  context.font = `900 ${value >= 100 ? 112 : value >= 10 ? 138 : 164}px Georgia`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.lineJoin = "round";
+  context.lineWidth = 12;
+  context.strokeStyle = "rgba(255, 255, 255, .28)";
+  context.strokeText(String(value), 128, 134);
+  context.fillStyle = color;
+  context.fillText(String(value), 128, 134);
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  texture.needsUpdate = true;
+  const material = new MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    alphaTest: 0.08,
+    side: DoubleSide,
+    depthTest: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+  });
+  const geometry = new PlaneGeometry(size, size);
+  const mesh = new Mesh(geometry, material);
+  mesh.position.set(...position);
+  mesh.rotation.set(...rotation);
+  mesh.visible = visible;
+  mesh.renderOrder = 2;
+  return { mesh, material, texture, geometry };
+}
+
+function labelsForDie(value: number, sides: DiceSides, color: string) {
+  const radius = sides === 6 ? 0.446 : 0.57;
+  const size = sides === 6 ? 0.42 : 0.34;
+  const nextValue = (offset: number) => ((value - 1 + offset) % sides) + 1;
+  const top = faceLabel(
+    value,
+    color,
+    [0, radius + 0.004, 0],
+    [-Math.PI / 2, 0, 0],
+    size,
+    false,
+  );
+  const sideLabels = sides === 6
+    ? [
+        faceLabel(
+          nextValue(1),
+          color,
+          [0, 0, radius + 0.004],
+          [0, 0, 0],
+          size,
+        ),
+        faceLabel(
+          nextValue(2),
+          color,
+          [radius + 0.004, 0, 0],
+          [0, Math.PI / 2, 0],
+          size,
+        ),
+      ]
+    : [];
+  return { top, all: [top, ...sideLabels] };
+}
+
 export default function Dice3DTray({
   result,
   sides,
@@ -186,6 +270,7 @@ export default function Dice3DTray({
     }
     host.dataset.renderer = "webgl";
     host.dataset.animationState = "running";
+    host.dataset.resultFaces = shownResultFaces(result);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFSoftShadowMap;
     renderer.outputColorSpace = SRGBColorSpace;
@@ -201,15 +286,18 @@ export default function Dice3DTray({
     );
 
     const scene = new Scene();
-    scene.fog = new FogExp2(colors.tray, 0.035);
     const camera = new PerspectiveCamera(
-      narrowStage ? 46 : 38,
+      narrowStage ? 44 : 38,
       width / height,
       0.1,
       100,
     );
-    camera.position.set(0, narrowStage ? 7.8 : 6.8, narrowStage ? 10.2 : 8.7);
-    camera.lookAt(0, 0.1, 0);
+    camera.position.set(
+      0,
+      narrowStage ? 4.6 : 4.2,
+      narrowStage ? 12.8 : 11.2,
+    );
+    camera.lookAt(0, 0.65, 0.8);
 
     scene.add(new HemisphereLight(0xffffff, colors.tray, 1.35));
     const keyLight = new DirectionalLight(0xffffff, 2.3);
@@ -219,40 +307,6 @@ export default function Dice3DTray({
     const rimLight = new PointLight(colors.glow, 18, 16);
     rimLight.position.set(4, 3, -3);
     scene.add(rimLight);
-
-    const tray = new Mesh(
-      new BoxGeometry(trayHalfWidth * 2, 0.35, trayHalfDepth * 2),
-      new MeshStandardMaterial({
-        color: colors.tray,
-        roughness: 0.88,
-        metalness: 0.08,
-      }),
-    );
-    tray.position.y = -0.36;
-    tray.receiveShadow = true;
-    scene.add(tray);
-    const railMaterial = new MeshStandardMaterial({
-      color: colors.edge,
-      roughness: 0.62,
-      metalness: 0.18,
-    });
-    const rails = [
-      [0, 0.05, -trayHalfDepth + 0.02, trayHalfWidth * 2 + 0.3, 0.55, 0.25],
-      [0, 0.05, trayHalfDepth - 0.02, trayHalfWidth * 2 + 0.3, 0.55, 0.25],
-      [-trayHalfWidth + 0.02, 0.05, 0, 0.25, 0.55, trayHalfDepth * 2 - 0.2],
-      [trayHalfWidth - 0.02, 0.05, 0, 0.25, 0.55, trayHalfDepth * 2 - 0.2],
-    ];
-    const railMeshes: Mesh[] = [];
-    rails.forEach(([x, y, z, sx, sy, sz]) => {
-      const rail = new Mesh(
-        new BoxGeometry(sx, sy, sz),
-        railMaterial,
-      );
-      rail.position.set(x, y, z);
-      rail.castShadow = true;
-      scene.add(rail);
-      railMeshes.push(rail);
-    });
 
     const world = new CANNON.World({
       gravity: new CANNON.Vec3(0, -18, 0),
@@ -265,15 +319,15 @@ export default function Dice3DTray({
       shape: new CANNON.Box(
         new CANNON.Vec3(trayHalfWidth, 0.18, trayHalfDepth),
       ),
-      position: new CANNON.Vec3(0, -0.36, 0),
+      position: new CANNON.Vec3(0, -1.35, 0.8),
     });
     world.addBody(ground);
     const staticBodies = [ground];
     [
-      [0, 0.25, -trayHalfDepth, trayHalfWidth + 0.1, 0.55, 0.12],
-      [0, 0.25, trayHalfDepth, trayHalfWidth + 0.1, 0.55, 0.12],
-      [-trayHalfWidth, 0.25, 0, 0.12, 0.55, trayHalfDepth - 0.1],
-      [trayHalfWidth, 0.25, 0, 0.12, 0.55, trayHalfDepth - 0.1],
+      [0, -0.65, -trayHalfDepth + 0.8, trayHalfWidth + 0.1, 0.8, 0.12],
+      [0, -0.65, trayHalfDepth + 0.8, trayHalfWidth + 0.1, 0.8, 0.12],
+      [-trayHalfWidth, -0.65, 0.8, 0.12, 0.8, trayHalfDepth - 0.1],
+      [trayHalfWidth, -0.65, 0.8, 0.12, 0.8, trayHalfDepth - 0.1],
     ].forEach(([x, y, z, hx, hy, hz]) => {
       const body = new CANNON.Body({
         mass: 0,
@@ -294,7 +348,8 @@ export default function Dice3DTray({
     const objects: Array<{
       body: CANNON.Body;
       mesh: Mesh;
-      label: HTMLSpanElement;
+      labels: ReturnType<typeof labelsForDie>;
+      settled: boolean;
       impact?: (event: { contact: CANNON.ContactEquation }) => void;
     }> = [];
     const shownRolls = result.rolls.slice(0, 12);
@@ -313,6 +368,12 @@ export default function Dice3DTray({
       const mesh = new Mesh(geometry, material);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
+      const labels = labelsForDie(
+        value,
+        sides,
+        `#${colors.edge.toString(16).padStart(6, "0")}`,
+      );
+      labels.all.forEach((label) => mesh.add(label.mesh));
       scene.add(mesh);
 
       const physicsShape = sides === 6
@@ -336,7 +397,7 @@ export default function Dice3DTray({
       body.position.set(
         spawnX,
         4.3 + row * 1.05 + index * 0.08,
-        -0.8 + (random() - 0.5) * 1.6,
+        0.9 + (random() - 0.5) * 1.8,
       );
       body.velocity.set(
         narrowStage
@@ -365,31 +426,29 @@ export default function Dice3DTray({
         body.addEventListener("collide", impact);
       }
       world.addBody(body);
-
-      const label = document.createElement("span");
-      label.className = `dice-3d-value ${isKept ? "kept" : "discarded"}`;
-      label.textContent = String(value);
-      label.dataset.die = `d${sides}`;
-      host.appendChild(label);
-      objects.push({ body, mesh, label, impact });
+      objects.push({ body, mesh, labels, settled: false, impact });
     });
 
     let frame = 0;
     let lastTime = performance.now();
     const startedAt = lastTime;
-    const labelVector = new Vector3();
     const animate = (time: number) => {
       if (disposed) return;
       const delta = Math.min(1 / 20, (time - lastTime) / 1000);
       lastTime = time;
       world.step(1 / 60, delta, 4);
-      objects.forEach(({ body, mesh, label }) => {
+      objects.forEach((item) => {
+        const { body, mesh, labels } = item;
+        if (time - startedAt > 1_150 && !item.settled) {
+          body.velocity.set(0, 0, 0);
+          body.angularVelocity.set(0, 0, 0);
+          body.quaternion.set(0, 0, 0, 1);
+          body.sleep();
+          item.settled = true;
+          labels.top.mesh.visible = true;
+        }
         mesh.position.copy(body.position);
         mesh.quaternion.copy(body.quaternion);
-        labelVector.copy(mesh.position).project(camera);
-        label.style.left = `${(labelVector.x * 0.5 + 0.5) * width}px`;
-        label.style.top = `${(-labelVector.y * 0.5 + 0.5) * height}px`;
-        if (time - startedAt > 1050) label.classList.add("settled");
       });
       renderer.render(scene, camera);
       if (time - startedAt < 2750) {
@@ -407,18 +466,18 @@ export default function Dice3DTray({
       disposed = true;
       host.dataset.animationState = "released";
       cancelAnimationFrame(frame);
-      objects.forEach(({ body, mesh, label, impact }) => {
+      objects.forEach(({ body, mesh, labels, impact }) => {
         if (impact) body.removeEventListener("collide", impact);
         world.removeBody(body);
         mesh.geometry.dispose();
         (mesh.material as Material).dispose();
-        label.remove();
+        labels.all.forEach((label) => {
+          label.geometry.dispose();
+          label.material.dispose();
+          label.texture.dispose();
+        });
       });
       staticBodies.forEach((body) => world.removeBody(body));
-      tray.geometry.dispose();
-      (tray.material as Material).dispose();
-      railMeshes.forEach((rail) => rail.geometry.dispose());
-      railMaterial.dispose();
       scene.clear();
       renderer.domElement.removeEventListener(
         "webglcontextlost", handleContextLost,

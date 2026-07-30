@@ -253,7 +253,14 @@ export interface Snapshot {
   };
   campaign: CampaignSummary;
   session: SessionSummary;
-  me: { game_id: string; member_id: string; role: Role; character_id?: string; is_owner: boolean };
+  me: {
+    game_id: string;
+    member_id: string;
+    role: Role;
+    character_id?: string;
+    is_owner: boolean;
+    character_creation_required: boolean;
+  };
   members: Member[];
   state: {
     round: number;
@@ -501,6 +508,8 @@ export interface CharacterDraftData {
   schema_version: number;
   name: string;
   ability_scores: Record<CharacterAbility, number>;
+  ability_score_method: "standard_array" | "point_cost" | "legacy_manual";
+  background_ability_increases: Partial<Record<CharacterAbility, number>>;
   class_id: string | null;
   species_id: string | null;
   background_id: string | null;

@@ -14,7 +14,7 @@ class CharacterDraftEngineTest(unittest.TestCase):
         self.character = self.character_engine.new_character(
             "character-1", "owner-1", "Riva"
         )
-        self.draft = self.engine.from_character(self.character)
+        self.draft = self.engine.new_creation_draft(self.character)
 
     def test_patch_is_strict_and_step_validation_is_incremental(self):
         with self.assertRaises(CharacterDraftValidationError):
@@ -30,12 +30,12 @@ class CharacterDraftEngineTest(unittest.TestCase):
             {
                 "name": "Tess",
                 "ability_scores": {
-                    "strength": 16,
-                    "dexterity": 12,
-                    "constitution": 14,
-                    "intelligence": 10,
+                    "strength": 15,
+                    "dexterity": 14,
+                    "constitution": 13,
+                    "intelligence": 8,
                     "wisdom": 10,
-                    "charisma": 8,
+                    "charisma": 12,
                 },
                 "skill_proficiencies": ["athletics", "insight", "religion"],
                 "equipment_catalog_ids": ["item:shield"],
@@ -46,7 +46,10 @@ class CharacterDraftEngineTest(unittest.TestCase):
             "character-1", "owner-1", "srd-5.2.1", draft
         )
         self.assertEqual(built["name"], "Tess")
-        self.assertEqual(built["derived"]["ability_modifiers"]["strength"], 3)
+        self.assertEqual(built["derived"]["ability_modifiers"]["strength"], 2)
+        self.assertEqual(
+            built["derived"]["ability_modifiers"]["intelligence"], 0
+        )
         self.assertEqual(built["inventory"][0], "Shield")
         self.assertEqual(built["hp"], built["max_hp"])
 
@@ -82,7 +85,7 @@ class CharacterDraftEngineTest(unittest.TestCase):
             attacks=[],
         )
 
-        draft = self.engine.from_character(character)
+        draft = self.engine.new_creation_draft(character)
 
         self.assertEqual(len(draft["equipment_catalog_ids"]), 50)
         self.assertEqual(
@@ -90,6 +93,47 @@ class CharacterDraftEngineTest(unittest.TestCase):
         )
         self.assertEqual(draft["spellcasting"]["slots"], {"1": 2})
         self.engine.validate_step(draft, "review", "srd-5.2.1")
+
+    def test_ability_generation_and_background_rules_fail_closed(self):
+        invalid_array = self.engine.patch(
+            self.draft,
+            {
+                "ability_scores": {
+                    ability: 15 for ability in self.draft["ability_scores"]
+                },
+            },
+        )
+        with self.assertRaisesRegex(
+            CharacterDraftValidationError, "Standard Array"
+        ):
+            self.engine.validate_step(
+                invalid_array, "abilities", "srd-5.2.1"
+            )
+
+        invalid_point_cost = self.engine.patch(
+            self.draft,
+            {
+                "ability_score_method": "point_cost",
+                "ability_scores": {
+                    ability: 15 for ability in self.draft["ability_scores"]
+                },
+            },
+        )
+        with self.assertRaisesRegex(CharacterDraftValidationError, "27"):
+            self.engine.validate_step(
+                invalid_point_cost, "abilities", "srd-5.2.1"
+            )
+
+        invalid_background = self.engine.patch(
+            self.draft,
+            {"background_ability_increases": {"strength": 2, "wisdom": 1}},
+        )
+        with self.assertRaisesRegex(
+            CharacterDraftValidationError, "katalog secenekleri"
+        ):
+            self.engine.validate_step(
+                invalid_background, "background", "srd-5.2.1"
+            )
 
 
 if __name__ == "__main__":

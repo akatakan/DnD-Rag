@@ -291,6 +291,15 @@ the retrieval contract.
   only `PublicCharacter`.
 - Character drafts live in `character_drafts`, not in shared `state_json`. Autosave
   advances the draft revision only; it must not advance or broadcast the game revision.
+- New player joins create an active private draft and persist `character_ready=0` in
+  the same transaction. Existing players migrate as ready only when they have a
+  published draft; absent/active drafts remain incomplete. Until publish marks the
+  member ready atomically, snapshots must force the builder and withhold the normal
+  player workspace, campaign/session tools, and Dice FAB.
+- Draft schema v2 accepts Standard Array only as the exact `15,14,13,12,10,8`
+  multiset or Point Cost only as scores 8–15 totaling exactly 27 points. Background
+  ability increases must follow the pinned catalog's allowed abilities and `+2/+1`
+  or `+1/+1/+1` distribution. Do not add client-only or unproven random generation.
 - Draft updates are strict top-level patches guarded by `expected_revision`. Forward
   navigation validates the current step, backward navigation is non-destructive, and
   publish always revalidates the complete draft against the pinned campaign catalog.

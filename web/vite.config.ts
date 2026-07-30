@@ -1,7 +1,11 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, ".", "");
+  const apiTarget = env.VITE_API_TARGET || "http://127.0.0.1:8000";
+  const websocketTarget = apiTarget.replace(/^http/, "ws");
+  return {
   plugins: [react()],
   build: {
     // Three is an optional lazy-loaded 524 KiB ESM vendor chunk. Keep the main
@@ -28,13 +32,14 @@ export default defineConfig({
     allowedHosts: ['33f2-78-190-50-152.ngrok-free.app'],
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: apiTarget,
         changeOrigin: true,
       },
       '/ws': {
-        target: 'ws://127.0.0.1:8000',
+        target: websocketTarget,
         ws: true,
       },
     },
   },
+  };
 })

@@ -43,16 +43,37 @@ const SKILLS: CharacterSkill[] = [
   "nature", "perception", "performance", "persuasion", "religion",
   "sleight_of_hand", "stealth", "survival",
 ];
+const POINT_COSTS: Record<number, number> = {
+  8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9,
+};
+const FIGHTER_STANDARD_ARRAY: Record<CharacterAbility, number> = {
+  strength: 15,
+  dexterity: 14,
+  constitution: 13,
+  intelligence: 8,
+  wisdom: 10,
+  charisma: 12,
+};
+const FIGHTER_POINT_COST: Record<CharacterAbility, number> = {
+  strength: 15,
+  dexterity: 14,
+  constitution: 13,
+  intelligence: 10,
+  wisdom: 10,
+  charisma: 10,
+};
 type SaveState = "saved" | "pending" | "saving" | "conflict" | "error";
 
 export default function CharacterBuilder({
   snapshot,
   token,
+  required = false,
   onClose,
   onPublished,
 }: {
   snapshot: Snapshot;
   token: string;
+  required?: boolean;
   onClose: () => void;
   onPublished: () => Promise<void>;
 }) {
@@ -372,15 +393,26 @@ export default function CharacterBuilder({
           <h1>{draft.data.name.trim() || "Yeni Kahraman"}</h1>
           <SaveIndicator state={saveState} />
         </div>
-        <button
-          className="icon-button"
-          onClick={() => { void closeBuilder(); }}
-          aria-label="Builder'ı kapat"
-          disabled={transitioning || closing}
-        >
-          <X />
-        </button>
+        {!required && (
+          <button
+            className="icon-button"
+            onClick={() => { void closeBuilder(); }}
+            aria-label="Builder'ı kapat"
+            disabled={transitioning || closing}
+          >
+            <X />
+          </button>
+        )}
       </header>
+      {required && (
+        <div className="builder-required" role="status">
+          <Sparkles size={18} />
+          <span>
+            Masaya katılmadan önce karakterini tamamla. Seçimlerin
+            kampanyanın sabitlenmiş SRD kurallarıyla sunucuda doğrulanır.
+          </span>
+        </div>
+      )}
       <nav className="builder-progress" aria-label="Karakter oluşturma adımları">
         {STEPS.map((step, index) => (
           <div
@@ -476,10 +508,51 @@ function StepContent({
     <StepHeading title="Kahramanını adlandır" text="Bu isim masada ve Game Log'da görünecek." />
     <label>Karakter adı<input autoFocus maxLength={80} value={data.name} onChange={(event) => change("name", event.target.value)} /></label>
   </div>;
-  if (step === "abilities") return <div className="builder-step">
-    <StepHeading title="Ability score'ları belirle" text="Değerler 1–20 arasında olmalı; modifier ve derived stat'lar backend'de hesaplanır." />
-    <div className="ability-grid">{ABILITIES.map((ability) => <label key={ability}><span>{title(ability)}</span><input type="number" min={1} max={20} value={data.ability_scores[ability]} onChange={(event) => change("ability_scores", { ...data.ability_scores, [ability]: Number(event.target.value) })} /></label>)}</div>
+  if (step === "abilities") {
+    const spent = ABILITIES.reduce(
+      (total, ability) => total + (POINT_COSTS[data.ability_scores[ability]] ?? 99),
+      0,
+    );
+    return <div className="builder-step">
+    <StepHeading title="Ability score'ları belirle" text="SRD 5.2.1 Standard Array veya 27 puanlık Point Cost yöntemini seç. Background artışları bir sonraki adımda ayrıca uygulanır." />
+    <fieldset className="ability-method">
+      <legend>Ability score yöntemi</legend>
+      <button
+        className={data.ability_score_method === "standard_array" ? "selected" : ""}
+        aria-pressed={data.ability_score_method === "standard_array"}
+        onClick={() => {
+          change("ability_score_method", "standard_array");
+          change("ability_scores", FIGHTER_STANDARD_ARRAY);
+        }}
+      >
+        <strong>Standard Array</strong>
+        <small>15, 14, 13, 12, 10, 8</small>
+      </button>
+      <button
+        className={data.ability_score_method === "point_cost" ? "selected" : ""}
+        aria-pressed={data.ability_score_method === "point_cost"}
+        onClick={() => {
+          change("ability_score_method", "point_cost");
+          change("ability_scores", FIGHTER_POINT_COST);
+        }}
+      >
+        <strong>Point Cost</strong>
+        <small>27 puan, skor başına 8–15</small>
+      </button>
+    </fieldset>
+    {data.ability_score_method === "legacy_manual" && (
+      <p className="builder-rule-warning" role="alert">
+        Eski manuel skorlar yayınlanamaz. Bir SRD yöntemi seç.
+      </p>
+    )}
+    {data.ability_score_method === "point_cost" && (
+      <p className={`point-cost ${spent === 27 ? "valid" : "invalid"}`}>
+        Kullanılan puan: <strong>{spent > 99 ? "geçersiz" : `${spent}/27`}</strong>
+      </p>
+    )}
+    <div className="ability-grid">{ABILITIES.map((ability) => <label key={ability}><span>{title(ability)}</span><input type="number" min={data.ability_score_method === "point_cost" ? 8 : 1} max={data.ability_score_method === "point_cost" ? 15 : 20} value={data.ability_scores[ability]} onChange={(event) => change("ability_scores", { ...data.ability_scores, [ability]: Number(event.target.value) })} /></label>)}</div>
   </div>;
+  }
   if (step === "class" || step === "species" || step === "background") {
     const field = `${step}_id` as "class_id" | "species_id" | "background_id";
     return <div className="builder-step">
@@ -489,8 +562,23 @@ function StepContent({
         if (step === "background") {
           const required = ((entry.data.skill_proficiencies as string[] | undefined) ?? []).map((skill) => skill.toLowerCase().replaceAll(" ", "_")) as CharacterSkill[];
           change("skill_proficiencies", Array.from(new Set([...data.skill_proficiencies, ...required])));
+          const options = ((entry.data.ability_options as string[] | undefined) ?? [])
+            .map((ability) => ability.toLowerCase() as CharacterAbility);
+          change(
+            "background_ability_increases",
+            options.length >= 2 ? { [options[0]]: 2, [options[1]]: 1 } : {},
+          );
         }
       }}><strong>{entry.name}</strong><small>{entry.provenance.section}</small></button>)}</div>
+      {step === "background" && data.background_id && (
+        <BackgroundAbilityIncreases
+          data={data}
+          entry={(byType.get("background") ?? []).find(
+            (item) => item.id === data.background_id,
+          )}
+          change={change}
+        />
+      )}
       {!(byType.get(step) ?? []).length && <p className="muted">Bu ruleset için seçenek bulunamadı.</p>}
     </div>;
   }
@@ -531,8 +619,56 @@ function StepContent({
       <div><dt>Equipment</dt><dd>{data.equipment_catalog_ids.length}</dd></div>
       <div><dt>Prepared spells</dt><dd>{data.spellcasting.prepared_spell_ids.length}</dd></div>
     </dl>
-    <div className="ability-summary">{ABILITIES.map((ability) => <span key={ability}><small>{ability.slice(0, 3).toUpperCase()}</small><strong>{data.ability_scores[ability]}</strong></span>)}</div>
+    <div className="ability-summary">{ABILITIES.map((ability) => {
+      const bonus = data.background_ability_increases[ability] ?? 0;
+      return <span key={ability}><small>{ability.slice(0, 3).toUpperCase()}</small><strong>{data.ability_scores[ability] + bonus}</strong>{bonus > 0 && <em>{data.ability_scores[ability]} + {bonus}</em>}</span>;
+    })}</div>
   </div>;
+}
+
+function BackgroundAbilityIncreases({
+  data,
+  entry,
+  change,
+}: {
+  data: CharacterDraftData;
+  entry: RulesCatalogEntry | undefined;
+  change: <K extends keyof CharacterDraftData>(
+    field: K, value: CharacterDraftData[K]
+  ) => void;
+}) {
+  const options = ((entry?.data.ability_options as string[] | undefined) ?? [])
+    .map((ability) => ability.toLowerCase() as CharacterAbility);
+  const primary = options.find(
+    (ability) => data.background_ability_increases[ability] === 2,
+  ) ?? "";
+  const secondary = options.find(
+    (ability) => data.background_ability_increases[ability] === 1,
+  ) ?? "";
+  const update = (nextPrimary: string, nextSecondary: string) => {
+    const increases: Partial<Record<CharacterAbility, number>> = {};
+    if (nextPrimary) increases[nextPrimary as CharacterAbility] = 2;
+    if (nextSecondary && nextSecondary !== nextPrimary) {
+      increases[nextSecondary as CharacterAbility] = 1;
+    }
+    change("background_ability_increases", increases);
+  };
+  return <fieldset className="background-abilities">
+    <legend>Background ability artışları</legend>
+    <p>SRD: listelenen ability'lerden birine +2, farklı birine +1 ver.</p>
+    <label>+2
+      <select value={primary} onChange={(event) => update(event.target.value, secondary)}>
+        <option value="">Seç</option>
+        {options.map((ability) => <option key={ability} value={ability}>{title(ability)}</option>)}
+      </select>
+    </label>
+    <label>+1
+      <select value={secondary} onChange={(event) => update(primary, event.target.value)}>
+        <option value="">Seç</option>
+        {options.filter((ability) => ability !== primary).map((ability) => <option key={ability} value={ability}>{title(ability)}</option>)}
+      </select>
+    </label>
+  </fieldset>;
 }
 
 function StepHeading({ title: heading, text }: { title: string; text: string }) {

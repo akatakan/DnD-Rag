@@ -110,12 +110,12 @@ class MultiplayerAPITest(unittest.TestCase):
                 "patch": {
                     "name": "Tess",
                     "ability_scores": {
-                        "strength": 16,
-                        "dexterity": 12,
-                        "constitution": 14,
-                        "intelligence": 10,
+                        "strength": 15,
+                        "dexterity": 14,
+                        "constitution": 13,
+                        "intelligence": 8,
                         "wisdom": 10,
-                        "charisma": 8,
+                        "charisma": 12,
                     },
                 },
             },
@@ -146,6 +146,7 @@ class MultiplayerAPITest(unittest.TestCase):
         before = self.client.get(
             "/api/snapshot", headers=self.auth(self.player["token"])
         ).json()
+        self.assertTrue(before["me"]["character_creation_required"])
         published = self.command(
             self.player["token"],
             "publish_character_draft",
@@ -156,7 +157,8 @@ class MultiplayerAPITest(unittest.TestCase):
         self.assertEqual(published.status_code, 200, published.text)
         own = published.json()["own_character"]
         self.assertEqual(own["name"], "Tess")
-        self.assertEqual(own["inputs"]["ability_scores"]["strength"], 16)
+        self.assertEqual(own["inputs"]["ability_scores"]["strength"], 15)
+        self.assertEqual(own["inputs"]["ability_scores"]["intelligence"], 10)
         replay = self.command(
             self.player["token"],
             "publish_character_draft",
@@ -173,6 +175,12 @@ class MultiplayerAPITest(unittest.TestCase):
             route, headers=self.auth(self.player["token"])
         ).json()
         self.assertEqual(final_draft["status"], "published")
+        after_publish = self.client.get(
+            "/api/snapshot", headers=self.auth(self.player["token"])
+        ).json()
+        self.assertFalse(
+            after_publish["me"]["character_creation_required"]
+        )
         rejected_reopen = self.client.patch(
             route,
             headers=self.auth(self.player["token"]),

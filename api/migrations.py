@@ -767,7 +767,6 @@ def _migration_015_character_drafts(db: sqlite3.Connection) -> None:
     )
 
     from api.character_draft_engine import (
-        DRAFT_SCHEMA_VERSION,
         DRAFT_STEPS,
         CharacterDraftEngine,
         CharacterDraftValidationError,
@@ -800,12 +799,15 @@ def _migration_015_character_drafts(db: sqlite3.Connection) -> None:
     for row in rows:
         try:
             data = json.loads(row["draft_json"])
-            engine.validate_shape(data)
+            if data.get("schema_version") == 1:
+                engine.validate_shape(engine.migrate_v1(data))
+            else:
+                engine.validate_shape(data)
         except (json.JSONDecodeError, CharacterDraftValidationError) as error:
             raise RuntimeError("Persisted character draft gecersiz.") from error
         if (
-            row["schema_version"] != DRAFT_SCHEMA_VERSION
-            or row["schema_version"] != data["schema_version"]
+            row["schema_version"] != data["schema_version"]
+            or row["schema_version"] not in {1, 2}
             or row["current_step"] not in DRAFT_STEPS
             or not isinstance(row["revision"], int)
             or row["revision"] < 1
@@ -1932,6 +1934,147 @@ def _migration_025_repair_vtt_backfill(db: sqlite3.Connection) -> None:
         raise RuntimeError("VTT backfill tamamlanamadi.")
 
 
+def _migration_026_character_creation_gate(db: sqlite3.Connection) -> None:
+    if "character_ready" not in _columns(db, "members"):
+        db.execute(
+            """
+            ALTER TABLE members ADD COLUMN character_ready
+            INTEGER NOT NULL DEFAULT 1 CHECK (character_ready IN (0, 1))
+            """
+        )
+
+    from api.character_draft_engine import (
+        DRAFT_SCHEMA_VERSION,
+        CharacterDraftEngine,
+        CharacterDraftValidationError,
+    )
+    from api.character_engine import CharacterEngine
+
+    engine = CharacterDraftEngine(CharacterEngine())
+    rows = db.execute(
+        "SELECT * FROM character_drafts ORDER BY game_id, character_id"
+    ).fetchall()
+    migrated_rows: list[tuple[sqlite3.Row, dict]] = []
+    for row in rows:
+        try:
+            data = json.loads(row["draft_json"])
+            if data.get("schema_version") == 1:
+                data = engine.migrate_v1(data)
+            engine.validate_shape(data)
+        except (
+            AttributeError,
+            json.JSONDecodeError,
+            CharacterDraftValidationError,
+        ) as error:
+            raise RuntimeError(
+                "Persisted character draft v2'ye yukseltilemedi."
+            ) from error
+        migrated_rows.append((row, data))
+
+    db.execute("DROP TRIGGER IF EXISTS character_drafts_owner_game_insert")
+    db.execute("DROP TRIGGER IF EXISTS character_drafts_owner_game_update")
+    db.execute(
+        f"""
+        CREATE TABLE character_drafts_v2 (
+            game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+            character_id TEXT NOT NULL,
+            owner_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+            schema_version INTEGER NOT NULL
+                CHECK (schema_version = {DRAFT_SCHEMA_VERSION}),
+            draft_json TEXT NOT NULL,
+            current_step TEXT NOT NULL CHECK (
+                current_step IN (
+                    'basics', 'abilities', 'class', 'species', 'background',
+                    'proficiencies', 'equipment', 'spells', 'review'
+                )
+            ),
+            revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+            status TEXT NOT NULL DEFAULT 'active'
+                CHECK (status IN ('active', 'published')),
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            published_at TEXT,
+            PRIMARY KEY (game_id, character_id)
+        )
+        """
+    )
+    for row, data in migrated_rows:
+        db.execute(
+            """
+            INSERT INTO character_drafts_v2 (
+                game_id, character_id, owner_id, schema_version, draft_json,
+                current_step, revision, status, created_at, updated_at,
+                published_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                row["game_id"],
+                row["character_id"],
+                row["owner_id"],
+                DRAFT_SCHEMA_VERSION,
+                json.dumps(data, ensure_ascii=False),
+                row["current_step"],
+                row["revision"],
+                row["status"],
+                row["created_at"],
+                row["updated_at"],
+                row["published_at"],
+            ),
+        )
+    db.execute("DROP TABLE character_drafts")
+    db.execute("ALTER TABLE character_drafts_v2 RENAME TO character_drafts")
+    db.execute(
+        """
+        CREATE INDEX idx_character_drafts_owner
+        ON character_drafts (game_id, owner_id, status)
+        """
+    )
+    for operation in ("INSERT", "UPDATE OF game_id, character_id, owner_id"):
+        suffix = "insert" if operation == "INSERT" else "update"
+        db.execute(
+            f"""
+            CREATE TRIGGER character_drafts_owner_game_{suffix}
+            BEFORE {operation} ON character_drafts
+            WHEN NOT EXISTS (
+                SELECT 1 FROM members
+                WHERE id = NEW.owner_id
+                  AND game_id = NEW.game_id
+                  AND character_id = NEW.character_id
+            )
+            BEGIN
+                SELECT RAISE(ABORT, 'draft owner/game/character mismatch');
+            END
+            """
+        )
+
+    db.execute(
+        """
+        UPDATE members
+        SET character_ready = CASE
+            WHEN role != 'player' THEN 1
+            WHEN EXISTS (
+                SELECT 1 FROM character_drafts AS drafts
+                WHERE drafts.game_id = members.game_id
+                  AND drafts.character_id = members.character_id
+                  AND drafts.owner_id = members.id
+                  AND drafts.status = 'published'
+            ) THEN 1
+            ELSE 0
+        END
+        """
+    )
+    invalid_member = db.execute(
+        """
+        SELECT 1 FROM members
+        WHERE character_ready NOT IN (0, 1)
+           OR (role = 'player' AND character_id IS NULL)
+        LIMIT 1
+        """
+    ).fetchone()
+    if invalid_member is not None:
+        raise RuntimeError("Character creation member metadata gecersiz.")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "initial_multiplayer_schema", _migration_001_initial_multiplayer_schema),
     (2, "dm_handover", _migration_002_dm_handover),
@@ -1958,6 +2101,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     (23, "map_tokens", _migration_023_map_tokens),
     (24, "map_fog", _migration_024_map_fog),
     (25, "repair_vtt_backfill", _migration_025_repair_vtt_backfill),
+    (26, "character_creation_gate", _migration_026_character_creation_gate),
 )
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1][0]
 
