@@ -1096,6 +1096,21 @@ class MultiplayerAPITest(unittest.TestCase):
             campaign["ruleset_version"], "srd-5.2.1-custom.1"
         )
 
+    def test_developer_catalog_spa_entry_serves_frontend_index(self):
+        frontend_dist = Path(self.temp.name) / "web-dist"
+        frontend_dist.mkdir()
+        (frontend_dist / "index.html").write_text(
+            "<!doctype html><title>Developer Catalog</title>",
+            encoding="utf-8",
+        )
+
+        with patch.object(api_app, "WEB_DIST", frontend_dist):
+            response = self.client.get("/__developer/catalog")
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn("Developer Catalog", response.text)
+        self.assertTrue(response.headers["content-type"].startswith("text/html"))
+
     def test_character_update_recalculates_authoritative_derived_stats(self):
         updated = self.command(
             self.dm["token"],

@@ -1783,5 +1783,18 @@ async def game_socket(
 
 
 WEB_DIST = Path(__file__).resolve().parents[1] / "web" / "dist"
+
+
+@app.get("/__developer/catalog", include_in_schema=False)
+def developer_catalog_page():
+    index_path = WEB_DIST / "index.html"
+    if not index_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Frontend build bulunamadi. web dizininde npm run build calistirin.",
+        )
+    return FileResponse(index_path)
+
+
 if WEB_DIST.exists():
     app.mount("/", StaticFiles(directory=WEB_DIST, html=True), name="web")
