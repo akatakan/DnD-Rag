@@ -780,6 +780,66 @@ h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; g
     gap: 7px;
   }
 }
+
+.developer-login { min-height: 100vh; padding: 24px; display: grid; place-items: center; background: radial-gradient(circle at top, #353d38, #151817 62%); }
+.developer-login form { width: min(440px, 100%); padding: 30px; display: grid; gap: 16px; color: #e9eeeb; background: #222725; border: 1px solid #4b5550; border-radius: 8px; box-shadow: 0 24px 70px rgba(0,0,0,.35); }
+.developer-login form > svg { color: #e16a61; }
+.developer-login p { color: #b9c1bc; line-height: 1.5; }
+.developer-login input { color: #f3f5f4; background: #171a19; border-color: #59625d; }
+.developer-error { padding: 10px; color: #ffc0ba !important; background: #501f1b; border-radius: 4px; }
+.developer-shell { min-height: 100vh; color: #e8ece9; background: #171a19; }
+.developer-header { min-height: 104px; padding: 22px 28px; display: flex; justify-content: space-between; align-items: center; gap: 20px; background: #222725; border-bottom: 1px solid #414944; }
+.developer-header h1 { margin: 4px 0; display: flex; align-items: center; gap: 9px; }
+.developer-header p { margin: 0; color: #aeb7b1; }
+.developer-header button, .developer-shell button { color: #e8ece9; background: #303632; border: 1px solid #505a54; border-radius: 4px; }
+.developer-header button { padding: 8px 12px; display: inline-flex; align-items: center; gap: 7px; }
+.developer-message { margin: 12px 20px 0; padding: 10px 12px; color: #bde7ca; background: #1e3a28; border: 1px solid #366847; border-radius: 4px; }
+.developer-message.error { color: #ffc1bb; background: #4a211e; border-color: #813a34; }
+.developer-layout { min-height: calc(100vh - 104px); display: grid; grid-template-columns: 280px minmax(0, 1fr); }
+.developer-sidebar { padding: 18px; background: #1e2220; border-right: 1px solid #3d4540; }
+.developer-sidebar h2 { font-size: 14px; }
+.developer-rulesets { display: grid; gap: 7px; }
+.developer-rulesets button { padding: 11px; display: grid; gap: 3px; text-align: left; }
+.developer-rulesets button.selected, .developer-entry-list button.selected { border-color: #db665d; box-shadow: inset 3px 0 #db665d; }
+.developer-rulesets span, .developer-rulesets small, .developer-entry-list span { color: #a7b0aa; font-size: 11px; }
+.developer-sidebar fieldset { margin: 22px 0 0; padding: 13px; display: grid; gap: 10px; border: 1px solid #444d47; border-radius: 5px; }
+.developer-sidebar legend { padding: 0 6px; display: inline-flex; align-items: center; gap: 6px; color: #c4ccc7; font-size: 12px; font-weight: 700; }
+.developer-shell input, .developer-shell select, .developer-shell textarea { color: #e9edea; background: #202421; border-color: #4c554f; }
+.developer-sidebar button, .developer-entry-toolbar button, .developer-editor-actions button, .developer-ruleset-header button { padding: 8px 11px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.developer-content { min-width: 0; padding: 20px; }
+.developer-empty { min-height: 420px; display: grid; place-content: center; justify-items: center; color: #9da6a0; text-align: center; }
+.developer-ruleset-header { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.developer-ruleset-header h2 { margin: 5px 0; font-size: 23px; }
+.developer-ruleset-header p { margin: 0; color: #a8b1ab; }
+.developer-ruleset-header > div > span { padding: 3px 7px; color: #f2b4ae; background: #4a2926; border-radius: 999px; font-size: 10px; text-transform: uppercase; }
+.developer-ruleset-header .publish-button { background: #8f2d27; border-color: #cd5a51; }
+.developer-workspace { display: grid; grid-template-columns: minmax(230px, 340px) minmax(0, 1fr); gap: 16px; }
+.developer-entry-list, .developer-editor { min-width: 0; background: #222725; border: 1px solid #414944; border-radius: 6px; }
+.developer-entry-toolbar { padding: 11px; display: grid; grid-template-columns: 1fr auto; gap: 7px; border-bottom: 1px solid #414944; }
+.developer-entry-list > div:last-child { max-height: calc(100vh - 240px); padding: 7px; display: grid; gap: 5px; overflow-y: auto; }
+.developer-entry-list > div:last-child button { padding: 9px 10px; display: grid; gap: 3px; text-align: left; }
+.developer-editor { padding: 18px; display: grid; gap: 13px; }
+.developer-editor h3 { margin: 0; }
+.developer-editor textarea { min-height: 260px; resize: vertical; font-family: "Cascadia Code", Consolas, monospace; font-size: 12px; line-height: 1.5; }
+.developer-editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.developer-editor-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.developer-editor-actions .danger-button { margin-right: auto; color: #ffc0ba; border-color: #7a3d38; }
+.developer-editor-actions .primary-button { background: #91322b; border-color: #cf5b52; }
+
+@media (max-width: 900px) {
+  .developer-layout, .developer-workspace { grid-template-columns: 1fr; }
+  .developer-sidebar { border-right: 0; border-bottom: 1px solid #3d4540; }
+  .developer-rulesets { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .developer-entry-list > div:last-child { max-height: 300px; }
+}
+
+@media (max-width: 600px) {
+  .developer-header { padding: 17px; align-items: flex-start; }
+  .developer-header p { display: none; }
+  .developer-content { padding: 12px; }
+  .developer-editor-grid { grid-template-columns: 1fr; }
+  .developer-ruleset-header { align-items: stretch; flex-direction: column; }
+}
 .dice-3d-tray[data-renderer-unavailable="true"] {
   inset: auto 12px 78px auto;
   width: min(440px, calc(100vw - 24px));

@@ -383,6 +383,15 @@ class CharacterDraftEngine:
             for ability in ABILITY_KEYS
         }
         try:
+            class_entry = self.catalog.get_entry(
+                ruleset_version, draft["class_id"]
+            )["entry"]
+            hit_die = int(class_entry["data"]["hit_die"])
+            average_hp = int(
+                class_entry["data"].get(
+                    "average_hp_per_level", hit_die // 2 + 1
+                )
+            )
             character = self.character_engine.update(
                 character,
                 {
@@ -394,6 +403,10 @@ class CharacterDraftEngine:
                         "ability_scores": final_ability_scores,
                         "skill_proficiencies": draft["skill_proficiencies"],
                         "skill_expertise": draft["skill_expertise"],
+                        "hit_points": {
+                            "level_one_base": hit_die,
+                            "per_level_base": average_hp,
+                        },
                     },
                 },
             )
@@ -503,6 +516,9 @@ class CharacterDraftEngine:
             species = self.catalog.get_entry(
                 ruleset_version, draft["species_id"]
             )["entry"]
+            class_entry = self.catalog.get_entry(
+                ruleset_version, draft["class_id"]
+            )["entry"]
         except KeyError as error:
             raise CharacterDraftValidationError(
                 "Skill proficiency kaynagi katalogda bulunamadi."
@@ -517,29 +533,46 @@ class CharacterDraftEngine:
                 "Background skill proficiencies eksik."
             )
 
+        class_data = class_entry["data"]
         policy = CLASS_SKILL_POLICIES.get(
             (ruleset_version, draft["class_id"])
         )
-        if policy is None:
+        if policy is None and draft["class_id"] == "class:fighter":
+            policy = CLASS_SKILL_POLICIES[("srd-5.2.1", "class:fighter")]
+        class_choice_count = class_data.get("skill_proficiency_count")
+        class_options = class_data.get("skill_proficiency_options")
+        if class_choice_count is None and policy is not None:
+            class_choice_count = policy["count"]
+        if class_options is None and policy is not None:
+            class_options = policy["options"]
+        if class_choice_count is None or class_options is None:
             raise CharacterDraftValidationError(
                 "Class skill proficiency kurali desteklenmiyor."
             )
+        normalized_class_options = {
+            value.casefold().replace(" ", "_") for value in class_options
+        }
         species_traits = {
             value.casefold()
             for value in species["data"].get("traits", [])
             if isinstance(value, str)
         }
-        species_choice_count = 1 if "skillful" in species_traits else 0
+        species_choice_count = int(
+            species["data"].get(
+                "skill_choice_count",
+                1 if "skillful" in species_traits else 0,
+            )
+        )
         extra_skills = selected - background_skills
-        expected_extra_count = int(policy["count"]) + species_choice_count
+        expected_extra_count = int(class_choice_count) + species_choice_count
         if len(extra_skills) != expected_extra_count:
             raise CharacterDraftValidationError(
                 "Skill proficiency sayisi gecersiz: background disinda "
                 f"tam {expected_extra_count} secim yapilmalidir."
             )
-        class_eligible = extra_skills & policy["options"]
-        if len(class_eligible) < int(policy["count"]):
+        class_eligible = extra_skills & normalized_class_options
+        if len(class_eligible) < int(class_choice_count):
             raise CharacterDraftValidationError(
-                "Fighter icin izin verilen listeden tam 2 skill "
-                "proficiency ayrilabilmelidir."
+                "Class icin izin verilen listeden gerekli skill "
+                "proficiency secimleri ayrilabilmelidir."
             )

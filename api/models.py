@@ -44,6 +44,38 @@ class NavigateCharacterDraftRequest(BaseModel):
     direction: Literal["next", "previous"]
 
 
+class CloneRulesetRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_version: Annotated[
+        str, Field(pattern=r"^[a-z0-9][a-z0-9.-]{0,63}$")
+    ]
+    version: Annotated[
+        str, Field(pattern=r"^[a-z0-9][a-z0-9.-]{0,63}$")
+    ]
+    name: Annotated[str, Field(min_length=1, max_length=120)]
+
+
+class SaveCatalogEntryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_revision: Annotated[int, Field(ge=1)]
+    entry: dict
+
+
+class DeleteCatalogEntryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_revision: Annotated[int, Field(ge=1)]
+
+
+class PublishRulesetRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_revision: Annotated[int, Field(ge=1)]
+    make_default: bool = False
+
+
 class HouseRuleInput(BaseModel):
     id: Annotated[str, Field(min_length=1, max_length=64)]
     title: Annotated[str, Field(min_length=1, max_length=120)]

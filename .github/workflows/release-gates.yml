@@ -26,7 +26,7 @@ jobs:
       - name: Sync locked Python environment
         run: uv sync --locked
       - name: Python tests
-        run: uv run pytest -q
+        run: uv run python -m pytest -q
       - name: Expiring security exception policy
         run: uv run python -m api.release_gate --check-policy-only
       - name: Python dependency audit
@@ -44,7 +44,7 @@ jobs:
         run: npm run build
       - name: Upload and parser security tests
         run: >-
-          uv run pytest -q tests/test_map_assets.py
+          uv run python -m pytest -q tests/test_map_assets.py
           tests/test_release_tools.py tests/test_public_auth.py
       - name: Diff hygiene
         run: git diff --check

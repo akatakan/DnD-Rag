@@ -3,6 +3,9 @@ import type {
   CharacterDraft,
   CampaignLobby,
   DicePreferences,
+  DeveloperCatalogEntry,
+  DeveloperRulesetDetail,
+  DeveloperRulesetSummary,
   EventPage,
   EncounterDraft,
   MapAsset,
@@ -51,7 +54,91 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
   return response.json();
 }
 
+const developerRequest = <T>(
+  path: string,
+  developerToken: string,
+  options: RequestInit = {},
+) => request<T>(path, {
+  ...options,
+  headers: {
+    "X-Developer-Token": developerToken,
+    ...options.headers,
+  },
+});
+
 export const api = {
+  developerRulesets: (developerToken: string) =>
+    developerRequest<{ rulesets: DeveloperRulesetSummary[] }>(
+      "/api/developer/catalog/rulesets",
+      developerToken,
+    ),
+  developerRuleset: (developerToken: string, version: string) =>
+    developerRequest<DeveloperRulesetDetail>(
+      `/api/developer/catalog/rulesets/${encodeURIComponent(version)}`,
+      developerToken,
+    ),
+  cloneDeveloperRuleset: (
+    developerToken: string,
+    sourceVersion: string,
+    version: string,
+    name: string,
+  ) => developerRequest<DeveloperRulesetDetail>(
+    "/api/developer/catalog/rulesets/clone",
+    developerToken,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        source_version: sourceVersion,
+        version,
+        name,
+      }),
+    },
+  ),
+  saveDeveloperCatalogEntry: (
+    developerToken: string,
+    version: string,
+    expectedRevision: number,
+    entry: DeveloperCatalogEntry,
+  ) => developerRequest<DeveloperRulesetDetail>(
+    `/api/developer/catalog/rulesets/${encodeURIComponent(version)}/entries`,
+    developerToken,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        expected_revision: expectedRevision,
+        entry,
+      }),
+    },
+  ),
+  deleteDeveloperCatalogEntry: (
+    developerToken: string,
+    version: string,
+    entryId: string,
+    expectedRevision: number,
+  ) => developerRequest<DeveloperRulesetDetail>(
+    `/api/developer/catalog/rulesets/${encodeURIComponent(version)}/entries/${encodeURIComponent(entryId)}`,
+    developerToken,
+    {
+      method: "DELETE",
+      body: JSON.stringify({ expected_revision: expectedRevision }),
+    },
+  ),
+  publishDeveloperRuleset: (
+    developerToken: string,
+    version: string,
+    expectedRevision: number,
+    makeDefault: boolean,
+  ) => developerRequest<DeveloperRulesetDetail>(
+    `/api/developer/catalog/rulesets/${encodeURIComponent(version)}/publish`,
+    developerToken,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        expected_revision: expectedRevision,
+        make_default: makeDefault,
+      }),
+    },
+  ),
   createGame: (name: string, dmName: string, dmMode: string) =>
     request<Credentials & { invite_code: string }>("/api/games", {
       method: "POST",

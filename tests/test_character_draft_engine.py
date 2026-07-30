@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 
 from api.character_draft_engine import (
     CharacterDraftEngine,
@@ -189,6 +190,113 @@ class CharacterDraftEngineTest(unittest.TestCase):
                     self.engine.validate_step(
                         invalid, "proficiencies", "srd-5.2.1"
                     )
+
+    def test_database_defined_class_drives_builder_and_hp_rules(self):
+        catalog = self.character_engine.catalog
+        admin = catalog.clone_ruleset(
+            "srd-5.2.1", "srd-5.2.1-rogue.1", "SRD Rogue Test"
+        )
+        fighter = catalog.get_entry(
+            "srd-5.2.1", "class:fighter"
+        )["entry"]
+        rogue = {
+            key: deepcopy(value)
+            for key, value in fighter.items()
+            if key not in {"source", "license"}
+        }
+        rogue.update(
+            {
+                "id": "class:rogue",
+                "slug": "rogue",
+                "name": "Rogue",
+                "data": {
+                    **rogue["data"],
+                    "hit_die": 8,
+                    "primary_abilities": ["Dexterity"],
+                    "saving_throw_proficiencies": [
+                        "Dexterity", "Intelligence"
+                    ],
+                    "armor_training": ["Light"],
+                    "starting_feature_ids": ["feature:rogue-training"],
+                    "skill_proficiency_count": 2,
+                    "skill_proficiency_options": [
+                        "Acrobatics", "Investigation", "Stealth"
+                    ],
+                    "average_hp_per_level": 5,
+                },
+                "provenance": {
+                    **rogue["provenance"],
+                    "section": "Character Classes: Rogue",
+                },
+            }
+        )
+        admin = catalog.upsert_entry(
+            "srd-5.2.1-rogue.1",
+            admin["ruleset"]["revision"],
+            rogue,
+        )
+        feature = catalog.get_entry(
+            "srd-5.2.1", "feature:second-wind"
+        )["entry"]
+        rogue_feature = {
+            key: deepcopy(value)
+            for key, value in feature.items()
+            if key not in {"source", "license"}
+        }
+        rogue_feature.update(
+            {
+                "id": "feature:rogue-training",
+                "slug": "rogue-training",
+                "name": "Rogue Training",
+                "data": {
+                    **rogue_feature["data"],
+                    "class_id": "class:rogue",
+                    "effect": "Test-only open rules feature.",
+                },
+                "provenance": {
+                    **rogue_feature["provenance"],
+                    "section": "Character Classes: Rogue Training",
+                },
+            }
+        )
+        admin = catalog.upsert_entry(
+            "srd-5.2.1-rogue.1",
+            admin["ruleset"]["revision"],
+            rogue_feature,
+        )
+        catalog.publish_ruleset(
+            "srd-5.2.1-rogue.1",
+            admin["ruleset"]["revision"],
+            False,
+        )
+
+        character_engine = CharacterEngine(catalog)
+        engine = CharacterDraftEngine(character_engine)
+        character = character_engine.new_character(
+            "rogue-1", "owner-1", "Shade", "srd-5.2.1-rogue.1"
+        )
+        draft = engine.new_creation_draft(character)
+        draft = engine.patch(
+            draft,
+            {
+                "class_id": "class:rogue",
+                "skill_proficiencies": [
+                    "arcana",
+                    "insight",
+                    "investigation",
+                    "religion",
+                    "stealth",
+                ],
+            },
+        )
+        engine.validate_step(
+            draft, "proficiencies", "srd-5.2.1-rogue.1"
+        )
+        built = engine.build_character(
+            "rogue-1", "owner-1", "srd-5.2.1-rogue.1", draft
+        )
+        self.assertEqual(built["class_name"], "Rogue")
+        self.assertEqual(built["resource_state"]["hit_dice"]["die_size"], 8)
 
 
 if __name__ == "__main__":

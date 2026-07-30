@@ -22,12 +22,15 @@ from api.models import (
     AIDMStepRequest,
     AuthContext,
     CommandRequest,
+    CloneRulesetRequest,
     CreateGameRequest,
     CreateSessionRequest,
+    DeleteCatalogEntryRequest,
     DeleteCampaignRequest,
     JoinGameRequest,
     RotateInviteRequest,
     RuleQuestionRequest,
+    SaveCatalogEntryRequest,
     SaveCharacterDraftRequest,
     NavigateCharacterDraftRequest,
     ScheduleSessionRequest,
@@ -35,6 +38,7 @@ from api.models import (
     UpdateDicePreferencesRequest,
     UpdateSessionZeroMemberRequest,
     UpdateSessionStatusRequest,
+    PublishRulesetRequest,
 )
 from api.observability import (
     MetricsRegistry,
@@ -50,7 +54,7 @@ from api.character_draft_engine import (
 from api.encounter_engine import EncounterDraftConflict, EncounterStorageError
 from api.rate_limit import RateLimiter
 from api.realtime import ConnectionManager
-from api.rules_catalog import CatalogValidationError, RulesCatalog
+from api.rules_catalog import CatalogValidationError
 from api.security import LOCAL_AUTH_PEPPER, validate_public_security
 from api.shared_runtime import (
     RedisRateLimitBackend,
@@ -114,10 +118,6 @@ web_origins = [
     if origin.strip()
 ]
 validate_public_security(PUBLIC_MODE, AUTH_PEPPER, web_origins)
-# Validate immutable deployment assets before any database migration can commit.
-ruleset_root = os.getenv("RULESET_ROOT", "").strip()
-rules_catalog = RulesCatalog(Path(ruleset_root) if ruleset_root else None)
-rules_catalog.load("srd-5.2.1")
 store = GameStore(
     DB_PATH,
     auth_pepper=AUTH_PEPPER,
@@ -163,6 +163,9 @@ http_logger = configure_json_logger()
 METRICS_TOKEN = os.getenv("METRICS_TOKEN", "").strip()
 if METRICS_TOKEN and len(METRICS_TOKEN) < 32:
     raise RuntimeError("METRICS_TOKEN en az 32 karakter olmali.")
+DEVELOPER_ADMIN_TOKEN = os.getenv("DEVELOPER_ADMIN_TOKEN", "").strip()
+if DEVELOPER_ADMIN_TOKEN and len(DEVELOPER_ADMIN_TOKEN) < 32:
+    raise RuntimeError("DEVELOPER_ADMIN_TOKEN en az 32 karakter olmali.")
 
 
 @asynccontextmanager
@@ -186,8 +189,13 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=web_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Filename"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-Developer-Token",
+        "X-Filename",
+    ],
 )
 
 
@@ -331,6 +339,19 @@ def require_auth(authorization: str = Header(default="")) -> AuthContext:
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Bearer token gerekli.")
     return auth_from_token(authorization.removeprefix("Bearer ").strip())
+
+
+def require_developer(
+    x_developer_token: str = Header(default="", alias="X-Developer-Token"),
+) -> None:
+    if not DEVELOPER_ADMIN_TOKEN:
+        raise HTTPException(status_code=404, detail="Not found.")
+    if not x_developer_token or not secrets.compare_digest(
+        x_developer_token, DEVELOPER_ADMIN_TOKEN
+    ):
+        raise HTTPException(
+            status_code=401, detail="Developer token gerekli."
+        )
 
 
 def bearer_token(authorization: str) -> str:
@@ -1010,11 +1031,148 @@ def get_events(
 def get_rulesets(auth: AuthContext = Depends(require_auth)):
     enforce_rate_limit("catalog", auth.member_id, 120)
     try:
-        return {"rulesets": rules_catalog.versions()}
+        return {"rulesets": store.rules_catalog.versions()}
     except (CatalogValidationError, KeyError) as error:
         raise HTTPException(
             status_code=503, detail="Ruleset katalogu kullanima hazir degil."
         ) from error
+
+
+@app.get(
+    "/api/developer/catalog/rulesets",
+    include_in_schema=False,
+)
+def developer_rulesets(
+    request: Request,
+    _: None = Depends(require_developer),
+):
+    enforce_rate_limit(
+        "developer_catalog",
+        request.client.host if request.client else "unknown",
+        120,
+    )
+    return {"rulesets": store.rules_catalog.admin_versions()}
+
+
+@app.get(
+    "/api/developer/catalog/rulesets/{version}",
+    include_in_schema=False,
+)
+def developer_ruleset(
+    version: str,
+    request: Request,
+    _: None = Depends(require_developer),
+):
+    enforce_rate_limit(
+        "developer_catalog",
+        request.client.host if request.client else "unknown",
+        120,
+    )
+    try:
+        return store.rules_catalog.admin_ruleset(version)
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.post(
+    "/api/developer/catalog/rulesets/clone",
+    include_in_schema=False,
+)
+def developer_clone_ruleset(
+    payload: CloneRulesetRequest,
+    request: Request,
+    _: None = Depends(require_developer),
+):
+    enforce_rate_limit(
+        "developer_catalog_write",
+        request.client.host if request.client else "unknown",
+        30,
+    )
+    try:
+        return store.rules_catalog.clone_ruleset(
+            payload.source_version, payload.version, payload.name
+        )
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except CatalogValidationError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.put(
+    "/api/developer/catalog/rulesets/{version}/entries",
+    include_in_schema=False,
+)
+def developer_save_catalog_entry(
+    version: str,
+    payload: SaveCatalogEntryRequest,
+    request: Request,
+    _: None = Depends(require_developer),
+):
+    enforce_rate_limit(
+        "developer_catalog_write",
+        request.client.host if request.client else "unknown",
+        60,
+    )
+    try:
+        return store.rules_catalog.upsert_entry(
+            version, payload.expected_revision, payload.entry
+        )
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except CatalogValidationError as error:
+        status = 409 if "conflict" in str(error).lower() else 400
+        raise HTTPException(status_code=status, detail=str(error)) from error
+
+
+@app.delete(
+    "/api/developer/catalog/rulesets/{version}/entries/{entry_id}",
+    include_in_schema=False,
+)
+def developer_delete_catalog_entry(
+    version: str,
+    entry_id: str,
+    payload: DeleteCatalogEntryRequest,
+    request: Request,
+    _: None = Depends(require_developer),
+):
+    enforce_rate_limit(
+        "developer_catalog_write",
+        request.client.host if request.client else "unknown",
+        60,
+    )
+    try:
+        return store.rules_catalog.delete_entry(
+            version, entry_id, payload.expected_revision
+        )
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except CatalogValidationError as error:
+        status = 409 if "conflict" in str(error).lower() else 400
+        raise HTTPException(status_code=status, detail=str(error)) from error
+
+
+@app.post(
+    "/api/developer/catalog/rulesets/{version}/publish",
+    include_in_schema=False,
+)
+def developer_publish_ruleset(
+    version: str,
+    payload: PublishRulesetRequest,
+    request: Request,
+    _: None = Depends(require_developer),
+):
+    enforce_rate_limit(
+        "developer_catalog_publish",
+        request.client.host if request.client else "unknown",
+        10,
+    )
+    try:
+        return store.rules_catalog.publish_ruleset(
+            version, payload.expected_revision, payload.make_default
+        )
+    except CatalogValidationError as error:
+        status = 409 if "conflict" in str(error).lower() else 400
+        raise HTTPException(status_code=status, detail=str(error)) from error
 
 
 def authorize_character_draft(auth: AuthContext, character_id: str) -> dict:
@@ -1161,7 +1319,7 @@ def get_ruleset_entries(
 ):
     enforce_rate_limit("catalog", auth.member_id, 120)
     try:
-        return rules_catalog.list_entries(
+        return store.rules_catalog.list_entries(
             version,
             entity_type=type,
             query=q,
@@ -1182,7 +1340,7 @@ def get_ruleset_entry(
 ):
     enforce_rate_limit("catalog", auth.member_id, 120)
     try:
-        return rules_catalog.get_entry(version, entry_id)
+        return store.rules_catalog.get_entry(version, entry_id)
     except KeyError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except CatalogValidationError as error:

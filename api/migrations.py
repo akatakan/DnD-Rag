@@ -2075,6 +2075,12 @@ def _migration_026_character_creation_gate(db: sqlite3.Connection) -> None:
         raise RuntimeError("Character creation member metadata gecersiz.")
 
 
+def _migration_027_database_rules_catalog(db: sqlite3.Connection) -> None:
+    from api.rules_catalog import initialize_catalog_database
+
+    initialize_catalog_database(db)
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "initial_multiplayer_schema", _migration_001_initial_multiplayer_schema),
     (2, "dm_handover", _migration_002_dm_handover),
@@ -2102,6 +2108,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     (24, "map_fog", _migration_024_map_fog),
     (25, "repair_vtt_backfill", _migration_025_repair_vtt_backfill),
     (26, "character_creation_gate", _migration_026_character_creation_gate),
+    (27, "database_rules_catalog", _migration_027_database_rules_catalog),
 )
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1][0]
 

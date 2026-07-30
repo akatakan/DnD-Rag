@@ -90,6 +90,61 @@ class RulesCatalogTest(unittest.TestCase):
             )
         )
 
+    def test_draft_catalog_crud_publish_and_default_are_revision_checked(self):
+        draft = self.catalog.clone_ruleset(
+            "srd-5.2.1", "srd-5.2.1-test.1", "SRD Test 1"
+        )
+        shield = next(
+            entry
+            for entry in draft["entries"]
+            if entry["id"] == "item:shield"
+        )
+        entry = {
+            key: deepcopy(value)
+            for key, value in shield.items()
+            if key not in {"source", "license"}
+        }
+        entry.update(
+            {
+                "id": "item:test-tool",
+                "slug": "test-tool",
+                "name": "Test Tool",
+            }
+        )
+        entry["provenance"]["section"] = "Equipment: Test Tool"
+        saved = self.catalog.upsert_entry(
+            "srd-5.2.1-test.1",
+            draft["ruleset"]["revision"],
+            entry,
+        )
+        with self.assertRaisesRegex(CatalogValidationError, "conflict"):
+            self.catalog.delete_entry(
+                "srd-5.2.1-test.1",
+                "item:test-tool",
+                draft["ruleset"]["revision"],
+            )
+        published = self.catalog.publish_ruleset(
+            "srd-5.2.1-test.1",
+            saved["ruleset"]["revision"],
+            True,
+        )
+        self.assertTrue(published["ruleset"]["is_default"])
+        self.assertEqual(
+            self.catalog.default_version(), "srd-5.2.1-test.1"
+        )
+        self.assertEqual(
+            self.catalog.get_entry(
+                "srd-5.2.1-test.1", "item:test-tool"
+            )["entry"]["name"],
+            "Test Tool",
+        )
+        with self.assertRaises(CatalogValidationError):
+            self.catalog.upsert_entry(
+                "srd-5.2.1-test.1",
+                published["ruleset"]["revision"],
+                entry,
+            )
+
     def test_rejects_path_traversal_and_invalid_query_bounds(self):
         with self.assertRaises(CatalogValidationError):
             self.catalog.load("../srd-5.2.1")

@@ -623,12 +623,12 @@ function StepContent({
     return <div className="builder-step">
       <StepHeading
         title="Skill proficiency seç"
-        text="Acolyte iki sabit skill verir. Fighter listesinden iki seçim ve Human Skillful için bir serbest seçim yap."
+        text="Background sabit skill'leri, class seçenekleri ve species kaynaklı serbest seçimler birlikte doğrulanır."
       />
       <div className="proficiency-summary" role="status">
         <span>Background <strong>{backgroundSelected}/{policy.backgroundSkills.size} sabit</strong></span>
         <span>Ek seçim <strong>{extras.length}/{policy.extraChoiceCount}</strong></span>
-        <span>Fighter uyumlu <strong>{Math.min(classEligible, policy.classChoiceCount)}/{policy.classChoiceCount}</strong></span>
+        <span>Class uyumlu <strong>{Math.min(classEligible, policy.classChoiceCount)}/{policy.classChoiceCount}</strong></span>
       </div>
       <div className="check-grid">{SKILLS.map((skill) => {
         const required = policy.backgroundSkills.has(skill);
@@ -651,7 +651,7 @@ function StepContent({
           <span>
             {title(skill)}
             {required && <small>Acolyte</small>}
-            {!required && policy.classOptions.has(skill) && <small>Fighter seçeneği</small>}
+            {!required && policy.classOptions.has(skill) && <small>Class seçeneği</small>}
           </span>
         </label>;
       })}</div>
@@ -764,20 +764,39 @@ function proficiencyPolicy(
   const species = (byType.get("species") ?? []).find(
     (entry) => entry.id === data.species_id,
   );
+  const classEntry = (byType.get("class") ?? []).find(
+    (entry) => entry.id === data.class_id,
+  );
   const backgroundSkills = new Set(
     ((background?.data.skill_proficiencies as string[] | undefined) ?? [])
       .map((skill) => skill.toLowerCase().replaceAll(" ", "_") as CharacterSkill),
   );
   const traits = ((species?.data.traits as string[] | undefined) ?? [])
     .map((trait) => trait.toLowerCase());
-  const classChoiceCount = data.class_id === "class:fighter" ? 2 : 0;
-  const speciesChoiceCount = traits.includes("skillful") ? 1 : 0;
-  return {
-    supported: data.class_id === "class:fighter",
-    backgroundSkills,
-    classOptions: data.class_id === "class:fighter"
+  const configuredClassCount = classEntry?.data.skill_proficiency_count;
+  const configuredClassOptions = classEntry?.data.skill_proficiency_options;
+  const classChoiceCount = typeof configuredClassCount === "number"
+    ? configuredClassCount
+    : data.class_id === "class:fighter" ? 2 : 0;
+  const classOptions = Array.isArray(configuredClassOptions)
+    ? new Set(
+      configuredClassOptions.map(
+        (skill) => String(skill).toLowerCase().replaceAll(" ", "_") as CharacterSkill,
+      ),
+    )
+    : data.class_id === "class:fighter"
       ? FIGHTER_SKILL_OPTIONS
-      : new Set<CharacterSkill>(),
+      : new Set<CharacterSkill>();
+  const configuredSpeciesCount = species?.data.skill_choice_count;
+  const speciesChoiceCount = typeof configuredSpeciesCount === "number"
+    ? configuredSpeciesCount
+    : traits.includes("skillful") ? 1 : 0;
+  return {
+    supported: Boolean(classEntry)
+      && classChoiceCount >= 0
+      && classOptions.size >= classChoiceCount,
+    backgroundSkills,
+    classOptions,
     classChoiceCount,
     extraChoiceCount: classChoiceCount + speciesChoiceCount,
   };
@@ -822,13 +841,13 @@ function stepValidationMessage(
     (skill) => !policy.backgroundSkills.has(skill),
   );
   if (extras.length !== policy.extraChoiceCount) {
-    return `Background dışında tam ${policy.extraChoiceCount} skill seçmelisin: 2 Fighter ve 1 Human Skillful.`;
+    return `Background dışında tam ${policy.extraChoiceCount} skill seçmelisin: ${policy.classChoiceCount} class ve ${policy.extraChoiceCount - policy.classChoiceCount} species seçimi.`;
   }
   const classEligible = extras.filter(
     (skill) => policy.classOptions.has(skill),
   );
   if (classEligible.length < policy.classChoiceCount) {
-    return "Ek seçimlerin en az ikisi Fighter skill listesinden olmalı.";
+    return `Ek seçimlerin en az ${policy.classChoiceCount} tanesi class skill listesinden olmalı.`;
   }
   return null;
 }

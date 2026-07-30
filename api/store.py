@@ -27,6 +27,7 @@ from api.encounter_engine import (
 )
 from api.migrations import apply_migrations
 from api.models import AuthContext, DMMode
+from api.rules_catalog import RulesCatalog
 
 
 def now() -> str:
@@ -119,13 +120,14 @@ class GameStore:
         self.token_ttl_hours = token_ttl_hours
         self.invite_ttl_hours = invite_ttl_hours
         self.allow_existing_pepper_bind = allow_existing_pepper_bind
-        self.character_engine = CharacterEngine()
-        self.character_draft_engine = CharacterDraftEngine(self.character_engine)
-        self.encounter_engine = EncounterEngine()
         self._local = threading.local()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._configure_database()
         self._initialize()
+        self.rules_catalog = RulesCatalog(database_path=self.path)
+        self.character_engine = CharacterEngine(self.rules_catalog)
+        self.character_draft_engine = CharacterDraftEngine(self.character_engine)
+        self.encounter_engine = EncounterEngine()
 
     def _new_connection(
         self, *, isolation_level: str | None = ""
@@ -348,6 +350,7 @@ class GameStore:
     def _create_game(self, name: str, dm_name: str, dm_mode: DMMode) -> dict:
         game_id, member_id, session_id = uuid4().hex, uuid4().hex, uuid4().hex
         invite_code, token, timestamp = secrets.token_hex(16).upper(), secrets.token_urlsafe(32), now()
+        ruleset_version = self.rules_catalog.default_version()
         invite_hash = self._credential_hash(invite_code, "invite")
         token_hash = self._credential_hash(token, "auth")
         token_expires_at = self._expires_at(self.token_ttl_hours)
@@ -371,12 +374,13 @@ class GameStore:
                 """INSERT INTO campaigns
                 (id, name, owner_id, status, ruleset_version, language, play_style,
                  public_notes, settings_json, settings_version, created_at, updated_at)
-                VALUES (?, ?, ?, 'active', 'srd-5.2.1', 'tr', 'theater',
+                VALUES (?, ?, ?, 'active', ?, 'tr', 'theater',
                         '', ?, 1, ?, ?)""",
                 (
                     game_id,
                     name,
                     member_id,
+                    ruleset_version,
                     json.dumps({
                         "schema_version": 1,
                         "house_rules": [],

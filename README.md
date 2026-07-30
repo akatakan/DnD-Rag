@@ -265,20 +265,37 @@ içine taşır.
 
 ### Açık Ruleset Kataloğu
 
-Yeni campaign'ler `srd-5.2.1` ruleset sürümünü kullanır. `data/rulesets/srd-5.2.1`
-altındaki katalog class, species, background, spell, feature, item ve condition için
-başlangıç kayıtları sağlar. Bu katalog tam SRD değildir; `foundation` durumundadır.
+Migration v27, yeni bir veritabanında `data/rulesets/srd-5.2.1` altındaki immutable
+bootstrap seed'ini bir kez `rulesets` ve `ruleset_entries` tablolarına aktarır.
+Uygulamanın sonraki tüm katalog okumaları SQLite üzerinden yapılır. Seed class,
+species, background, spell, feature, item ve condition için başlangıç kayıtları
+sağlar; tam SRD değildir ve `foundation` durumundadır.
 Her kayıt resmî SRD belge sürümünü ve SHA-256 özetini, sayfa/section provenance'ını,
-CC BY 4.0 lisansını ve gerekli attribution bilgisini taşır. Uygulama başlangıçta
-kataloğu veritabanını açıp migration çalıştırmadan önce doğrular; resmî
-URL/hash/attribution, entity şeması, referanslar veya kimlik/ad/veri/provenance dahil
-onaylı full-entry hash'leri uyuşmazsa hatalı ruleset ile hizmete başlamaz.
+CC BY 4.0 lisansını ve gerekli attribution bilgisini taşır. Bootstrap doğrulaması
+resmî URL/hash/attribution, entity şeması, referanslar veya onaylı seed hash'leri
+uyuşmazsa migration'ı geri alır.
+
+Yayınlanmış ruleset'ler immutable'dır. Developer akışı published bir sürümü yeni
+bir draft ID'sine klonlar; entry ekleme/güncelleme/silme revision CAS ile korunur.
+Publish tüm katalog referanslarını yeniden doğrular. Default yapılan yeni sürümü
+yalnız bundan sonra oluşturulan campaign'ler kullanır; mevcut campaign'ler pinli
+sürümlerinde kalır.
 
 Kimliği doğrulanmış istemciler sürümleri `GET /api/rulesets`, filtreli kayıtları
 `GET /api/rulesets/{version}/entries` ve tek kaydı
 `GET /api/rulesets/{version}/entries/{entry_id}` üzerinden okuyabilir. Liste endpoint'i
 `type`, `q`, `offset` ve en fazla 100 olan `limit` parametrelerini kabul eder. Bunlar
 statik katalog sorgularıdır; Ollama, Qdrant veya model indirmesi gerektirmez.
+
+Gizli development ekranı `/__developer/catalog` adresindedir ve navigasyonda
+gösterilmez. Backend erişimi varsayılan olarak kapalıdır. En az 32 karakterlik
+rastgele `DEVELOPER_ADMIN_TOKEN` ayarlanmalıdır; token yalnız `X-Developer-Token`
+header'ında kullanılır ve ekran tarafından browser storage'a yazılmaz. Public
+deployment'ta bu yüzey yalnız HTTPS arkasında kullanılmalıdır.
+
+Katalog ekranı veri tanımlarını yönetir; yeni bir feature kaydı tek başına yeni bir
+oynanış mekaniği çalıştırmaz. Second Wind gibi action/resource/encounter etkileri için
+ilgili authoritative engine komutu ve testleri ayrıca uygulanmalıdır.
 
 ### Character Aggregate ve Hesaplamalar
 
@@ -540,6 +557,8 @@ Yerel/LAN kullanımında `PUBLIC_MODE=false` ile sıfır ayar davranışı korun
 Pepper ilk credential oluşturulmadan belirlenmeli ve değiştirilmemelidir. Mevcut v5/v6
 veritabanını aynı pepper ile ilk kez v7'ye bağlarken bir defaya mahsus
 `AUTH_PEPPER_BIND_EXISTING=true` onayı gerekir; farklı pepper credential reissue ister.
+Catalog developer yüzeyi gerekiyorsa ayrıca en az 32 karakterlik rastgele
+`DEVELOPER_ADMIN_TOKEN` ayarlanır; boş bırakıldığında ilgili API'ler 404 döner.
 
 ## Yol Haritası
 

@@ -583,6 +583,36 @@ export interface RulesCatalogEntry {
   provenance: RulesCatalogProvenance;
 }
 
+export interface DeveloperRulesetSummary {
+  id: string;
+  name: string;
+  schema_version: number;
+  status: "foundation" | "complete";
+  publication_status: "draft" | "published";
+  catalog_sha256: string;
+  revision: number;
+  is_default: boolean;
+  based_on: string | null;
+  entry_count: number;
+  entity_types: RulesCatalogEntityType[];
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+}
+
+export interface DeveloperRulesetDetail {
+  ruleset: DeveloperRulesetSummary & {
+    source_json: string;
+    license_json: string;
+  };
+  entries: RulesCatalogEntry[];
+}
+
+export type DeveloperCatalogEntry = Omit<
+  RulesCatalogEntry,
+  "source" | "license"
+>;
+
 export interface RulesetSummary {
   id: string;
   name: string;

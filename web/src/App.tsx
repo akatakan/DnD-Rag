@@ -9,6 +9,7 @@ import CharacterBuilder from "./components/CharacterBuilder";
 import CampaignDashboard from "./components/CampaignDashboard";
 import SessionWorkspace from "./components/SessionWorkspace";
 import EncounterLibrary from "./components/EncounterLibrary";
+import DeveloperCatalog from "./components/DeveloperCatalog";
 import type { Credentials, Snapshot } from "./types";
 
 const STORAGE_KEY = "dnd-table-credentials";
@@ -34,6 +35,13 @@ function storedCredentials(): Credentials | null {
 }
 
 export default function App() {
+  if (window.location.pathname === "/__developer/catalog") {
+    return <DeveloperCatalog />;
+  }
+  return <GameApplication />;
+}
+
+function GameApplication() {
   const [credentials, setCredentials] = useState<Credentials | null>(storedCredentials);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [error, setError] = useState("");

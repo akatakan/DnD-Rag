@@ -99,7 +99,9 @@ api/app.py
 - `api/rate_limit.py` provides local fallback or shared Redis-backed sliding windows.
 - `api/shared_runtime.py` owns Redis presence, pub/sub, recoverable grace scheduling,
   and the atomic shared rate-limit backend.
-- `api/rules_catalog.py` validates and serves immutable open-rules catalog files.
+- `api/rules_catalog.py` validates, stores, versions, and serves open-rules
+  catalogs from SQLite. Migration v27 imports the bundled JSON only as a
+  first-database bootstrap seed.
 - `api/security.py` validates public-mode pepper and HTTPS origin requirements.
 - `api/realtime.py` owns live connections, role-aware broadcasts, and handover timers.
 - `api/ai_dm.py` may propose commands; `GameEngine` still validates/applies them.
@@ -337,12 +339,21 @@ the retrieval contract.
 - Session scheduling changes only the active `preparing` session and is guarded by the
   shared game revision. Campaign/settings/member mutation plus revision and event must
   commit in one `BEGIN IMMEDIATE` transaction.
-- Campaigns currently target `srd-5.2.1`. Bundled rules records must use the seven
-  supported entity types and carry matching source, CC BY 4.0 license, attribution,
-  document hash, page label, section, and curation provenance.
-- `data/rulesets/<version>/catalog.json` is immutable source data, not runtime state.
-  A new source document or corrected catalog is a new ruleset/catalog version; do not
-  silently mutate a version already referenced by persisted characters or campaigns.
+- New databases bootstrap with `srd-5.2.1`; new campaigns pin the current default
+  published DB ruleset. Existing campaigns never follow a later default change.
+  Rules records must use the seven supported entity types and carry matching source,
+  CC BY 4.0 license, attribution, document hash, page label, section, and provenance.
+- `data/rulesets/<version>/catalog.json` is an immutable bootstrap seed, not runtime
+  state. Migration v27 imports it once; subsequent reads come from `rulesets` and
+  `ruleset_entries`. Never edit a published DB ruleset. Clone it to a revision-checked
+  draft, edit the draft, validate all references, then publish a new version.
+- `/__developer/catalog` is intentionally absent from navigation, but secrecy is not
+  authorization. Its APIs must remain disabled when `DEVELOPER_ADMIN_TOKEN` is unset,
+  use constant-time token comparison, avoid token persistence, stay rate-limited, and
+  never bypass source/license/provenance validation.
+- Catalog records define data, not executable mechanics. Adding a feature record does
+  not implement its action/resource/encounter behavior; authoritative engine commands
+  and tests are still required for effects such as Second Wind.
 - Schema v1 pins the official SRD PDF URL and SHA-256, exact attribution, strict
   per-entity fields, canonical `type:slug` IDs, cross-references, and approved full-entry
   hashes (identity, name, data, source, license, and provenance). Expanding or correcting
@@ -398,10 +409,10 @@ explicitly when a change touches the area.
   expensive; any cache must be keyed by provider and retrieval configuration.
 - The SRD 5.2.1 catalog is intentionally a seven-record `foundation` seed, not an
   exhaustive rules corpus. `status` must remain `foundation` until completeness is
-  measured and reviewed. Startup validates the bundled catalog before opening or
-  migrating the database and fails if it is unavailable or invalid. Catalog reads use
-  immutable process-local indexes and copy only returned data; deploying a changed file
-  requires a process restart.
+  measured and reviewed. The v27 bootstrap migration validates the seed and rolls back
+  if it is unavailable or invalid. Once seeded, runtime catalog reads are DB-backed and
+  do not reopen the JSON file. Published versions are immutable; draft writes use
+  ruleset revision CAS and publication revalidates the complete catalog.
 - The foundation Fighter record predates structured class skill-choice metadata.
   `CharacterDraftEngine` and the builder therefore use an ID- and ruleset-pinned
   Fighter compatibility policy while background skills and Human Skillful are derived

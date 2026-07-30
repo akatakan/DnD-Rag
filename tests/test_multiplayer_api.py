@@ -994,6 +994,108 @@ class MultiplayerAPITest(unittest.TestCase):
         )
         self.assertEqual(oversized_query.status_code, 422)
 
+    def test_developer_catalog_requires_secret_and_publishes_new_default(self):
+        developer_token = "developer-test-token-that-is-long-enough"
+        endpoint = "/api/developer/catalog/rulesets"
+
+        with patch.object(api_app, "DEVELOPER_ADMIN_TOKEN", ""):
+            self.assertEqual(self.client.get(endpoint).status_code, 404)
+        with patch.object(
+            api_app, "DEVELOPER_ADMIN_TOKEN", developer_token
+        ):
+            self.assertEqual(
+                self.client.get(
+                    endpoint,
+                    headers={"X-Developer-Token": "wrong"},
+                ).status_code,
+                401,
+            )
+            headers = {"X-Developer-Token": developer_token}
+            cloned = self.client.post(
+                endpoint + "/clone",
+                headers=headers,
+                json={
+                    "source_version": "srd-5.2.1",
+                    "version": "srd-5.2.1-custom.1",
+                    "name": "SRD Custom 1",
+                },
+            )
+            self.assertEqual(cloned.status_code, 200, cloned.text)
+            draft = cloned.json()
+            shield = next(
+                entry
+                for entry in draft["entries"]
+                if entry["id"] == "item:shield"
+            )
+            entry = {
+                key: value
+                for key, value in shield.items()
+                if key not in {"source", "license"}
+            }
+            entry.update(
+                {
+                    "id": "item:training-sword",
+                    "slug": "training-sword",
+                    "name": "Training Sword",
+                }
+            )
+            entry["provenance"] = {
+                **entry["provenance"],
+                "section": "Equipment: Training Sword",
+            }
+            saved = self.client.put(
+                endpoint + "/srd-5.2.1-custom.1/entries",
+                headers=headers,
+                json={
+                    "expected_revision": draft["ruleset"]["revision"],
+                    "entry": entry,
+                },
+            )
+            self.assertEqual(saved.status_code, 200, saved.text)
+            stale = self.client.put(
+                endpoint + "/srd-5.2.1-custom.1/entries",
+                headers=headers,
+                json={
+                    "expected_revision": draft["ruleset"]["revision"],
+                    "entry": entry,
+                },
+            )
+            self.assertEqual(stale.status_code, 409)
+            saved_body = saved.json()
+            published = self.client.post(
+                endpoint + "/srd-5.2.1-custom.1/publish",
+                headers=headers,
+                json={
+                    "expected_revision": saved_body["ruleset"]["revision"],
+                    "make_default": True,
+                },
+            )
+            self.assertEqual(published.status_code, 200, published.text)
+            self.assertTrue(published.json()["ruleset"]["is_default"])
+            immutable = self.client.put(
+                endpoint + "/srd-5.2.1-custom.1/entries",
+                headers=headers,
+                json={
+                    "expected_revision": published.json()["ruleset"]["revision"],
+                    "entry": entry,
+                },
+            )
+            self.assertEqual(immutable.status_code, 400)
+
+        created = self.client.post(
+            "/api/games",
+            json={
+                "name": "New Default Campaign",
+                "dm_name": "Developer DM",
+                "dm_mode": "human",
+            },
+        )
+        self.assertEqual(created.status_code, 200, created.text)
+        campaign = self.store.campaign_for_game(created.json()["game_id"])
+        self.assertEqual(
+            campaign["ruleset_version"], "srd-5.2.1-custom.1"
+        )
+
     def test_character_update_recalculates_authoritative_derived_stats(self):
         updated = self.command(
             self.dm["token"],
