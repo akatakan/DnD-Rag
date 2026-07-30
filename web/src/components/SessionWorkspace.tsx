@@ -90,8 +90,8 @@ export default function SessionWorkspace({ snapshot, token, onClose, onRefresh }
     setWorkspace(next);
     if (!summaryDirty.current) {
       setSummaryTitle(next.summary?.title ?? "");
-      setHighlights(next.summary?.highlights.join("\n") ?? "");
-      setNextSteps(next.summary?.next_steps.join("\n") ?? "");
+      setHighlights((next.summary?.highlights ?? []).join("\n"));
+      setNextSteps((next.summary?.next_steps ?? []).join("\n"));
       summaryBaseRevision.current = revisionRef.current;
     }
   }, [token]);
