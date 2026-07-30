@@ -1,0 +1,481 @@
+{
+  "schema_version": 1,
+  "pack_id": "srd-5.2.1-foundation-expansion-1",
+  "source_ruleset": "srd-5.2.1",
+  "target_ruleset": "srd-5.2.1-expanded-1",
+  "target_name": "SRD 5.2.1 Foundation Expansion 1",
+  "source_document_id": "srd-5.2.1",
+  "source_document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "capability": {
+    "classification": "schema-v1-compatible-curation",
+    "builder_ready": false,
+    "publish_allowed": false,
+    "notes": "Draft-only curation data. Entries are not executable mechanics and are not a complete SRD catalog."
+  },
+  "known_gaps": [
+    "Class records omit equipment choices, tool and weapon proficiencies, level tables, and executable feature mechanics.",
+    "Species records preserve only top-level traits; trait choices and executable effects are not modeled.",
+    "Background records omit equipment packages, currency choices, and typed feat references.",
+    "Spell schema safely represents healing facts but lacks general attack, save, damage, target, ritual, and concentration semantics.",
+    "Item schema safely represents weight, cost, equipment modifiers, attunement, and pound-based containers but not weapon or general-use mechanics."
+  ],
+  "entries_sha256": "7848b4a14b5d28232626b30429a328e56a0a68b1efb7c545ab9bba69212e0490",
+  "entries": [
+    {
+      "id": "class:barbarian",
+      "type": "class",
+      "slug": "barbarian",
+      "name": "Barbarian",
+      "data": {
+        "hit_die": 12,
+        "primary_abilities": ["Strength"],
+        "saving_throw_proficiencies": ["Strength", "Constitution"],
+        "armor_training": ["Light", "Medium", "Shield"],
+        "starting_feature_ids": ["feature:rage", "feature:barbarian-unarmored-defense", "feature:barbarian-weapon-mastery"],
+        "skill_proficiency_count": 2,
+        "skill_proficiency_options": ["Animal Handling", "Athletics", "Intimidation", "Nature", "Perception", "Survival"],
+        "average_hp_per_level": 7
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["28"],
+        "section": "Classes: Barbarian; Core Barbarian Traits",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "class:rogue",
+      "type": "class",
+      "slug": "rogue",
+      "name": "Rogue",
+      "data": {
+        "hit_die": 8,
+        "primary_abilities": ["Dexterity"],
+        "saving_throw_proficiencies": ["Dexterity", "Intelligence"],
+        "armor_training": ["Light"],
+        "starting_feature_ids": ["feature:rogue-expertise", "feature:sneak-attack", "feature:thieves-cant", "feature:rogue-weapon-mastery"],
+        "skill_proficiency_count": 4,
+        "skill_proficiency_options": ["Acrobatics", "Athletics", "Deception", "Insight", "Intimidation", "Investigation", "Perception", "Persuasion", "Sleight of Hand", "Stealth"],
+        "average_hp_per_level": 5
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["61"],
+        "section": "Classes: Rogue; Core Rogue Traits",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "feature:rage",
+      "type": "feature",
+      "slug": "rage",
+      "name": "Rage",
+      "data": {
+        "class_id": "class:barbarian",
+        "level": 1,
+        "activation": "Bonus Action",
+        "effect": "Enter Rage while not wearing Heavy armor; gain the SRD Rage benefits.",
+        "initial_uses": 2,
+        "uses_by_level": {"1": 2, "3": 3, "6": 4, "12": 5, "17": 6},
+        "recovery": "One use on Short Rest; all uses on Long Rest"
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["28-29"],
+        "section": "Barbarian Level 1: Rage",
+        "method": "derived"
+      }
+    },
+    {
+      "id": "feature:barbarian-unarmored-defense",
+      "type": "feature",
+      "slug": "barbarian-unarmored-defense",
+      "name": "Unarmored Defense (Barbarian)",
+      "data": {
+        "class_id": "class:barbarian",
+        "level": 1,
+        "activation": "Passive",
+        "effect": "While not wearing armor, base AC equals 10 plus Dexterity and Constitution modifiers; a Shield is allowed.",
+        "initial_uses": 0,
+        "uses_by_level": {},
+        "recovery": "Unlimited"
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["29"],
+        "section": "Barbarian Level 1: Unarmored Defense",
+        "method": "derived"
+      }
+    },
+    {
+      "id": "feature:barbarian-weapon-mastery",
+      "type": "feature",
+      "slug": "barbarian-weapon-mastery",
+      "name": "Weapon Mastery (Barbarian)",
+      "data": {
+        "class_id": "class:barbarian",
+        "level": 1,
+        "activation": "Passive",
+        "effect": "Use the mastery properties of two eligible weapon kinds; choices can change on a Long Rest.",
+        "initial_uses": 0,
+        "uses_by_level": {},
+        "recovery": "Unlimited"
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["29"],
+        "section": "Barbarian Level 1: Weapon Mastery",
+        "method": "derived"
+      }
+    },
+    {
+      "id": "feature:rogue-expertise",
+      "type": "feature",
+      "slug": "rogue-expertise",
+      "name": "Expertise (Rogue)",
+      "data": {
+        "class_id": "class:rogue",
+        "level": 1,
+        "activation": "Passive",
+        "effect": "Gain Expertise in two skill proficiencies of your choice.",
+        "initial_uses": 0,
+        "uses_by_level": {},
+        "recovery": "Unlimited"
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["61"],
+        "section": "Rogue Level 1: Expertise",
+        "method": "derived"
+      }
+    },
+    {
+      "id": "feature:sneak-attack",
+      "type": "feature",
+      "slug": "sneak-attack",
+      "name": "Sneak Attack",
+      "data": {
+        "class_id": "class:rogue",
+        "level": 1,
+        "activation": "Once per turn",
+        "effect": "Deal 1d6 extra weapon damage when the SRD Sneak Attack requirements are met.",
+        "initial_uses": 0,
+        "uses_by_level": {},
+        "recovery": "Unlimited; once per turn"
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["61-62"],
+        "section": "Rogue Level 1: Sneak Attack",
+        "method": "derived"
+      }
+    },
+    {
+      "id": "feature:thieves-cant",
+      "type": "feature",
+      "slug": "thieves-cant",
+      "name": "Thieves' Cant",
+      "data": {
+        "class_id": "class:rogue",
+        "level": 1,
+        "activation": "Passive",
+        "effect": "Know Thieves' Cant and one other language chosen from the Character Creation language tables.",
+        "initial_uses": 0,
+        "uses_by_level": {},
+        "recovery": "Unlimited"
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["62"],
+        "section": "Rogue Level 1: Thieves' Cant",
+        "method": "derived"
+      }
+    },
+    {
+      "id": "feature:rogue-weapon-mastery",
+      "type": "feature",
+      "slug": "rogue-weapon-mastery",
+      "name": "Weapon Mastery (Rogue)",
+      "data": {
+        "class_id": "class:rogue",
+        "level": 1,
+        "activation": "Passive",
+        "effect": "Use the mastery properties of two eligible weapon kinds; choices can change on a Long Rest.",
+        "initial_uses": 0,
+        "uses_by_level": {},
+        "recovery": "Unlimited"
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["62"],
+        "section": "Rogue Level 1: Weapon Mastery",
+        "method": "derived"
+      }
+    },
+    {
+      "id": "species:dragonborn",
+      "type": "species",
+      "slug": "dragonborn",
+      "name": "Dragonborn",
+      "data": {
+        "creature_type": "Humanoid",
+        "size_options": ["Medium"],
+        "speed": 30,
+        "traits": ["Draconic Ancestry", "Breath Weapon", "Damage Resistance", "Darkvision", "Draconic Flight"]
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["84"],
+        "section": "Character Species: Dragonborn",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "species:dwarf",
+      "type": "species",
+      "slug": "dwarf",
+      "name": "Dwarf",
+      "data": {
+        "creature_type": "Humanoid",
+        "size_options": ["Medium"],
+        "speed": 30,
+        "traits": ["Darkvision", "Dwarven Resilience", "Dwarven Toughness", "Stonecunning"]
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["84"],
+        "section": "Character Species: Dwarf",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "species:halfling",
+      "type": "species",
+      "slug": "halfling",
+      "name": "Halfling",
+      "data": {
+        "creature_type": "Humanoid",
+        "size_options": ["Small"],
+        "speed": 30,
+        "traits": ["Brave", "Halfling Nimbleness", "Luck", "Naturally Stealthy"]
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["86"],
+        "section": "Character Species: Halfling",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "species:orc",
+      "type": "species",
+      "slug": "orc",
+      "name": "Orc",
+      "data": {
+        "creature_type": "Humanoid",
+        "size_options": ["Medium"],
+        "speed": 30,
+        "traits": ["Adrenaline Rush", "Darkvision", "Relentless Endurance"]
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["86"],
+        "section": "Character Species: Orc",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "background:criminal",
+      "type": "background",
+      "slug": "criminal",
+      "name": "Criminal",
+      "data": {
+        "ability_options": ["Dexterity", "Constitution", "Intelligence"],
+        "feat": "Alert",
+        "skill_proficiencies": ["Sleight of Hand", "Stealth"],
+        "tool_proficiency": "Thieves' Tools"
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["83"],
+        "section": "Sample Backgrounds: Criminal",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "background:sage",
+      "type": "background",
+      "slug": "sage",
+      "name": "Sage",
+      "data": {
+        "ability_options": ["Constitution", "Intelligence", "Wisdom"],
+        "feat": "Magic Initiate (Wizard)",
+        "skill_proficiencies": ["Arcana", "History"],
+        "tool_proficiency": "Calligrapher's Supplies"
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["83"],
+        "section": "Sample Backgrounds: Sage",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "background:soldier",
+      "type": "background",
+      "slug": "soldier",
+      "name": "Soldier",
+      "data": {
+        "ability_options": ["Strength", "Dexterity", "Constitution"],
+        "feat": "Savage Attacker",
+        "skill_proficiencies": ["Athletics", "Intimidation"],
+        "tool_proficiency": "One Gaming Set"
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["83"],
+        "section": "Sample Backgrounds: Soldier",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "spell:healing-word",
+      "type": "spell",
+      "slug": "healing-word",
+      "name": "Healing Word",
+      "data": {
+        "level": 1,
+        "school": "Abjuration",
+        "casting_time": "Bonus Action",
+        "range": "60 feet",
+        "components": ["V"],
+        "duration": "Instantaneous",
+        "healing": "2d4 + spellcasting ability modifier",
+        "higher_slot": "+2d4 per slot level above 1"
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["139"],
+        "section": "Spell Descriptions: Healing Word",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "item:backpack",
+      "type": "item",
+      "slug": "backpack",
+      "name": "Backpack",
+      "data": {
+        "category": "Adventuring Gear",
+        "armor_class_bonus": 0,
+        "strength_requirement": null,
+        "stealth_disadvantage": false,
+        "weight_lb": 5,
+        "cost_gp": 2,
+        "equipment_slot": null,
+        "armor_training": null,
+        "requires_attunement": false,
+        "container_capacity_lb": 30
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["95-96"],
+        "section": "Adventuring Gear: Backpack",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "item:basket",
+      "type": "item",
+      "slug": "basket",
+      "name": "Basket",
+      "data": {
+        "category": "Adventuring Gear",
+        "armor_class_bonus": 0,
+        "strength_requirement": null,
+        "stealth_disadvantage": false,
+        "weight_lb": 2,
+        "cost_gp": 0.4,
+        "equipment_slot": null,
+        "armor_training": null,
+        "requires_attunement": false,
+        "container_capacity_lb": 40
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["95-96"],
+        "section": "Adventuring Gear: Basket",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "item:pouch",
+      "type": "item",
+      "slug": "pouch",
+      "name": "Pouch",
+      "data": {
+        "category": "Adventuring Gear",
+        "armor_class_bonus": 0,
+        "strength_requirement": null,
+        "stealth_disadvantage": false,
+        "weight_lb": 1,
+        "cost_gp": 0.5,
+        "equipment_slot": null,
+        "armor_training": null,
+        "requires_attunement": false,
+        "container_capacity_lb": 6
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["95", "99"],
+        "section": "Adventuring Gear: Pouch",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "item:sack",
+      "type": "item",
+      "slug": "sack",
+      "name": "Sack",
+      "data": {
+        "category": "Adventuring Gear",
+        "armor_class_bonus": 0,
+        "strength_requirement": null,
+        "stealth_disadvantage": false,
+        "weight_lb": 0.5,
+        "cost_gp": 0.01,
+        "equipment_slot": null,
+        "armor_training": null,
+        "requires_attunement": false,
+        "container_capacity_lb": 30
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["95", "99"],
+        "section": "Adventuring Gear: Sack",
+        "method": "curated"
+      }
+    }
+  ]
+}

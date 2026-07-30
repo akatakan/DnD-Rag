@@ -585,9 +585,35 @@ function StepContent({
       <StepHeading title={`${title(step)} seç`} text="Seçimin pinned SRD kataloğundan doğrulanır." />
       <div className="choice-grid">{(byType.get(step) ?? []).map((entry) => <button key={entry.id} className={data[field] === entry.id ? "selected" : ""} aria-pressed={data[field] === entry.id} onClick={() => {
         change(field, entry.id);
+        if (step === "class") {
+          const policy = spellcastingPolicyForEntry(entry);
+          change("spellcasting", policy ? {
+            ability: policy.ability,
+            known_spell_ids: [],
+            prepared_spell_ids: [],
+            slots: policy.slots,
+          } : {
+            ability: null,
+            known_spell_ids: [],
+            prepared_spell_ids: [],
+            slots: {},
+          });
+        }
         if (step === "background") {
           const required = ((entry.data.skill_proficiencies as string[] | undefined) ?? []).map((skill) => skill.toLowerCase().replaceAll(" ", "_")) as CharacterSkill[];
-          change("skill_proficiencies", Array.from(new Set([...data.skill_proficiencies, ...required])));
+          const backgroundSkills = new Set(
+            (byType.get("background") ?? []).flatMap((background) =>
+              ((background.data.skill_proficiencies as string[] | undefined) ?? [])
+                .map((skill) => skill.toLowerCase().replaceAll(" ", "_")),
+            ),
+          );
+          const retained = data.skill_proficiencies.filter(
+            (skill) => !backgroundSkills.has(skill),
+          );
+          change(
+            "skill_proficiencies",
+            Array.from(new Set([...retained, ...required])),
+          );
           const options = ((entry.data.ability_options as string[] | undefined) ?? [])
             .map((ability) => ability.toLowerCase() as CharacterAbility);
           change(
@@ -650,7 +676,7 @@ function StepContent({
           />
           <span>
             {title(skill)}
-            {required && <small>Acolyte</small>}
+            {required && <small>{policy.backgroundName}</small>}
             {!required && policy.classOptions.has(skill) && <small>Class seçeneği</small>}
           </span>
         </label>;
@@ -661,24 +687,43 @@ function StepContent({
     <StepHeading title="Başlangıç ekipmanını seç" text="Item'lar identity-based inventory kaydı olarak publish edilir." />
     <div className="choice-grid">{(byType.get("item") ?? []).map((entry) => <button key={entry.id} className={data.equipment_catalog_ids.includes(entry.id) ? "selected" : ""} aria-pressed={data.equipment_catalog_ids.includes(entry.id)} onClick={() => change("equipment_catalog_ids", toggle(data.equipment_catalog_ids, entry.id))}><strong>{entry.name}</strong><small>{String(entry.data.weight_lb ?? "—")} lb</small></button>)}</div>
   </div>;
-  if (step === "spells") return <div className="builder-step">
-    <StepHeading title="Spell hazırlığını yap" text="Known ve prepared listeleri ile slot maximum'ları birlikte doğrulanır." />
-    <label>Spellcasting ability<select value={data.spellcasting.ability ?? ""} onChange={(event) => change("spellcasting", { ...data.spellcasting, ability: (event.target.value || null) as CharacterAbility | null })}><option value="">Spellcasting yok</option>{ABILITIES.map((ability) => <option key={ability} value={ability}>{title(ability)}</option>)}</select></label>
-    <div className="choice-grid">{(byType.get("spell") ?? []).map((entry) => {
+  if (step === "spells") {
+    const policy = spellcastingPolicy(data, byType);
+    if (!policy) return <div className="builder-step">
+      <StepHeading title="Spellcasting" text="Büyü kullanımı class ve level tarafından belirlenir." />
+      <p className="builder-rule-warning" role="status">
+        Seçili class 1. seviyede spell slot veya hazırlanabilir spell kazanmaz.
+      </p>
+    </div>;
+    const selectionLimit = Math.min(
+      policy.knownCount, policy.preparedCount,
+    );
+    return <div className="builder-step">
+    <StepHeading title="Spell hazırlığını yap" text="Spellcasting ability ve slot maksimumları class tablosundan gelir; oyuncu bunları elle değiştiremez." />
+    <dl className="review-grid">
+      <div><dt>Spellcasting ability</dt><dd>{title(policy.ability)}</dd></div>
+      {Object.entries(policy.slots).map(([level, maximum]) => (
+        <div key={level}><dt>{level}. seviye slot</dt><dd>{maximum}</dd></div>
+      ))}
+      <div><dt>Hazırlanabilir spell</dt><dd>{data.spellcasting.prepared_spell_ids.length}/{selectionLimit}</dd></div>
+    </dl>
+    <div className="choice-grid">{(byType.get("spell") ?? [])
+      .filter((entry) => policy.spellIds.has(entry.id))
+      .map((entry) => {
       const selected = data.spellcasting.prepared_spell_ids.includes(entry.id);
-      return <button key={entry.id} className={selected ? "selected" : ""} aria-pressed={selected} onClick={() => {
+      const atLimit = data.spellcasting.prepared_spell_ids.length >= selectionLimit;
+      return <button key={entry.id} disabled={!selected && atLimit} className={selected ? "selected" : ""} aria-pressed={selected} onClick={() => {
         const prepared = toggle(data.spellcasting.prepared_spell_ids, entry.id);
         change("spellcasting", {
-          ...data.spellcasting,
-          ability: prepared.length ? data.spellcasting.ability ?? "wisdom" : data.spellcasting.ability,
+          ability: policy.ability,
           known_spell_ids: prepared,
           prepared_spell_ids: prepared,
-          slots: prepared.length ? { ...data.spellcasting.slots, "1": Math.max(1, data.spellcasting.slots["1"] ?? 0) } : data.spellcasting.slots,
+          slots: policy.slots,
         });
       }}><strong>{entry.name}</strong><small>Seviye {String(entry.data.level)}</small></button>;
     })}</div>
-    {data.spellcasting.prepared_spell_ids.length > 0 && <label>1. seviye slot<input type="number" min={0} max={99} value={data.spellcasting.slots["1"] ?? 0} onChange={(event) => change("spellcasting", { ...data.spellcasting, slots: { ...data.spellcasting.slots, "1": Number(event.target.value) } })} /></label>}
   </div>;
+  }
   return <div className="builder-step">
     <StepHeading title="Karakterini kontrol et" text="Publish tüm adımları yeniden doğrular ve authoritative sheet'i atomik üretir." />
     <dl className="review-grid">
@@ -748,10 +793,65 @@ function StepHeading({ title: heading, text }: { title: string; text: string }) 
 
 interface ProficiencyPolicy {
   supported: boolean;
+  backgroundName: string;
   backgroundSkills: Set<CharacterSkill>;
   classOptions: Set<CharacterSkill>;
   classChoiceCount: number;
   extraChoiceCount: number;
+}
+
+interface SpellcastingPolicy {
+  ability: CharacterAbility;
+  spellIds: Set<string>;
+  knownCount: number;
+  preparedCount: number;
+  slots: Record<string, number>;
+}
+
+function spellcastingPolicyForEntry(
+  entry: RulesCatalogEntry | undefined,
+): SpellcastingPolicy | null {
+  const raw = entry?.data.spellcasting as {
+    ability?: string;
+    spell_ids?: unknown;
+    known_count_by_level?: Record<string, unknown>;
+    prepared_count_by_level?: Record<string, unknown>;
+    slots_by_level?: Record<string, unknown>;
+  } | undefined;
+  if (!raw || typeof raw.ability !== "string") return null;
+  const knownCount = Number(raw.known_count_by_level?.["1"] ?? 0);
+  const preparedCount = Number(raw.prepared_count_by_level?.["1"] ?? 0);
+  const rawSlots = raw.slots_by_level?.["1"];
+  const slots = rawSlots && typeof rawSlots === "object"
+    ? Object.fromEntries(
+      Object.entries(rawSlots).map(([level, maximum]) => [
+        level, Number(maximum),
+      ]),
+    )
+    : {};
+  if (knownCount === 0 && preparedCount === 0 && !Object.keys(slots).length) {
+    return null;
+  }
+  return {
+    ability: raw.ability.toLowerCase() as CharacterAbility,
+    spellIds: new Set(
+      Array.isArray(raw.spell_ids)
+        ? raw.spell_ids.map((spellId) => String(spellId))
+        : [],
+    ),
+    knownCount,
+    preparedCount,
+    slots,
+  };
+}
+
+function spellcastingPolicy(
+  data: CharacterDraftData,
+  byType: Map<string, RulesCatalogEntry[]>,
+): SpellcastingPolicy | null {
+  return spellcastingPolicyForEntry(
+    (byType.get("class") ?? []).find((entry) => entry.id === data.class_id),
+  );
 }
 
 function proficiencyPolicy(
@@ -795,6 +895,7 @@ function proficiencyPolicy(
     supported: Boolean(classEntry)
       && classChoiceCount >= 0
       && classOptions.size >= classChoiceCount,
+    backgroundName: background?.name ?? "Background",
     backgroundSkills,
     classOptions,
     classChoiceCount,
@@ -826,6 +927,34 @@ function stepValidationMessage(
     return spent === 27
       ? null
       : `Point Cost için tam 27 puan kullan; şu anda ${spent} puan kullanıldı.`;
+  }
+  if (step === "spells") {
+    const policy = spellcastingPolicy(data, byType);
+    const emptyCasting = data.spellcasting.ability === null
+      && data.spellcasting.known_spell_ids.length === 0
+      && data.spellcasting.prepared_spell_ids.length === 0
+      && Object.keys(data.spellcasting.slots).length === 0;
+    if (!policy) {
+      return emptyCasting
+        ? null
+        : "Bu class 1. seviyede spellcasting kullanamaz.";
+    }
+    if (data.spellcasting.ability !== policy.ability) {
+      return "Spellcasting ability class tarafından belirlenir.";
+    }
+    const selected = data.spellcasting.prepared_spell_ids;
+    const limit = Math.min(policy.knownCount, policy.preparedCount);
+    if (selected.length > limit) {
+      return `En fazla ${limit} spell hazırlayabilirsin.`;
+    }
+    if (selected.some((spellId) => !policy.spellIds.has(spellId))) {
+      return "Class spell listesinde olmayan bir spell seçildi.";
+    }
+    if (JSON.stringify(data.spellcasting.slots)
+      !== JSON.stringify(policy.slots)) {
+      return "Spell slot maksimumları class tablosuyla uyuşmuyor.";
+    }
+    return null;
   }
   if (step !== "proficiencies") return null;
 

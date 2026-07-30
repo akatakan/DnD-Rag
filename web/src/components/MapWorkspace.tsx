@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Grid3X3, RefreshCw, Upload } from "lucide-react";
+import { Eye, EyeOff, Grid3X3, Images, RefreshCw, Upload } from "lucide-react";
 import { api } from "../api";
 import type { CommandResponse, MapAsset, MapScene, MapToken } from "../types";
 import MapBoard from "./MapBoard";
@@ -293,6 +293,39 @@ export default function MapWorkspace({
         </div>
         <span>{scene.fog.revealed_cells?.length ?? 0} açık hücre</span>
       </div>
+      {canControl && (
+        <section className="map-asset-library" aria-labelledby="map-library-title">
+          <div>
+            <h3 id="map-library-title"><Images /> Harita kütüphanesi</h3>
+            <small>
+              Bir harita seçip aşağıdaki “Map scene kaydet” düğmesiyle masaya geçir.
+              Yayın açıksa oyuncular kayıttan sonra anlık olarak yeni haritayı görür.
+            </small>
+          </div>
+          {assets.length > 0 ? (
+            <div className="map-asset-list">
+              {assets.map((asset) => (
+                <button
+                  type="button"
+                  key={asset.id}
+                  aria-pressed={scene.asset_id === asset.id}
+                  className={scene.asset_id === asset.id ? "active" : ""}
+                  disabled={Boolean(busy)}
+                  onClick={() => change({
+                    asset_id: asset.id,
+                    asset,
+                  })}
+                >
+                  <span>{asset.original_name}</span>
+                  <small>{asset.width}×{asset.height}</small>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">Henüz kayıtlı harita yok. PNG veya JPEG yükle.</p>
+          )}
+        </section>
+      )}
       <form className="map-controls" onSubmit={save}>
         <label>
           Harita

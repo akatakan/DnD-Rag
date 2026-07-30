@@ -87,7 +87,9 @@ test("DM and player receive separate live workspaces", async ({ browser, request
   await nextButton.click();
   await expect(playerPage.getByRole("heading", { name: "Başlangıç ekipmanını seç" })).toBeVisible();
   await nextButton.click();
-  await expect(playerPage.getByRole("heading", { name: "Spell hazırlığını yap" })).toBeVisible();
+  await expect(playerPage.getByRole("heading", { name: "Spellcasting" })).toBeVisible();
+  await expect(playerPage.getByText(/1. seviyede spell slot/)).toBeVisible();
+  await expect(playerPage.getByRole("spinbutton")).toHaveCount(0);
   await nextButton.click();
   await expect(playerPage.getByRole("heading", { name: "Karakterini kontrol et" })).toBeVisible();
   await playerPage.getByRole("button", { name: "Karakteri yayınla" }).click();

@@ -846,6 +846,7 @@ class RulesCatalog:
                     "skill_proficiency_count",
                     "skill_proficiency_options",
                     "average_hp_per_level",
+                    "spellcasting",
                 },
             ),
             "species": (
@@ -921,6 +922,87 @@ class RulesCatalog:
             skill_count = data.get("skill_proficiency_count")
             skill_options = data.get("skill_proficiency_options")
             average_hp = data.get("average_hp_per_level")
+            spellcasting = data.get("spellcasting")
+
+            def valid_count_table(value: Any) -> bool:
+                return (
+                    isinstance(value, dict)
+                    and len(value) <= 20
+                    and all(
+                        isinstance(level, str)
+                        and level.isdigit()
+                        and 1 <= int(level) <= 20
+                        and isinstance(count, int)
+                        and not isinstance(count, bool)
+                        and 0 <= count <= 500
+                        for level, count in value.items()
+                    )
+                )
+
+            valid_spellcasting = spellcasting is None or (
+                isinstance(spellcasting, dict)
+                and set(spellcasting)
+                == {
+                    "ability",
+                    "spell_ids",
+                    "known_count_by_level",
+                    "prepared_count_by_level",
+                    "slots_by_level",
+                }
+                and isinstance(spellcasting["ability"], str)
+                and spellcasting["ability"].casefold()
+                in {
+                    "strength",
+                    "dexterity",
+                    "constitution",
+                    "intelligence",
+                    "wisdom",
+                    "charisma",
+                }
+                and string_list(spellcasting["spell_ids"])
+                and len(spellcasting["spell_ids"]) <= 500
+                and len(spellcasting["spell_ids"])
+                == len(set(spellcasting["spell_ids"]))
+                and valid_count_table(spellcasting["known_count_by_level"])
+                and valid_count_table(spellcasting["prepared_count_by_level"])
+                and all(
+                    count <= len(spellcasting["spell_ids"])
+                    for count in spellcasting["known_count_by_level"].values()
+                )
+                and all(
+                    count <= len(spellcasting["spell_ids"])
+                    for count in spellcasting[
+                        "prepared_count_by_level"
+                    ].values()
+                )
+                and all(
+                    spellcasting["prepared_count_by_level"].get(level, 0)
+                    <= spellcasting["known_count_by_level"].get(level, 0)
+                    for level in set(spellcasting["known_count_by_level"])
+                    | set(spellcasting["prepared_count_by_level"])
+                )
+                and isinstance(spellcasting["slots_by_level"], dict)
+                and len(spellcasting["slots_by_level"]) <= 20
+                and all(
+                    isinstance(character_level, str)
+                    and character_level.isdigit()
+                    and 1 <= int(character_level) <= 20
+                    and isinstance(slots, dict)
+                    and len(slots) <= 9
+                    and all(
+                        isinstance(spell_level, str)
+                        and spell_level.isdigit()
+                        and 1 <= int(spell_level) <= 9
+                        and isinstance(maximum, int)
+                        and not isinstance(maximum, bool)
+                        and 1 <= maximum <= 4
+                        for spell_level, maximum in slots.items()
+                    )
+                    for character_level, slots in spellcasting[
+                        "slots_by_level"
+                    ].items()
+                )
+            )
             valid = (
                 isinstance(data["hit_die"], int)
                 and not isinstance(data["hit_die"], bool)
@@ -957,6 +1039,7 @@ class RulesCatalog:
                         and 1 <= average_hp <= data["hit_die"]
                     )
                 )
+                and valid_spellcasting
             )
         elif entity_type == "species":
             valid = (
@@ -1099,6 +1182,12 @@ class RulesCatalog:
                     (reference, "feature")
                     for reference in entry["data"]["starting_feature_ids"]
                 )
+                spellcasting = entry["data"].get("spellcasting")
+                if spellcasting is not None:
+                    references.extend(
+                        (reference, "spell")
+                        for reference in spellcasting["spell_ids"]
+                    )
             elif entry["type"] == "feature":
                 references.append((entry["data"]["class_id"], "class"))
             for reference, expected_type in references:

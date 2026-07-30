@@ -30,8 +30,16 @@ from api.models import AuthContext, DMMode
 from api.rules_catalog import RulesCatalog
 
 
+INVITE_CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTVWXYZ"
+
+
 def now() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def new_invite_code() -> str:
+    raw = "".join(secrets.choice(INVITE_CODE_ALPHABET) for _ in range(16))
+    return f"{raw[:8]}-{raw[8:]}"
 
 
 def _redact_export_value(value, sensitive_keys: set[str]):
@@ -349,7 +357,11 @@ class GameStore:
 
     def _create_game(self, name: str, dm_name: str, dm_mode: DMMode) -> dict:
         game_id, member_id, session_id = uuid4().hex, uuid4().hex, uuid4().hex
-        invite_code, token, timestamp = secrets.token_hex(16).upper(), secrets.token_urlsafe(32), now()
+        invite_code, token, timestamp = (
+            new_invite_code(),
+            secrets.token_urlsafe(32),
+            now(),
+        )
         ruleset_version = self.rules_catalog.default_version()
         invite_hash = self._credential_hash(invite_code, "invite")
         token_hash = self._credential_hash(token, "auth")
@@ -467,7 +479,9 @@ class GameStore:
 
     def _join_game(self, invite_code: str, player_name: str) -> dict:
         member_id, character_id, token, timestamp = uuid4().hex, uuid4().hex, secrets.token_urlsafe(32), now()
-        invite_hash = self._credential_hash(invite_code.upper(), "invite")
+        invite_hash = self._credential_hash(
+            invite_code.strip().upper(), "invite"
+        )
         token_hash = self._credential_hash(token, "auth")
         token_expires_at = self._expires_at(self.token_ttl_hours)
         with self.connect() as db:
@@ -667,7 +681,7 @@ class GameStore:
         self, game_id: str, actor_id: str, max_uses: int = 50
     ) -> dict:
         max_uses = min(500, max(1, int(max_uses)))
-        code = secrets.token_hex(16).upper()
+        code = new_invite_code()
         code_hash = self._credential_hash(code, "invite")
         timestamp = now()
         expires_at = self._expires_at(self.invite_ttl_hours)
@@ -971,6 +985,18 @@ class GameStore:
     ) -> dict:
         existing = self.character_draft(game_id, character["id"])
         if existing is not None:
+            if existing["status"] == "active":
+                reconciled = self.character_draft_engine.reconcile_spellcasting(
+                    existing["data"], character["ruleset_version"]
+                )
+                if reconciled != existing["data"]:
+                    return self.update_character_draft(
+                        game_id,
+                        character["id"],
+                        existing["revision"],
+                        reconciled,
+                        existing["current_step"],
+                    )
             return existing
         timestamp = now()
         data = (

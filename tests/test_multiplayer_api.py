@@ -109,6 +109,20 @@ class MultiplayerAPITest(unittest.TestCase):
         after = self.client.get("/api/snapshot", headers=self.auth(self.player["token"])).json()
         self.assertEqual(after["state"]["characters"][character_id]["hp"], 6)
 
+    def test_invite_code_is_short_readable_and_case_insensitive(self):
+        self.assertRegex(
+            self.dm["invite_code"],
+            r"^[23456789A-HJ-KM-NP-TV-Z]{8}-[23456789A-HJ-KM-NP-TV-Z]{8}$",
+        )
+        joined = self.client.post(
+            "/api/games/join",
+            json={
+                "invite_code": f"  {self.dm['invite_code'].lower()}  ",
+                "player_name": "Lowercase Invite",
+            },
+        )
+        self.assertEqual(joined.status_code, 200, joined.text)
+
     def test_player_cannot_use_dm_command(self):
         response = self.command(self.player["token"], "next_turn")
         self.assertEqual(response.status_code, 400)
@@ -254,6 +268,47 @@ class MultiplayerAPITest(unittest.TestCase):
         ).json()
         self.assertEqual(persisted["revision"], broken["revision"])
         self.assertEqual(persisted["status"], "active")
+
+    def test_existing_fighter_draft_reconciles_client_authored_spell_slots(self):
+        character_id = self.player["character_id"]
+        route = f"/api/characters/{character_id}/draft"
+        draft = self.client.post(
+            route, headers=self.auth(self.player["token"])
+        ).json()
+        stale = self.client.patch(
+            route,
+            headers=self.auth(self.player["token"]),
+            json={
+                "expected_revision": draft["revision"],
+                "patch": {
+                    "spellcasting": {
+                        "ability": "strength",
+                        "known_spell_ids": ["spell:cure-wounds"],
+                        "prepared_spell_ids": ["spell:cure-wounds"],
+                        "slots": {"1": 16},
+                    }
+                },
+            },
+        )
+        self.assertEqual(stale.status_code, 200, stale.text)
+
+        reconciled = self.client.post(
+            route, headers=self.auth(self.player["token"])
+        )
+
+        self.assertEqual(reconciled.status_code, 200, reconciled.text)
+        self.assertEqual(
+            reconciled.json()["data"]["spellcasting"],
+            {
+                "ability": None,
+                "known_spell_ids": [],
+                "prepared_spell_ids": [],
+                "slots": {},
+            },
+        )
+        self.assertEqual(
+            reconciled.json()["revision"], stale.json()["revision"] + 1
+        )
 
     def test_draft_publish_requires_review_and_is_blocked_during_encounter(self):
         character_id = self.player["character_id"]

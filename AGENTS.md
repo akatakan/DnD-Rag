@@ -191,6 +191,9 @@ the retrieval contract.
   take effect without reconnecting.
 - Persist only purpose-separated HMAC hashes for bearer tokens, invites, and WebSocket
   tickets. Raw secrets are returned once and must never enter snapshots or audit metadata.
+- Newly generated invite codes use 16 human-readable Crockford-style characters in an
+  `XXXXXXXX-XXXXXXXX` layout (about 79 bits), remain case-insensitive, rate-limited, expiring,
+  revocable, and HMAC-only at rest. Existing longer invite codes remain valid.
 - Public mode requires a private `AUTH_PEPPER`, explicit HTTPS origins, and one-time
   WebSocket tickets. Local mode may retain bearer-in-query fallback for LAN compatibility.
 - Public traffic must arrive as HTTPS through a trusted proxy boundary. Do not trust
@@ -323,6 +326,10 @@ the retrieval contract.
 - Builder choices come from the pinned rules catalog and use stable IDs. Loading, empty,
   validation error, save error, conflict, published, mobile, keyboard, and reduced-motion
   states are part of the feature contract.
+- Character-builder spellcasting is class/level authoritative. Ability, allowed spell
+  IDs, known/prepared limits, and slot maxima come from the class catalog record.
+  Classes without a level-one spellcasting policy must publish empty spell state; never
+  restore a client-editable slot-maximum input.
 - Character-sheet ability, skill, save, and attack controls launch the shared dice dialog
   with a typed command descriptor. The displayed modifier is read-only and comes from the
   current character's derived state; the backend still creates and resolves the intent.
@@ -422,6 +429,9 @@ explicitly when a change touches the area.
   WebSockets use single-use tickets. Browser credentials still live in `localStorage`,
   so public deployments require strict XSS controls, TLS, a private pepper, and explicit
   HTTPS origins. Horizontal scaling requires the Redis shared runtime.
+- The device campaign vault may retain at most 12 non-player credentials. Resume must
+  revalidate the token, expired credentials must be removed, and permanent deletion
+  still requires a fresh owner snapshot plus the server's exact typed confirmation.
 - Command payloads remain dictionaries with command-specific validation for the highest
   risk fields. Extend bounds, strings, IDs, visibility, and enum validation whenever a
   command grows; never trust TypeScript types.

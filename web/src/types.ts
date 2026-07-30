@@ -328,6 +328,12 @@ export interface Credentials {
   role: Role;
 }
 
+export interface SavedCampaign extends Credentials {
+  name: string;
+  is_owner: boolean;
+  last_opened_at: string;
+}
+
 export type DiceSides = 4 | 6 | 8 | 10 | 12 | 20 | 100;
 export type RollMode = "normal" | "advantage" | "disadvantage";
 export type DiceTheme = "crimson" | "arcane" | "ivory";

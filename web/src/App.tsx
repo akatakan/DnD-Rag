@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BookOpenText, Castle, Library, LogOut, RefreshCw, Shield, Sparkles, Swords, UserRound } from "lucide-react";
+import { BookOpenText, Castle, FolderClock, Library, LogOut, RefreshCw, Shield, Sparkles, Swords, UserRound } from "lucide-react";
 import { api, ApiError } from "./api";
 import DMConsole from "./components/DMConsole";
 import JoinScreen from "./components/JoinScreen";
@@ -10,28 +10,64 @@ import CampaignDashboard from "./components/CampaignDashboard";
 import SessionWorkspace from "./components/SessionWorkspace";
 import EncounterLibrary from "./components/EncounterLibrary";
 import DeveloperCatalog from "./components/DeveloperCatalog";
-import type { Credentials, Snapshot } from "./types";
+import type { Credentials, SavedCampaign, Snapshot } from "./types";
 
 const STORAGE_KEY = "dnd-table-credentials";
+const CAMPAIGN_STORAGE_KEY = "dnd-table-saved-campaigns-v1";
+
+function validCredentials(value: Partial<Credentials>): value is Credentials {
+  return (
+    typeof value.game_id === "string" &&
+    typeof value.token === "string" &&
+    ["dm", "co_dm", "player"].includes(value.role ?? "")
+  );
+}
 
 function storedCredentials(): Credentials | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return null;
     const value = JSON.parse(stored) as Partial<Credentials>;
-    if (
-      typeof value.game_id !== "string" ||
-      typeof value.token !== "string" ||
-      !["dm", "co_dm", "player"].includes(value.role ?? "")
-    ) {
+    if (!validCredentials(value)) {
       localStorage.removeItem(STORAGE_KEY);
       return null;
     }
-    return value as Credentials;
+    return value;
   } catch {
     localStorage.removeItem(STORAGE_KEY);
     return null;
   }
+}
+
+function storedCampaigns(): SavedCampaign[] {
+  try {
+    const stored = localStorage.getItem(CAMPAIGN_STORAGE_KEY);
+    if (!stored) return [];
+    const values = JSON.parse(stored);
+    if (!Array.isArray(values)) throw new Error("invalid campaign vault");
+    return values
+      .filter((value): value is SavedCampaign => {
+        const candidate = value as Partial<SavedCampaign>;
+        const hasMetadata = (
+          typeof candidate.name === "string"
+          && typeof candidate.is_owner === "boolean"
+          && typeof candidate.last_opened_at === "string"
+        );
+        return (
+          hasMetadata
+          && validCredentials(candidate)
+          && candidate.role !== "player"
+        );
+      })
+      .slice(0, 12);
+  } catch {
+    localStorage.removeItem(CAMPAIGN_STORAGE_KEY);
+    return [];
+  }
+}
+
+function writeCampaigns(values: SavedCampaign[]) {
+  localStorage.setItem(CAMPAIGN_STORAGE_KEY, JSON.stringify(values.slice(0, 12)));
 }
 
 export default function App() {
@@ -43,6 +79,7 @@ export default function App() {
 
 function GameApplication() {
   const [credentials, setCredentials] = useState<Credentials | null>(storedCredentials);
+  const [savedCampaigns, setSavedCampaigns] = useState<SavedCampaign[]>(storedCampaigns);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [error, setError] = useState("");
   const [connected, setConnected] = useState(false);
@@ -57,7 +94,23 @@ function GameApplication() {
     setSnapshot((current) =>
       !current || next.revision >= current.revision ? next : current
     );
-  }, []);
+    if (credentials && credentials.role !== "player") {
+      setSavedCampaigns((current) => {
+        const saved: SavedCampaign = {
+          ...credentials,
+          name: next.game.name,
+          is_owner: next.me.is_owner,
+          last_opened_at: new Date().toISOString(),
+        };
+        const updated = [
+          saved,
+          ...current.filter((item) => item.game_id !== saved.game_id),
+        ].slice(0, 12);
+        writeCampaigns(updated);
+        return updated;
+      });
+    }
+  }, [credentials]);
 
   const refresh = useCallback(async () => {
     if (!credentials) return;
@@ -65,6 +118,20 @@ function GameApplication() {
       acceptSnapshot(await api.snapshot(credentials.token));
       setError("");
     } catch (reason) {
+      if (reason instanceof ApiError && reason.status === 401) {
+        localStorage.removeItem(STORAGE_KEY);
+        setSavedCampaigns((current) => {
+          const updated = current.filter(
+            (item) => item.token !== credentials.token,
+          );
+          writeCampaigns(updated);
+          return updated;
+        });
+        setCredentials(null);
+        setSnapshot(null);
+        setError("Kaydedilmiş oturumun süresi dolmuş. Yeniden giriş yap.");
+        return;
+      }
       setError(reason instanceof Error ? reason.message : "Baglanti kurulamadi");
     }
   }, [acceptSnapshot, credentials]);
@@ -132,19 +199,68 @@ function GameApplication() {
   }, [acceptSnapshot, credentials, refresh]);
 
   const authenticate = (value: Credentials) => {
-    const {
-      invite_code: _inviteCode,
-      invite_expires_at: _inviteExpiresAt,
-      ...persisted
-    } = value;
+    const persisted: Credentials = {
+      game_id: value.game_id,
+      campaign_id: value.campaign_id,
+      session_id: value.session_id,
+      token: value.token,
+      token_expires_at: value.token_expires_at,
+      role: value.role,
+    };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
-    setCredentials(value);
+    if (persisted.role !== "player") {
+      setSavedCampaigns((current) => {
+        const previous = current.find(
+          (item) => item.game_id === persisted.game_id,
+        );
+        const saved: SavedCampaign = {
+          ...persisted,
+          name: previous?.name ?? persisted.game_id,
+          is_owner: previous?.is_owner ?? persisted.role === "dm",
+          last_opened_at: new Date().toISOString(),
+        };
+        const updated = [
+          saved,
+          ...current.filter((item) => item.game_id !== saved.game_id),
+        ].slice(0, 12);
+        writeCampaigns(updated);
+        return updated;
+      });
+    }
+    setCredentials(persisted);
   };
-  const clearLocalCredentials = () => {
+  const clearActiveCredentials = () => {
     localStorage.removeItem(STORAGE_KEY);
     setCredentials(null);
     setSnapshot(null);
     eventCursor.current = 0;
+  };
+  const forgetSavedCampaign = (gameId: string) => {
+    setSavedCampaigns((current) => {
+      const updated = current.filter((item) => item.game_id !== gameId);
+      writeCampaigns(updated);
+      return updated;
+    });
+  };
+  const clearLocalCredentials = () => {
+    if (credentials) forgetSavedCampaign(credentials.game_id);
+    clearActiveCredentials();
+  };
+  const deleteSavedCampaign = async (
+    saved: SavedCampaign,
+    confirmation: string,
+  ) => {
+    const current = await api.snapshot(saved.token);
+    if (!current.me.is_owner) {
+      throw new Error("Campaign'i yalnızca kalıcı sahibi silebilir.");
+    }
+    const expected = `${current.game.id}:${current.game.name}`;
+    if (confirmation !== expected) {
+      throw new Error(`Silmek için tam olarak “${expected}” yaz.`);
+    }
+    await api.deleteCampaign(saved.token, confirmation);
+    forgetSavedCampaign(saved.game_id);
+    if (credentials?.game_id === saved.game_id) clearActiveCredentials();
   };
   const logout = async () => {
     const current = credentials;
@@ -176,7 +292,15 @@ function GameApplication() {
     }
   };
 
-  if (!credentials) return <JoinScreen onAuthenticated={authenticate} />;
+  if (!credentials) return (
+    <JoinScreen
+      onAuthenticated={authenticate}
+      savedCampaigns={savedCampaigns}
+      onResume={authenticate}
+      onForget={forgetSavedCampaign}
+      onDelete={deleteSavedCampaign}
+    />
+  );
   if (!snapshot) return <div className="center-state"><Swords size={30} /><p>Oyun masasi yukleniyor...</p>{error && <span>{error}</span>}</div>;
 
   const dmWorkspace = snapshot.me.role !== "player";
@@ -199,6 +323,15 @@ function GameApplication() {
           <button className="campaign-launch" disabled={workspaceLocked} onClick={() => setCampaignOpen(true)}><Castle size={16} /> Campaign</button>
           <button className="session-launch" disabled={workspaceLocked} onClick={() => setSessionOpen(true)}><BookOpenText size={16} /> Session</button>
           {dmWorkspace && <button className="encounter-launch" disabled={workspaceLocked} onClick={() => setEncounterOpen(true)}><Library size={16} /> Encounters</button>}
+          {dmWorkspace && (
+            <button
+              className="campaign-switcher"
+              disabled={workspaceLocked}
+              onClick={clearActiveCredentials}
+            >
+              <FolderClock size={16} /> Campaignler
+            </button>
+          )}
           {!dmWorkspace && !characterCreationRequired && <button className="builder-launch" disabled={campaignOpen || sessionOpen || encounterOpen} onClick={() => setBuilderOpen(true)}><Sparkles size={16} /> Karakter oluştur</button>}
           <button
             className="icon-button"

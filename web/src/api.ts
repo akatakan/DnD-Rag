@@ -210,6 +210,15 @@ export const api = {
     ),
   logout: (token: string) =>
     request<{ revoked: boolean }>("/api/auth/logout", { method: "POST" }, token),
+  deleteCampaign: (token: string, confirmation: string) =>
+    request<{
+      deleted: boolean;
+      campaign_id: string;
+      orphan_map_objects: number;
+    }>("/api/campaign", {
+      method: "DELETE",
+      body: JSON.stringify({ confirmation }),
+    }, token),
   websocketTicket: (token: string) =>
     request<{ ticket: string; expires_at: string }>(
       "/api/ws-ticket", { method: "POST" }, token,

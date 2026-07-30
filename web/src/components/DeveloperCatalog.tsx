@@ -38,6 +38,13 @@ const DATA_TEMPLATES: Record<RulesCatalogEntityType, Record<string, unknown>> = 
     skill_proficiency_count: 2,
     skill_proficiency_options: ["Insight", "Medicine", "Perception"],
     average_hp_per_level: 5,
+    spellcasting: {
+      ability: "Wisdom",
+      spell_ids: ["spell:replace-me"],
+      known_count_by_level: { "1": 1 },
+      prepared_count_by_level: { "1": 1 },
+      slots_by_level: { "1": { "1": 2 } },
+    },
   },
   species: {
     creature_type: "Humanoid",

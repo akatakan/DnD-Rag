@@ -76,7 +76,7 @@ class CharacterDraftEngineTest(unittest.TestCase):
         with self.assertRaises(CharacterDraftValidationError):
             self.engine.validate_step(invalid, "equipment", "srd-5.2.1")
 
-    def test_from_character_bounds_equipment_expansion_and_normalizes_slots(self):
+    def test_creation_draft_bounds_equipment_and_clears_unsupported_spells(self):
         character = self.engine.inventory_engine.add_item(
             self.character,
             item_id="shield-many",
@@ -110,8 +110,32 @@ class CharacterDraftEngineTest(unittest.TestCase):
         self.assertEqual(
             set(draft["equipment_catalog_ids"]), {"item:shield"}
         )
-        self.assertEqual(draft["spellcasting"]["slots"], {"1": 2})
+        self.assertEqual(
+            draft["spellcasting"],
+            {
+                "ability": None,
+                "known_spell_ids": [],
+                "prepared_spell_ids": [],
+                "slots": {},
+            },
+        )
         self.engine.validate_step(draft, "review", "srd-5.2.1")
+
+        invalid = self.engine.patch(
+            draft,
+            {
+                "spellcasting": {
+                    "ability": "wisdom",
+                    "known_spell_ids": ["spell:cure-wounds"],
+                    "prepared_spell_ids": ["spell:cure-wounds"],
+                    "slots": {"1": 4},
+                }
+            },
+        )
+        with self.assertRaisesRegex(
+            CharacterDraftValidationError, "1. seviyede spellcasting"
+        ):
+            self.engine.validate_step(invalid, "spells", "srd-5.2.1")
 
     def test_ability_generation_and_background_rules_fail_closed(self):
         invalid_array = self.engine.patch(
@@ -223,6 +247,13 @@ class CharacterDraftEngineTest(unittest.TestCase):
                         "Acrobatics", "Investigation", "Stealth"
                     ],
                     "average_hp_per_level": 5,
+                    "spellcasting": {
+                        "ability": "Wisdom",
+                        "spell_ids": ["spell:cure-wounds"],
+                        "known_count_by_level": {"1": 1},
+                        "prepared_count_by_level": {"1": 1},
+                        "slots_by_level": {"1": {"1": 2}},
+                    },
                 },
                 "provenance": {
                     **rogue["provenance"],
@@ -287,16 +318,45 @@ class CharacterDraftEngineTest(unittest.TestCase):
                     "religion",
                     "stealth",
                 ],
+                "spellcasting": {
+                    "ability": "wisdom",
+                    "known_spell_ids": ["spell:cure-wounds"],
+                    "prepared_spell_ids": ["spell:cure-wounds"],
+                    "slots": {"1": 2},
+                },
             },
         )
         engine.validate_step(
             draft, "proficiencies", "srd-5.2.1-rogue.1"
         )
+        engine.validate_step(draft, "spells", "srd-5.2.1-rogue.1")
         built = engine.build_character(
             "rogue-1", "owner-1", "srd-5.2.1-rogue.1", draft
         )
         self.assertEqual(built["class_name"], "Rogue")
         self.assertEqual(built["resource_state"]["hit_dice"]["die_size"], 8)
+        self.assertEqual(
+            built["action_state"]["spellcasting"]["slots"]["1"]["maximum"], 2
+        )
+
+        invalid_slots = self.engine.patch(
+            self.draft,
+            {
+                "class_id": "class:rogue",
+                "spellcasting": {
+                    "ability": "wisdom",
+                    "known_spell_ids": ["spell:cure-wounds"],
+                    "prepared_spell_ids": ["spell:cure-wounds"],
+                    "slots": {"1": 4},
+                },
+            },
+        )
+        with self.assertRaisesRegex(
+            CharacterDraftValidationError, "class ve level"
+        ):
+            engine.validate_step(
+                invalid_slots, "spells", "srd-5.2.1-rogue.1"
+            )
 
 
 if __name__ == "__main__":

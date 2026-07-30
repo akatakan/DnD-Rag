@@ -154,8 +154,96 @@ class CharacterDraftEngine:
             "intelligence": 2,
             "wisdom": 1,
         }
+        draft["spellcasting"] = self.initial_spellcasting(
+            character["ruleset_version"], draft["class_id"]
+        )
         self.validate_shape(draft)
         return draft
+
+    def spellcasting_policy(
+        self,
+        ruleset_version: str,
+        class_id: str | None,
+        *,
+        level: int = 1,
+    ) -> dict[str, Any] | None:
+        if class_id is None:
+            return None
+        try:
+            class_entry = self.catalog.get_entry(
+                ruleset_version, class_id
+            )["entry"]
+        except KeyError:
+            return None
+        raw = class_entry["data"].get("spellcasting")
+        if not isinstance(raw, dict):
+            return None
+        level_key = str(level)
+        known_count = int(raw["known_count_by_level"].get(level_key, 0))
+        prepared_count = int(
+            raw["prepared_count_by_level"].get(level_key, 0)
+        )
+        slots = deepcopy(raw["slots_by_level"].get(level_key, {}))
+        if known_count == 0 and prepared_count == 0 and not slots:
+            return None
+        return {
+            "ability": raw["ability"].casefold(),
+            "spell_ids": frozenset(raw["spell_ids"]),
+            "known_count": known_count,
+            "prepared_count": prepared_count,
+            "slots": slots,
+        }
+
+    def initial_spellcasting(
+        self, ruleset_version: str, class_id: str | None
+    ) -> dict[str, Any]:
+        policy = self.spellcasting_policy(ruleset_version, class_id)
+        if policy is None:
+            return {
+                "ability": None,
+                "known_spell_ids": [],
+                "prepared_spell_ids": [],
+                "slots": {},
+            }
+        return {
+            "ability": policy["ability"],
+            "known_spell_ids": [],
+            "prepared_spell_ids": [],
+            "slots": deepcopy(policy["slots"]),
+        }
+
+    def reconcile_spellcasting(
+        self, draft: dict[str, Any], ruleset_version: str
+    ) -> dict[str, Any]:
+        """Normalize an active pre-policy draft without trusting old slot input."""
+        self.validate_shape(draft)
+        result = deepcopy(draft)
+        policy = self.spellcasting_policy(
+            ruleset_version, result["class_id"]
+        )
+        if policy is None:
+            result["spellcasting"] = self.initial_spellcasting(
+                ruleset_version, result["class_id"]
+            )
+            return result
+        old = result["spellcasting"]
+        known = [
+            spell_id
+            for spell_id in old["known_spell_ids"]
+            if spell_id in policy["spell_ids"]
+        ][: policy["known_count"]]
+        prepared = [
+            spell_id
+            for spell_id in old["prepared_spell_ids"]
+            if spell_id in known
+        ][: policy["prepared_count"]]
+        result["spellcasting"] = {
+            "ability": policy["ability"],
+            "known_spell_ids": known,
+            "prepared_spell_ids": prepared,
+            "slots": deepcopy(policy["slots"]),
+        }
+        return result
 
     @staticmethod
     def migrate_v1(draft: dict[str, Any]) -> dict[str, Any]:
@@ -346,6 +434,7 @@ class CharacterDraftEngine:
                         "Equipment listesinde item olmayan kayit var."
                     )
         if step in {"spells", "review"}:
+            self._validate_spellcasting_choices(draft, ruleset_version)
             probe = self.character_engine.new_character(
                 "draft-probe", "draft-owner", draft["name"] or "Draft",
                 ruleset_version,
@@ -364,6 +453,47 @@ class CharacterDraftEngine:
         if step == "review":
             self.build_character(
                 "draft-probe", "draft-owner", ruleset_version, draft
+            )
+
+    def _validate_spellcasting_choices(
+        self, draft: dict[str, Any], ruleset_version: str
+    ) -> None:
+        casting = draft["spellcasting"]
+        policy = self.spellcasting_policy(
+            ruleset_version, draft["class_id"]
+        )
+        if policy is None:
+            if casting != {
+                "ability": None,
+                "known_spell_ids": [],
+                "prepared_spell_ids": [],
+                "slots": {},
+            }:
+                raise CharacterDraftValidationError(
+                    "Secili class 1. seviyede spellcasting kullanamaz."
+                )
+            return
+        if casting["ability"] != policy["ability"]:
+            raise CharacterDraftValidationError(
+                "Spellcasting ability class tarafindan belirlenir."
+            )
+        known = set(casting["known_spell_ids"])
+        prepared = set(casting["prepared_spell_ids"])
+        if not known <= policy["spell_ids"]:
+            raise CharacterDraftValidationError(
+                "Class spell listesinde olmayan bir spell secildi."
+            )
+        if len(known) > policy["known_count"]:
+            raise CharacterDraftValidationError(
+                f"En fazla {policy['known_count']} spell bilinebilir."
+            )
+        if len(prepared) > policy["prepared_count"]:
+            raise CharacterDraftValidationError(
+                f"En fazla {policy['prepared_count']} spell hazirlanabilir."
+            )
+        if casting["slots"] != policy["slots"]:
+            raise CharacterDraftValidationError(
+                "Spell slot maksimumlari class ve level tarafindan belirlenir."
             )
 
     def build_character(

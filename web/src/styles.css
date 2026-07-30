@@ -22,7 +22,8 @@ h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; g
 .connection.online::before { background: #5ec286; }
 .role-label { font-size: 13px; color: #d7dad8; }
 .builder-launch { min-height: 34px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 6px; color: #fff; background: #8d2822; border: 1px solid #d4635b; border-radius: 4px; }
-.campaign-launch { min-height: 34px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 6px; color: #e2e6e3; background: transparent; border: 1px solid #59615d; border-radius: 4px; }
+.campaign-launch,
+.campaign-switcher { min-height: 34px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 6px; color: #e2e6e3; background: transparent; border: 1px solid #59615d; border-radius: 4px; }
 .icon-button { display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: inherit; width: 36px; height: 36px; border-radius: 4px; }
 .icon-button:hover { background: rgba(255,255,255,.1); }
 .builder-shell { width: min(1040px, calc(100% - 32px)); margin: 28px auto 80px; }
@@ -204,6 +205,55 @@ h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; g
 .join-heading h1 { font-size: 30px; margin: 8px 0 4px; }
 .join-heading p { color: #6e746f; }
 .join-form { width: min(480px, calc(100vw - 32px)); background: #fff; border: 1px solid #d0d3cf; padding: 22px; display: grid; gap: 16px; border-radius: 6px; box-shadow: 0 12px 35px rgba(18, 28, 22, .08); }
+.saved-campaigns {
+  width: min(760px, calc(100vw - 32px));
+  padding: 18px;
+  border: 1px solid #d0d3cf;
+  border-radius: 7px;
+  background: #fff;
+  box-shadow: 0 12px 35px rgba(18, 28, 22, .08);
+}
+.saved-campaigns-heading,
+.saved-campaign-card,
+.saved-campaign-actions,
+.saved-campaign-card > div:first-child,
+.saved-campaign-card > div:first-child span {
+  display: flex;
+  align-items: center;
+}
+.saved-campaigns-heading { justify-content: space-between; gap: 18px; }
+.saved-campaigns-heading h2 { margin: 3px 0 0; font-size: 20px; }
+.saved-campaigns-heading small { max-width: 260px; color: #737975; }
+.saved-campaign-list { display: grid; gap: 9px; margin-top: 14px; }
+.saved-campaign-card {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #d8dbd7;
+  border-radius: 5px;
+}
+.saved-campaign-card > div:first-child { align-items: flex-start; flex-direction: column; gap: 4px; }
+.saved-campaign-card > div:first-child span { gap: 5px; color: #737975; font-size: 12px; }
+.saved-campaign-actions { gap: 7px; }
+.saved-campaign-actions .danger { color: #a52f28; border-color: #e0aaa5; }
+.saved-campaign-delete {
+  flex: 1 0 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #ead0cd;
+}
+.saved-campaign-delete p { grid-column: 1 / -1; margin: 0; color: #7d2d27; font-size: 12px; }
+.saved-campaign-delete code { word-break: break-all; }
+.danger-button {
+  border: 1px solid #a52f28;
+  border-radius: 4px;
+  padding: 7px 12px;
+  color: #fff;
+  background: #a52f28;
+}
 .segmented { display: grid; grid-template-columns: 1fr 1fr; background: #eceeeb; padding: 3px; border-radius: 5px; }
 .segmented button { border: 0; background: transparent; padding: 9px; display: flex; justify-content: center; align-items: center; gap: 7px; border-radius: 3px; }
 .segmented button.active { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.12); color: #a92f28; }
@@ -714,7 +764,8 @@ h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; g
   .workspace-grid { grid-template-columns: 1fr; }
   .game-log { grid-column: auto; }
   .inline-form { align-items: stretch; flex-wrap: wrap; }
-  .campaign-launch { width: 36px; padding: 0; justify-content: center; font-size: 0; }
+  .campaign-launch,
+  .campaign-switcher { width: 36px; padding: 0; justify-content: center; font-size: 0; }
   .campaign-dashboard { width: calc(100% - 20px); margin-top: 16px; }
   .campaign-kpis { grid-template-columns: 1fr 1fr; }
   .campaign-dashboard-grid { grid-template-columns: 1fr; }
@@ -1199,6 +1250,55 @@ h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; g
   color: var(--muted);
   font-size: 12px;
 }
+.map-asset-library {
+  display: grid;
+  grid-template-columns: minmax(190px, .8fr) minmax(0, 2fr);
+  gap: 16px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.map-asset-library h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 5px;
+  font-size: 15px;
+}
+.map-asset-library > div > small { color: var(--muted); line-height: 1.35; }
+.map-asset-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(150px, 1fr);
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 3px;
+}
+.map-asset-list button {
+  min-height: 54px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  overflow: hidden;
+  padding: 8px 10px;
+  border: 1px solid #59645d;
+  border-radius: 6px;
+  color: #d6dcd7;
+  text-align: left;
+  background: rgba(255,255,255,.04);
+}
+.map-asset-list button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.map-asset-list button small { color: var(--muted); }
+.map-asset-list button.active {
+  border-color: #8ab699;
+  box-shadow: inset 0 0 0 1px #8ab699;
+  background: rgba(66, 121, 82, .2);
+}
 .player-map-panel {
   width: min(1320px, calc(100% - 32px));
   margin: 16px auto;
@@ -1217,8 +1317,16 @@ h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; g
   .map-fog-controls > span { margin-left: 0; }
   .map-board, .map-board.compact { min-height: 260px; height: 46vh; }
   .map-controls { grid-template-columns: 1fr; }
+  .map-asset-library { grid-template-columns: 1fr; }
   .map-board figcaption { align-items: flex-start; flex-direction: column; gap: 2px; }
   .player-map-panel { width: calc(100% - 20px); margin: 10px auto; }
+}
+@media (max-width: 560px) {
+  .saved-campaigns-heading { align-items: flex-start; flex-direction: column; }
+  .saved-campaign-card { align-items: flex-start; }
+  .saved-campaign-actions { width: 100%; }
+  .saved-campaign-actions .primary-button { flex: 1; }
+  .saved-campaign-delete { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   .map-ping { animation: none; }

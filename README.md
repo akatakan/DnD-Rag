@@ -293,9 +293,37 @@ rastgele `DEVELOPER_ADMIN_TOKEN` ayarlanmalıdır; token yalnız `X-Developer-To
 header'ında kullanılır ve ekran tarafından browser storage'a yazılmaz. Public
 deployment'ta bu yüzey yalnız HTTPS arkasında kullanılmalıdır.
 
+Schema-v1 ile kayıpsız temsil edilebilen 21 ek SRD kaydını inceleme draft'ına almak
+için:
+
+```bash
+uv run python -m api.catalog_curation \
+  --database runtime/multiplayer.db \
+  --pack data/catalog-curation/srd-5.2.1-foundation-expansion-1.json
+```
+
+Bu paket idempotent ve bilinçli olarak draft-only'dir; otomatik publish/default
+reddedilir. Silah, genel damage spell, background ekipman paketi ve typed feat
+semantikleri için önce `docs/catalog-schema-v2-prerequisites.md` uygulanmalıdır.
+
 Katalog ekranı veri tanımlarını yönetir; yeni bir feature kaydı tek başına yeni bir
 oynanış mekaniği çalıştırmaz. Second Wind gibi action/resource/encounter etkileri için
 ilgili authoritative engine komutu ve testleri ayrıca uygulanmalıdır.
+
+Character Builder'da spell slot maksimumları oyuncu girdisi değildir. Class kaydındaki
+spellcasting ability, class spell listesi, known/prepared limitleri ve level tablosundan
+türetilir. Fighter gibi 1. seviyede spellcasting kazanmayan class'lar boş spell state
+ile devam eder; eski taslaklardaki elle girilmiş slotlar açılışta temizlenir.
+
+Yeni campaign davet kodları kopyalaması kolay `XXXXXXXX-XXXXXXXX` biçimindedir. Kodlar
+case-insensitive çalışır; süre sonu, kullanım limiti, rotate/revoke ve IP rate limit
+korumaları devam eder. Veritabanında yalnız amaç-ayrımlı HMAC özeti saklanır.
+
+DM ve co-DM oturumları bu cihazda en fazla 12 campaign için saklanabilir ve giriş
+ekranından yeniden açılabilir. Bu kolaylık tokenları browser `localStorage` içinde
+tutar; public kurulumlarda sıkı CSP/TLS zorunludur. “Bu cihazdan kaldır” yalnız yerel
+kaydı siler. Sunucudan kalıcı silme sadece campaign sahibine açıktır ve güncel snapshot
+sonrası tam `game_id:name` onayı ister.
 
 ### Character Aggregate ve Hesaplamalar
 
