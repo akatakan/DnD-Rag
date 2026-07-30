@@ -10,10 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/three": "^0.185.1",
     "@vitejs/plugin-react": "latest",
+    "cannon-es": "^0.20.0",
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "three": "^0.185.1",
     "vite": "latest"
   },
   "devDependencies": {

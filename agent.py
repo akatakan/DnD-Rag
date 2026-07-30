@@ -53,6 +53,11 @@ def build_llm(provider: str):
             is_chat_model=True,
             context_window=1_000_000,
         )
+    if not OLLAMA_LLM_MODEL:
+        raise AppError(
+            "Ollama kullanmak için tercih ettiğiniz modeli OLLAMA_LLM_MODEL "
+            "olarak tanımlayın."
+        )
     return Ollama(model=OLLAMA_LLM_MODEL, request_timeout=180.0)
 
 

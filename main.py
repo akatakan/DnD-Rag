@@ -104,7 +104,10 @@ with st.sidebar:
         format_func=lambda value: "Ollama (Lokal)" if value == "ollama" else "Gemini (API)",
     )
     if provider == "ollama":
-        st.caption(f"Model: {OLLAMA_LLM_MODEL}")
+        if OLLAMA_LLM_MODEL:
+            st.caption(f"Model: {OLLAMA_LLM_MODEL}")
+        else:
+            st.warning(".env dosyasında OLLAMA_LLM_MODEL seçin.")
     elif not GEMINI_API_KEY:
         st.error(".env dosyasına GEMINI_API_KEY ekleyin.")
 

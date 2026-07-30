@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "id": "srd-5.2.1",
+  "name": "System Reference Document 5.2.1",
+  "status": "foundation",
+  "source": {
+    "document_id": "srd-5.2.1",
+    "title": "System Reference Document 5.2.1",
+    "version": "5.2.1",
+    "url": "https://www.dndbeyond.com/srd",
+    "document_url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
+    "published_at": "2025-05-01",
+    "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"
+  },
+  "license": {
+    "id": "CC-BY-4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+    "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode."
+  },
+  "entries": [
+    {
+      "id": "class:fighter",
+      "type": "class",
+      "slug": "fighter",
+      "name": "Fighter",
+      "data": {
+        "hit_die": 10,
+        "primary_abilities": ["Strength", "Dexterity"],
+        "saving_throw_proficiencies": ["Strength", "Constitution"],
+        "armor_training": ["Light", "Medium", "Heavy", "Shield"],
+        "starting_feature_ids": ["feature:second-wind"]
+      },
+      "source": {
+        "document_id": "srd-5.2.1",
+        "title": "System Reference Document 5.2.1",
+        "version": "5.2.1",
+        "url": "https://www.dndbeyond.com/srd",
+        "document_url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
+        "published_at": "2025-05-01",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode."
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["47-54"],
+        "section": "Character Classes: Fighter",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "species:human",
+      "type": "species",
+      "slug": "human",
+      "name": "Human",
+      "data": {
+        "creature_type": "Humanoid",
+        "size_options": ["Medium", "Small"],
+        "speed": 30,
+        "traits": ["Resourceful", "Skillful", "Versatile"]
+      },
+      "source": {
+        "document_id": "srd-5.2.1",
+        "title": "System Reference Document 5.2.1",
+        "version": "5.2.1",
+        "url": "https://www.dndbeyond.com/srd",
+        "document_url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
+        "published_at": "2025-05-01",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode."
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["86"],
+        "section": "Character Species: Human",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "background:acolyte",
+      "type": "background",
+      "slug": "acolyte",
+      "name": "Acolyte",
+      "data": {
+        "ability_options": ["Intelligence", "Wisdom", "Charisma"],
+        "feat": "Magic Initiate (Cleric)",
+        "skill_proficiencies": ["Insight", "Religion"],
+        "tool_proficiency": "Calligrapher's Supplies"
+      },
+      "source": {
+        "document_id": "srd-5.2.1",
+        "title": "System Reference Document 5.2.1",
+        "version": "5.2.1",
+        "url": "https://www.dndbeyond.com/srd",
+        "document_url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
+        "published_at": "2025-05-01",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode."
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["83"],
+        "section": "Sample Backgrounds: Acolyte",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "spell:cure-wounds",
+      "type": "spell",
+      "slug": "cure-wounds",
+      "name": "Cure Wounds",
+      "data": {
+        "level": 1,
+        "school": "Abjuration",
+        "casting_time": "Action",
+        "range": "Touch",
+        "components": ["V", "S"],
+        "duration": "Instantaneous",
+        "healing": "2d8 + spellcasting ability modifier",
+        "higher_slot": "+2d8 per slot level above 1"
+      },
+      "source": {
+        "document_id": "srd-5.2.1",
+        "title": "System Reference Document 5.2.1",
+        "version": "5.2.1",
+        "url": "https://www.dndbeyond.com/srd",
+        "document_url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
+        "published_at": "2025-05-01",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode."
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["121"],
+        "section": "Spell Descriptions: Cure Wounds",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "feature:second-wind",
+      "type": "feature",
+      "slug": "second-wind",
+      "name": "Second Wind",
+      "data": {
+        "class_id": "class:fighter",
+        "level": 1,
+        "activation": "Bonus Action",
+        "effect": "Regain 1d10 + Fighter level Hit Points",
+        "initial_uses": 2,
+        "uses_by_level": {"1": 2, "4": 3, "10": 4},
+        "recovery": "One use on Short Rest; all uses on Long Rest"
+      },
+      "source": {
+        "document_id": "srd-5.2.1",
+        "title": "System Reference Document 5.2.1",
+        "version": "5.2.1",
+        "url": "https://www.dndbeyond.com/srd",
+        "document_url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
+        "published_at": "2025-05-01",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode."
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["48"],
+        "section": "Fighter Level 1: Second Wind",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "item:shield",
+      "type": "item",
+      "slug": "shield",
+      "name": "Shield",
+      "data": {
+        "category": "Armor",
+        "armor_class_bonus": 2,
+        "strength_requirement": null,
+        "stealth_disadvantage": false,
+        "weight_lb": 6,
+        "cost_gp": 10,
+        "equipment_slot": "off_hand",
+        "armor_training": "Shield",
+        "requires_attunement": false,
+        "container_capacity_lb": null
+      },
+      "source": {
+        "document_id": "srd-5.2.1",
+        "title": "System Reference Document 5.2.1",
+        "version": "5.2.1",
+        "url": "https://www.dndbeyond.com/srd",
+        "document_url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
+        "published_at": "2025-05-01",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode."
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["92"],
+        "section": "Armor: Shields",
+        "method": "curated"
+      }
+    },
+    {
+      "id": "condition:blinded",
+      "type": "condition",
+      "slug": "blinded",
+      "name": "Blinded",
+      "data": {
+        "effects": [
+          "Cannot see and automatically fails ability checks that require sight",
+          "Attack rolls against the creature have Advantage",
+          "The creature's attack rolls have Disadvantage"
+        ]
+      },
+      "source": {
+        "document_id": "srd-5.2.1",
+        "title": "System Reference Document 5.2.1",
+        "version": "5.2.1",
+        "url": "https://www.dndbeyond.com/srd",
+        "document_url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
+        "published_at": "2025-05-01",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode."
+      },
+      "provenance": {
+        "document_id": "srd-5.2.1",
+        "document_sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "page_labels": ["177"],
+        "section": "Rules Glossary: Blinded",
+        "method": "curated"
+      }
+    }
+  ]
+}

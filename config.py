@@ -24,7 +24,7 @@ QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 COLLECTION_PREFIX = "dnd_"
 INDEX_VERSION = "2-hybrid-bm25"
 
-OLLAMA_LLM_MODEL = os.getenv("OLLAMA_LLM_MODEL", "llama3.2:3b")
+OLLAMA_LLM_MODEL = os.getenv("OLLAMA_LLM_MODEL", "").strip()
 GEMINI_LLM_MODEL = os.getenv("GEMINI_LLM_MODEL", "gemini-2.5-flash-lite")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
 SPARSE_MODEL = os.getenv("SPARSE_MODEL", "Qdrant/bm25")

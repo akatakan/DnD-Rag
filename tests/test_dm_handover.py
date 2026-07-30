@@ -95,6 +95,24 @@ class DMHandoverTest(unittest.TestCase):
 
         asyncio.run(scenario())
 
+    def test_cancelled_grace_task_does_not_remove_replacement(self):
+        async def scenario():
+            manager = ConnectionManager(self.store, grace_seconds=60)
+            old_task = asyncio.create_task(
+                manager._grace_wait(self.dm.game_id, self.dm.member_id)
+            )
+            manager.grace_tasks[self.dm.game_id] = old_task
+            old_task.cancel()
+
+            replacement = asyncio.create_task(asyncio.sleep(60))
+            manager.grace_tasks[self.dm.game_id] = replacement
+            await asyncio.sleep(0)
+            self.assertIs(manager.grace_tasks[self.dm.game_id], replacement)
+            replacement.cancel()
+            await asyncio.gather(old_task, replacement, return_exceptions=True)
+
+        asyncio.run(scenario())
+
 
 if __name__ == "__main__":
     unittest.main()
