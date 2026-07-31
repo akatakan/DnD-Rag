@@ -10,10 +10,39 @@ import CampaignDashboard from "./components/CampaignDashboard";
 import SessionWorkspace from "./components/SessionWorkspace";
 import EncounterLibrary from "./components/EncounterLibrary";
 import DeveloperCatalog from "./components/DeveloperCatalog";
-import type { Credentials, SavedCampaign, Snapshot } from "./types";
+import type {
+  Credentials,
+  SavedCampaign,
+  ServerCampaign,
+  Snapshot,
+} from "./types";
 
 const STORAGE_KEY = "dnd-table-credentials";
 const CAMPAIGN_STORAGE_KEY = "dnd-table-saved-campaigns-v1";
+const CAMPAIGN_VAULT_KEY = "dnd-table-campaign-vault-v1";
+
+function campaignVaultSecret(): string {
+  try {
+    const stored = localStorage.getItem(CAMPAIGN_VAULT_KEY);
+    if (stored && /^[a-f0-9]{64}$/.test(stored)) return stored;
+  } catch {
+    // A privacy-restricted browser can still use the current page session.
+  }
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  const secret = Array.from(
+    bytes,
+    (value) => value.toString(16).padStart(2, "0"),
+  ).join("");
+  try {
+    localStorage.setItem(CAMPAIGN_VAULT_KEY, secret);
+  } catch {
+    // Persistence is unavailable, but the in-memory secret remains usable.
+  }
+  return secret;
+}
+
+const DEVICE_VAULT_SECRET = campaignVaultSecret();
 
 function validCredentials(value: Partial<Credentials>): value is Credentials {
   return (
@@ -80,6 +109,8 @@ export default function App() {
 function GameApplication() {
   const [credentials, setCredentials] = useState<Credentials | null>(storedCredentials);
   const [savedCampaigns, setSavedCampaigns] = useState<SavedCampaign[]>(storedCampaigns);
+  const [serverCampaigns, setServerCampaigns] = useState<ServerCampaign[]>([]);
+  const [campaignVaultLoading, setCampaignVaultLoading] = useState(true);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [error, setError] = useState("");
   const [connected, setConnected] = useState(false);
@@ -88,6 +119,18 @@ function GameApplication() {
   const [sessionOpen, setSessionOpen] = useState(false);
   const [encounterOpen, setEncounterOpen] = useState(false);
   const eventCursor = useRef(0);
+
+  const loadServerCampaigns = useCallback(async () => {
+    setCampaignVaultLoading(true);
+    try {
+      const result = await api.campaignVault(DEVICE_VAULT_SECRET);
+      setServerCampaigns(result.campaigns);
+    } catch {
+      setServerCampaigns([]);
+    } finally {
+      setCampaignVaultLoading(false);
+    }
+  }, []);
 
   const acceptSnapshot = useCallback((next: Snapshot) => {
     eventCursor.current = Math.max(eventCursor.current, next.event_cursor);
@@ -112,6 +155,19 @@ function GameApplication() {
     }
   }, [credentials]);
 
+  useEffect(() => { void loadServerCampaigns(); }, [loadServerCampaigns]);
+  useEffect(() => {
+    if (!credentials || credentials.role === "player") return;
+    void api.attachCampaignVault(
+      credentials.token,
+      DEVICE_VAULT_SECRET,
+    ).then(loadServerCampaigns).catch(() => {
+      setError(
+        "Campaign cihaz kasasına bağlanamadı; mevcut oturum çalışmaya devam ediyor.",
+      );
+    });
+  }, [credentials, loadServerCampaigns]);
+
   const refresh = useCallback(async () => {
     if (!credentials) return;
     try {
@@ -119,6 +175,19 @@ function GameApplication() {
       setError("");
     } catch (reason) {
       if (reason instanceof ApiError && reason.status === 401) {
+        if (credentials.role !== "player") {
+          try {
+            const resumed = await api.resumeCampaignVault(
+              DEVICE_VAULT_SECRET, credentials.game_id,
+            );
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(resumed));
+            setCredentials(resumed);
+            setError("");
+            return;
+          } catch {
+            // Fall through to the signed-out server campaign vault.
+          }
+        }
         localStorage.removeItem(STORAGE_KEY);
         setSavedCampaigns((current) => {
           const updated = current.filter(
@@ -129,12 +198,15 @@ function GameApplication() {
         });
         setCredentials(null);
         setSnapshot(null);
-        setError("Kaydedilmiş oturumun süresi dolmuş. Yeniden giriş yap.");
+        await loadServerCampaigns();
+        setError(
+          "Oturum yenilenemedi. Sunucudaki Kampanyalarım listesinden tekrar dene.",
+        );
         return;
       }
       setError(reason instanceof Error ? reason.message : "Baglanti kurulamadi");
     }
-  }, [acceptSnapshot, credentials]);
+  }, [acceptSnapshot, credentials, loadServerCampaigns]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -292,10 +364,30 @@ function GameApplication() {
     }
   };
 
+  const resumeServerCampaign = async (campaign: ServerCampaign) => {
+    const resumed = await api.resumeCampaignVault(
+      DEVICE_VAULT_SECRET, campaign.game_id,
+    );
+    authenticate(resumed);
+  };
+
+  const detachServerCampaign = async (gameId: string) => {
+    await api.detachCampaignVault(DEVICE_VAULT_SECRET, gameId);
+    await loadServerCampaigns();
+  };
+
   if (!credentials) return (
     <JoinScreen
       onAuthenticated={authenticate}
-      savedCampaigns={savedCampaigns}
+      savedCampaigns={savedCampaigns.filter(
+        (saved) => !serverCampaigns.some(
+          (campaign) => campaign.game_id === saved.game_id,
+        ),
+      )}
+      serverCampaigns={serverCampaigns}
+      serverCampaignsLoading={campaignVaultLoading}
+      onResumeServer={resumeServerCampaign}
+      onDetachServer={detachServerCampaign}
       onResume={authenticate}
       onForget={forgetSavedCampaign}
       onDelete={deleteSavedCampaign}

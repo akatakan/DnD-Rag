@@ -334,6 +334,17 @@ export interface SavedCampaign extends Credentials {
   last_opened_at: string;
 }
 
+export interface ServerCampaign {
+  game_id: string;
+  campaign_id: string;
+  session_id: string;
+  name: string;
+  status: "draft" | "active" | "archived";
+  role: "dm" | "co_dm";
+  is_owner: boolean;
+  updated_at: string;
+}
+
 export type DiceSides = 4 | 6 | 8 | 10 | 12 | 20 | 100;
 export type RollMode = "normal" | "advantage" | "disadvantage";
 export type DiceTheme = "crimson" | "arcane" | "ivory";

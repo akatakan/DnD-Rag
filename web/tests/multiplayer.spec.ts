@@ -43,35 +43,45 @@ test("DM and player receive separate live workspaces", async ({ browser, request
     "scrollWidth",
     await playerPage.locator("html").evaluate((element) => element.clientWidth),
   );
-  await expect(playerPage.getByRole("heading", { name: "Kahramanını adlandır" })).toBeVisible();
-  await expect(playerPage.getByText(/Masaya katılmadan önce karakterini tamamla/)).toBeVisible();
+  await expect(
+    playerPage.getByRole("heading", {
+      name: "Kahramanını nasıl oluşturmak istersin?",
+    }),
+  ).toBeVisible();
   await expect(playerPage.getByRole("button", { name: "Campaign" })).toBeDisabled();
   await expect(playerPage.getByRole("button", { name: "Session" })).toBeDisabled();
   await expect(playerPage.getByRole("button", { name: "Builder'ı kapat" })).toHaveCount(0);
   await expect(playerPage.getByRole("button", { name: /Zar atma panelini aç/ })).toHaveCount(0);
   await expect(playerPage.getByRole("button", { name: "Oturum token'ını yenile" })).toBeEnabled();
   await expect(playerPage.getByRole("button", { name: "Oturumdan çık" })).toBeEnabled();
+  await playerPage.getByRole("button", { name: /Standart Builder/ }).click();
+  await expect(
+    playerPage.getByText(/Masaya katılmadan önce karakterini tamamla/),
+  ).toBeVisible();
+  await expect(
+    playerPage.getByRole("heading", { name: "Karakter tercihleri" }),
+  ).toBeVisible();
   await playerPage.getByLabel("Karakter adı").fill("Riva Revised");
-  await playerPage.getByRole("button", { name: "İleri" }).click();
+  const nextButton = playerPage.getByRole("button", { name: "İleri" });
+  await nextButton.click();
+  await expect(playerPage.getByRole("heading", { name: "Class seç" })).toBeVisible();
+  await nextButton.click();
+  await expect(playerPage.getByRole("heading", { name: "Background seç" })).toBeVisible();
+  await nextButton.click();
+  await expect(playerPage.getByRole("heading", { name: "Species seç" })).toBeVisible();
+  await nextButton.click();
   await expect(playerPage.getByRole("heading", { name: "Ability score'ları belirle" })).toBeVisible();
   await expect(playerPage.getByRole("button", { name: /Standard Array/ })).toHaveAttribute("aria-pressed", "true");
   await playerPage.screenshot({
     path: "test-results/character-builder-mobile.png",
     fullPage: true,
   });
-  const nextButton = playerPage.getByRole("button", { name: "İleri" });
   await playerPage.getByLabel("Strength").fill("14");
   await expect(nextButton).toBeDisabled();
   await expect(playerPage.getByText(/Standard Array değerlerinin/)).toBeVisible();
   await playerPage.getByLabel("Strength").fill("15");
   await expect(nextButton).toBeEnabled();
   await expect(playerPage.getByText(/Standard Array değerlerinin/)).toHaveCount(0);
-  await nextButton.click();
-  await expect(playerPage.getByRole("heading", { name: "Class seç" })).toBeVisible();
-  await nextButton.click();
-  await expect(playerPage.getByRole("heading", { name: "Species seç" })).toBeVisible();
-  await nextButton.click();
-  await expect(playerPage.getByRole("heading", { name: "Background seç" })).toBeVisible();
   await nextButton.click();
   await expect(playerPage.getByRole("heading", { name: "Skill proficiency seç" })).toBeVisible();
   await expect(playerPage.getByLabel("Insight")).toBeChecked();

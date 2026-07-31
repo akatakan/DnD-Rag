@@ -1,17 +1,39 @@
 import { FormEvent, useState } from "react";
-import { Clock3, Shield, Swords, Trash2, UserRound, X } from "lucide-react";
+import {
+  Clock3,
+  Cloud,
+  LoaderCircle,
+  Shield,
+  Swords,
+  Trash2,
+  UserRound,
+  X,
+} from "lucide-react";
 import { api } from "../api";
-import type { Credentials, DMMode, SavedCampaign } from "../types";
+import type {
+  Credentials,
+  DMMode,
+  SavedCampaign,
+  ServerCampaign,
+} from "../types";
 
 export default function JoinScreen({
   onAuthenticated,
   savedCampaigns,
+  serverCampaigns,
+  serverCampaignsLoading,
+  onResumeServer,
+  onDetachServer,
   onResume,
   onForget,
   onDelete,
 }: {
   onAuthenticated: (value: Credentials) => void;
   savedCampaigns: SavedCampaign[];
+  serverCampaigns: ServerCampaign[];
+  serverCampaignsLoading: boolean;
+  onResumeServer: (campaign: ServerCampaign) => Promise<void>;
+  onDetachServer: (gameId: string) => Promise<void>;
   onResume: (value: Credentials) => void;
   onForget: (gameId: string) => void;
   onDelete: (campaign: SavedCampaign, confirmation: string) => Promise<void>;
@@ -56,6 +78,38 @@ export default function JoinScreen({
     }
   }
 
+  async function resumeServerCampaign(campaign: ServerCampaign) {
+    setBusy(true);
+    setError("");
+    try {
+      await onResumeServer(campaign);
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Campaign devam ettirilemedi.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function detachServerCampaign(gameId: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await onDetachServer(gameId);
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Campaign bu cihazdan kaldırılamadı.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="join-layout">
       <section className="join-heading">
@@ -63,6 +117,59 @@ export default function JoinScreen({
         <h1>D&D Table</h1>
         <p>Canlı oyun masasına kendi rolünle bağlan.</p>
       </section>
+
+      {(serverCampaignsLoading || serverCampaigns.length > 0) && (
+        <section
+          className="saved-campaigns server-campaigns"
+          aria-labelledby="server-campaigns-title"
+        >
+          <div className="saved-campaigns-heading">
+            <div>
+              <span className="eyebrow"><Cloud size={13} /> Sunucu kasası</span>
+              <h2 id="server-campaigns-title">Kampanyalarım</h2>
+            </div>
+            <small>Token süresi dolsa bile bu cihazdan yeni oturum açılır.</small>
+          </div>
+          {serverCampaignsLoading ? (
+            <div className="campaign-vault-loading" role="status">
+              <LoaderCircle className="rolling-icon" size={18} />
+              Kampanyalar yükleniyor
+            </div>
+          ) : (
+            <div className="saved-campaign-list">
+              {serverCampaigns.map((campaign) => (
+                <article className="saved-campaign-card" key={campaign.game_id}>
+                  <div>
+                    <strong>{campaign.name}</strong>
+                    <span>
+                      <Clock3 size={14} />
+                      {new Date(campaign.updated_at).toLocaleString("tr-TR")}
+                    </span>
+                  </div>
+                  <div className="saved-campaign-actions">
+                    <button
+                      className="primary-button"
+                      disabled={busy}
+                      onClick={() => void resumeServerCampaign(campaign)}
+                    >
+                      Devam et
+                    </button>
+                    <button
+                      className="icon-button"
+                      disabled={busy}
+                      aria-label={`${campaign.name} sunucu kaydını bu cihazdan kaldır`}
+                      title="Sunucudaki campaigni silmez; bu cihazla bağlantıyı kaldırır"
+                      onClick={() => void detachServerCampaign(campaign.game_id)}
+                    >
+                      <X size={17} />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {savedCampaigns.length > 0 && (
         <section className="saved-campaigns" aria-labelledby="saved-campaigns-title">

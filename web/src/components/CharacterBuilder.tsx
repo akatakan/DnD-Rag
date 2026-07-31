@@ -2,12 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   Check,
   Cloud,
   CloudAlert,
   LoaderCircle,
   RefreshCw,
+  Rocket,
+  ShieldCheck,
   Sparkles,
+  UserRound,
   X,
 } from "lucide-react";
 import { api, ApiError } from "../api";
@@ -23,15 +27,15 @@ import type {
 } from "../types";
 
 const STEPS: Array<{ id: CharacterDraftStep; label: string }> = [
-  { id: "basics", label: "Temel" },
-  { id: "abilities", label: "Ability" },
-  { id: "class", label: "Class" },
-  { id: "species", label: "Species" },
-  { id: "background", label: "Background" },
-  { id: "proficiencies", label: "Yetenekler" },
-  { id: "equipment", label: "Ekipman" },
+  { id: "basics", label: "Home" },
+  { id: "class", label: "1 · Class" },
+  { id: "background", label: "2 · Background" },
+  { id: "species", label: "3 · Species" },
+  { id: "abilities", label: "4 · Abilities" },
+  { id: "proficiencies", label: "Skills" },
+  { id: "equipment", label: "5 · Equipment" },
   { id: "spells", label: "Spells" },
-  { id: "review", label: "Kontrol" },
+  { id: "review", label: "What's Next" },
 ];
 const ABILITIES: CharacterAbility[] = [
   "strength", "dexterity", "constitution",
@@ -98,6 +102,11 @@ export default function CharacterBuilder({
   const [publishing, setPublishing] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [builderMode, setBuilderMode] = useState<"standard" | "quick" | null>(null);
+  const [quickName, setQuickName] = useState("");
+  const [quickClassId, setQuickClassId] = useState("");
+  const [quickSpeciesId, setQuickSpeciesId] = useState("");
+  const [quickBuilding, setQuickBuilding] = useState(false);
   const revisionRef = useRef(0);
   const pendingRef = useRef<Partial<CharacterDraftData>>({});
   const savingRef = useRef<Promise<void> | null>(null);
@@ -124,6 +133,9 @@ export default function CharacterBuilder({
       if (!mountedRef.current || generation !== loadGenerationRef.current) return;
       revisionRef.current = nextDraft.revision;
       setDraft(nextDraft);
+      setQuickName(nextDraft.data.name);
+      setQuickClassId(nextDraft.data.class_id ?? "");
+      setQuickSpeciesId(nextDraft.data.species_id ?? "");
       setCatalog(pages.flatMap((page) => page.entries));
       setSaveState("saved");
       blockedRef.current = false;
@@ -365,6 +377,50 @@ export default function CharacterBuilder({
     }
   }
 
+  async function quickBuild() {
+    if (
+      !draft || transitionRef.current || !quickName.trim()
+      || !quickClassId || !quickSpeciesId
+    ) return;
+    transitionRef.current = true;
+    setTransitioning(true);
+    setQuickBuilding(true);
+    setError("");
+    try {
+      await flush();
+      if (blockedRef.current) return;
+      const built = await api.quickBuildCharacterDraft(
+        token,
+        characterId,
+        revisionRef.current,
+        {
+          name: quickName.trim(),
+          class_id: quickClassId,
+          species_id: quickSpeciesId,
+        },
+      );
+      if (!mountedRef.current) return;
+      revisionRef.current = built.revision;
+      pendingRef.current = {};
+      setDraft(built);
+      setBuilderMode("standard");
+      setSaveState("saved");
+    } catch (reason) {
+      if (!mountedRef.current) return;
+      if (reason instanceof ApiError && reason.status === 409) {
+        blockedRef.current = true;
+        setSaveState("conflict");
+      }
+      setError(reason instanceof Error ? reason.message : "Quick Build tamamlanamadı.");
+    } finally {
+      transitionRef.current = false;
+      if (mountedRef.current) {
+        setTransitioning(false);
+        setQuickBuilding(false);
+      }
+    }
+  }
+
   const byType = useMemo(() => {
     const result = new Map<string, RulesCatalogEntry[]>();
     for (const entry of catalog) {
@@ -397,6 +453,126 @@ export default function CharacterBuilder({
     </main>
   );
 
+  if (builderMode === null) return (
+    <main className="builder-shell builder-welcome" id="main-content">
+      <header className="builder-header">
+        <div>
+          <span className="eyebrow">5.5e Character Builder</span>
+          <h1>Kahramanını nasıl oluşturmak istersin?</h1>
+          <p>Her iki yol da kampanyanın sabitlenmiş SRD 5.2.1 kataloğuyla sunucuda doğrulanır.</p>
+        </div>
+        {!required && (
+          <button className="icon-button" onClick={onClose} aria-label="Builder'ı kapat">
+            <X />
+          </button>
+        )}
+      </header>
+      <section className="builder-mode-grid" aria-label="Karakter oluşturma yöntemi">
+        <button className="builder-mode-card" onClick={() => setBuilderMode("standard")}>
+          <span className="builder-mode-icon"><BookOpen /></span>
+          <span className="eyebrow">Tam kontrol</span>
+          <strong>Standart Builder</strong>
+          <p>Class, origin, ability, proficiency, ekipman ve detay seçimlerini adım adım yap.</p>
+          <span className="builder-mode-action">Adım adım başla <ArrowRight size={18} /></span>
+        </button>
+        <button className="builder-mode-card featured" onClick={() => setBuilderMode("quick")}>
+          <span className="builder-mode-icon"><Rocket /></span>
+          <span className="eyebrow">Hızlı başlangıç</span>
+          <strong>Quick Build</strong>
+        <p>İsim, class ve species seç. Katalogta modellenen seviye 1 önerilerini sunucu hazırlasın; yayınlamadan önce kontrol et.</p>
+          <span className="builder-mode-action">Hızlı oluştur <Sparkles size={18} /></span>
+        </button>
+      </section>
+      <aside className="builder-source-note">
+        <strong>5.5e akışı</strong>
+        <span>Class → Origin → Ability Scores → Details → Review</span>
+      </aside>
+    </main>
+  );
+
+  if (builderMode === "quick") {
+    const classes = byType.get("class") ?? [];
+    const species = byType.get("species") ?? [];
+    const ready = Boolean(quickName.trim() && quickClassId && quickSpeciesId);
+    return (
+      <main className="builder-shell builder-quick" id="main-content">
+        <header className="builder-header">
+          <div>
+            <button className="builder-back-link" onClick={() => setBuilderMode(null)}>
+              <ArrowLeft size={16} /> Yöntem seçimine dön
+            </button>
+            <span className="eyebrow">Quick Build · Seviye 1</span>
+            <h1>Üç seçimle maceraya hazırlan</h1>
+            <p>Önerilen Standard Array, background bonusları ve proficiency’ler sunucuda üretilir; katalog dışı seçim icat edilmez.</p>
+          </div>
+        </header>
+        {error && <div className="builder-message" role="alert">{error}</div>}
+        <section className="builder-card quick-build-form">
+          <label>
+            <span>1 · Karakter adı</span>
+            <input
+              autoFocus
+              maxLength={80}
+              placeholder="Örn. Riva"
+              value={quickName}
+              onChange={(event) => setQuickName(event.target.value)}
+            />
+          </label>
+          <fieldset>
+            <legend>2 · Class</legend>
+            <div className="choice-grid">
+              {classes.map((entry) => (
+                <button
+                  key={entry.id}
+                  className={quickClassId === entry.id ? "selected" : ""}
+                  aria-pressed={quickClassId === entry.id}
+                  onClick={() => setQuickClassId(entry.id)}
+                >
+                  <strong>{entry.name}</strong>
+                  <small>{String((entry.data.primary_abilities as string[] | undefined)?.join(" / ") ?? "SRD 5.2.1")}</small>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>3 · Species</legend>
+            <div className="choice-grid">
+              {species.map((entry) => (
+                <button
+                  key={entry.id}
+                  className={quickSpeciesId === entry.id ? "selected" : ""}
+                  aria-pressed={quickSpeciesId === entry.id}
+                  onClick={() => setQuickSpeciesId(entry.id)}
+                >
+                  <strong>{entry.name}</strong>
+                  <small>{String(entry.data.speed ?? "—")} ft speed</small>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <div className="quick-build-summary">
+            <Sparkles size={20} />
+            <div>
+              <strong>Son adımda kontrol sende</strong>
+              <p>Quick Build doğrudan yayınlamaz. Oluşturulan seçimleri inceleyip değiştirebilirsin.</p>
+            </div>
+          </div>
+        </section>
+        <footer className="builder-actions">
+          <button onClick={() => setBuilderMode(null)}><ArrowLeft size={17} /> Geri</button>
+          <button
+            className="primary-button"
+            disabled={!ready || quickBuilding}
+            onClick={() => { void quickBuild(); }}
+          >
+            {quickBuilding ? <LoaderCircle className="rolling-icon" size={17} /> : <Sparkles size={17} />}
+            Önerilen karakteri oluştur
+          </button>
+        </footer>
+      </main>
+    );
+  }
+
   const stepIndex = STEPS.findIndex((step) => step.id === draft.current_step);
   const localStepError = stepValidationMessage(
     draft.current_step, draft.data, byType,
@@ -405,7 +581,10 @@ export default function CharacterBuilder({
     <main className="builder-shell" id="main-content">
       <header className="builder-header">
         <div>
-          <span className="eyebrow">Character Builder</span>
+          <button className="builder-back-link" onClick={() => setBuilderMode(null)}>
+            <ArrowLeft size={16} /> Yöntemi değiştir
+          </button>
+          <span className="eyebrow">5.5e Standard Builder</span>
           <h1>{draft.data.name.trim() || "Yeni Kahraman"}</h1>
           <SaveIndicator state={saveState} />
         </div>
@@ -441,6 +620,10 @@ export default function CharacterBuilder({
           </div>
         ))}
       </nav>
+      <div className="builder-phase" aria-live="polite">
+        <span>{stepIndex === 0 ? "Home · Character Preferences" : stepIndex === 1 ? "1 · Class" : stepIndex < 4 ? "2–3 · Origin" : stepIndex === 4 ? "4 · Ability Scores" : stepIndex < 8 ? "5 · Details" : "What's Next · Review"}</span>
+        <small>SRD 5.2.1 · D&D 5.5e</small>
+      </div>
       {error && (
         <div className={`builder-message ${saveState === "conflict" ? "conflict" : ""}`} role="alert">
           <span>{error}</span>
@@ -462,6 +645,7 @@ export default function CharacterBuilder({
           data={draft.data}
           byType={byType}
           change={change}
+          onQuickBuild={() => setBuilderMode("quick")}
         />
         {localStepError && (
           <p
@@ -524,15 +708,63 @@ function StepContent({
   data,
   byType,
   change,
+  onQuickBuild,
 }: {
   step: CharacterDraftStep;
   data: CharacterDraftData;
   byType: Map<string, RulesCatalogEntry[]>;
   change: <K extends keyof CharacterDraftData>(field: K, value: CharacterDraftData[K]) => void;
+  onQuickBuild: () => void;
 }) {
   if (step === "basics") return <div className="builder-step">
-    <StepHeading title="Kahramanını adlandır" text="Bu isim masada ve Game Log'da görünecek." />
-    <label>Karakter adı<input autoFocus maxLength={80} value={data.name} onChange={(event) => change("name", event.target.value)} /></label>
+    <div className="builder-home-identity">
+      <div className="builder-portrait" aria-hidden="true"><UserRound /></div>
+      <label>
+        Karakter adı
+        <input
+          autoFocus
+          maxLength={80}
+          value={data.name}
+          onChange={(event) => change("name", event.target.value)}
+        />
+      </label>
+      <button className="builder-suggestions" onClick={onQuickBuild}>
+        <Sparkles size={16} /> Önerileri göster
+      </button>
+    </div>
+    <div className="builder-preferences-heading">
+      <StepHeading
+        title="Karakter tercihleri"
+        text="Bu kampanyada karakterine uygulanacak kurallar. Otoritatif politikalar oyuncu tarafından değiştirilemez."
+      />
+      <span><ShieldCheck size={16} /> Sunucu tarafından uygulanır</span>
+    </div>
+    <div className="builder-preference-list">
+      <article>
+        <div><strong>Kural kaynağı</strong><p>SRD 5.2.1 · D&D 5.5e</p></div>
+        <span className="policy-pill">Kampanyaya sabitli</span>
+      </article>
+      <article>
+        <div><strong>İlerleme türü</strong><p>Seviye değişiklikleri aktif DM tarafından yönetilir.</p></div>
+        <span className="policy-pill">DM kontrollü</span>
+      </article>
+      <article>
+        <div><strong>Hit Point yöntemi</strong><p>Class hit die ve sabit ortalama değer sunucuda hesaplanır.</p></div>
+        <span className="policy-pill">Fixed</span>
+      </article>
+      <article>
+        <div><strong>Ön koşullar</strong><p>Class, proficiency ve katalog bağıntıları yayınlamada tekrar doğrulanır.</p></div>
+        <span className="policy-pill">Zorunlu</span>
+      </article>
+      <article>
+        <div><strong>Encumbrance</strong><p>Taşıma kapasitesi Strength × 15 lb; 50 coin 1 lb kabul edilir.</p></div>
+        <span className="policy-pill">Standard</span>
+      </article>
+      <article>
+        <div><strong>Karakter gizliliği</strong><p>Tam sheet yalnız karakter sahibi ve yetkili DM rolleri tarafından görülür.</p></div>
+        <span className="policy-pill">Campaign only</span>
+      </article>
+    </div>
   </div>;
   if (step === "abilities") {
     const spent = ABILITIES.reduce(
@@ -540,7 +772,7 @@ function StepContent({
       0,
     );
     return <div className="builder-step">
-    <StepHeading title="Ability score'ları belirle" text="SRD 5.2.1 Standard Array veya 27 puanlık Point Cost yöntemini seç. Background artışları bir sonraki adımda ayrıca uygulanır." />
+    <StepHeading title="Ability score'ları belirle" text="SRD 5.2.1 Standard Array veya 27 puanlık Point Cost yöntemini seç. Origin adımındaki background artışları ayrıca uygulanır." />
     <fieldset className="ability-method">
       <legend>Ability score yöntemi</legend>
       <button

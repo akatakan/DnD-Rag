@@ -215,6 +215,30 @@ class CharacterDraftEngineTest(unittest.TestCase):
                         invalid, "proficiencies", "srd-5.2.1"
                     )
 
+    def test_quick_build_derives_a_complete_reviewable_draft(self):
+        built = self.engine.quick_build(
+            self.draft,
+            "srd-5.2.1",
+            name="  Riva  ",
+            class_id="class:fighter",
+            species_id="species:human",
+        )
+
+        self.assertEqual(built["name"], "Riva")
+        self.assertEqual(built["class_id"], "class:fighter")
+        self.assertEqual(built["species_id"], "species:human")
+        self.assertEqual(built["background_id"], "background:acolyte")
+        self.assertEqual(
+            sorted(built["ability_scores"].values(), reverse=True),
+            [15, 14, 13, 12, 10, 8],
+        )
+        self.assertEqual(
+            sorted(built["background_ability_increases"].values(), reverse=True),
+            [2, 1],
+        )
+        self.assertEqual(len(built["skill_proficiencies"]), 5)
+        self.engine.validate_step(built, "review", "srd-5.2.1")
+
     def test_database_defined_class_drives_builder_and_hp_rules(self):
         catalog = self.character_engine.catalog
         admin = catalog.clone_ruleset(

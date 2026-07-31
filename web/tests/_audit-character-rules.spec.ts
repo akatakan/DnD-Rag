@@ -58,11 +58,12 @@ test("Fighter draft discards stale client slot maxima before builder renders", a
     slots: {},
   });
 
+  await page.getByRole("button", { name: /Standart Builder/ }).click();
   const next = page.getByRole("button", { name: "İleri" });
-  await next.click();
   await next.click();
   await expect(page.getByRole("heading", { name: "Class seç" })).toBeVisible();
 
+  await next.click();
   await next.click();
   await next.click();
   await next.click();

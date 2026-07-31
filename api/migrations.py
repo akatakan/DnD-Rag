@@ -2081,6 +2081,56 @@ def _migration_027_database_rules_catalog(db: sqlite3.Connection) -> None:
     initialize_catalog_database(db)
 
 
+def _migration_028_campaign_device_vault(db: sqlite3.Connection) -> None:
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS campaign_device_vaults (
+            id TEXT PRIMARY KEY,
+            secret_hash TEXT UNIQUE NOT NULL,
+            expires_at TEXT NOT NULL,
+            last_seen_at TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS campaign_device_memberships (
+            vault_id TEXT NOT NULL
+                REFERENCES campaign_device_vaults(id) ON DELETE CASCADE,
+            campaign_id TEXT NOT NULL
+                REFERENCES campaigns(id) ON DELETE CASCADE,
+            member_id TEXT NOT NULL
+                REFERENCES members(id) ON DELETE CASCADE,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (vault_id, campaign_id),
+            UNIQUE (vault_id, member_id)
+        )
+        """
+    )
+    db.execute(
+        """CREATE INDEX IF NOT EXISTS idx_campaign_device_memberships_member
+        ON campaign_device_memberships(member_id)"""
+    )
+    for suffix, operation in (("insert", "INSERT"), ("update", "UPDATE")):
+        db.execute(
+            f"""
+            CREATE TRIGGER IF NOT EXISTS
+                campaign_device_membership_scope_{suffix}
+            BEFORE {operation} ON campaign_device_memberships
+            BEGIN
+                SELECT CASE WHEN NOT EXISTS (
+                    SELECT 1
+                    FROM campaign_members
+                    WHERE campaign_members.campaign_id = NEW.campaign_id
+                      AND campaign_members.member_id = NEW.member_id
+                ) THEN RAISE(ABORT, 'campaign device membership scope invalid')
+                END;
+            END
+            """
+        )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "initial_multiplayer_schema", _migration_001_initial_multiplayer_schema),
     (2, "dm_handover", _migration_002_dm_handover),
@@ -2109,6 +2159,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     (25, "repair_vtt_backfill", _migration_025_repair_vtt_backfill),
     (26, "character_creation_gate", _migration_026_character_creation_gate),
     (27, "database_rules_catalog", _migration_027_database_rules_catalog),
+    (28, "campaign_device_vault", _migration_028_campaign_device_vault),
 )
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1][0]
 

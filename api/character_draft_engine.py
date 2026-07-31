@@ -42,10 +42,10 @@ CLASS_SKILL_POLICIES = {
 }
 DRAFT_STEPS = (
     "basics",
-    "abilities",
     "class",
-    "species",
     "background",
+    "species",
+    "abilities",
     "proficiencies",
     "equipment",
     "spells",
@@ -244,6 +244,208 @@ class CharacterDraftEngine:
             "slots": deepcopy(policy["slots"]),
         }
         return result
+
+    def quick_build(
+        self,
+        draft: dict[str, Any],
+        ruleset_version: str,
+        *,
+        name: str,
+        class_id: str,
+        species_id: str,
+    ) -> dict[str, Any]:
+        """Create a deterministic, reviewable level-1 draft from three choices.
+
+        Quick Build is intentionally server-authored: the client selects only the
+        public product choices while catalog IDs, legal score allocation, origin
+        bonuses, proficiencies, equipment, and spell policy are derived here.
+        """
+        self.validate_shape(draft)
+        clean_name = name.strip()
+        if not clean_name:
+            raise CharacterDraftValidationError("Character adi zorunludur.")
+        try:
+            class_entry = self.catalog.get_entry(
+                ruleset_version, class_id
+            )["entry"]
+            species_entry = self.catalog.get_entry(
+                ruleset_version, species_id
+            )["entry"]
+        except KeyError as error:
+            raise CharacterDraftValidationError(
+                "Quick Build secimi katalogda bulunamadi."
+            ) from error
+        if class_entry["type"] != "class" or species_entry["type"] != "species":
+            raise CharacterDraftValidationError("Quick Build secim turu gecersiz.")
+
+        backgrounds = self.catalog.list_entries(
+            ruleset_version, entity_type="background", limit=100
+        )["entries"]
+        if not backgrounds:
+            raise CharacterDraftValidationError(
+                "Quick Build icin yayinlanmis background bulunamadi."
+            )
+        background = self._recommended_background(class_entry, backgrounds)
+        scores = self._recommended_standard_array(class_entry)
+        increases = self._recommended_background_increases(
+            class_entry, background, scores
+        )
+        skills = self._recommended_skills(
+            ruleset_version, class_entry, species_entry, background
+        )
+        items = self.catalog.list_entries(
+            ruleset_version, entity_type="item", limit=100
+        )["entries"]
+
+        result = deepcopy(draft)
+        result.update(
+            {
+                "name": clean_name,
+                "ability_score_method": "standard_array",
+                "ability_scores": scores,
+                "background_ability_increases": increases,
+                "class_id": class_id,
+                "species_id": species_id,
+                "background_id": background["id"],
+                "skill_proficiencies": skills,
+                "skill_expertise": [],
+                # The foundation catalog does not yet model structured starting
+                # packages. Include only an unambiguous singleton item; never
+                # invent quantities, currency, or a client-authored loadout.
+                "equipment_catalog_ids": (
+                    [items[0]["id"]] if len(items) == 1 else []
+                ),
+                "spellcasting": self.initial_spellcasting(
+                    ruleset_version, class_id
+                ),
+                "attacks": [],
+            }
+        )
+        self.validate_step(result, "review", ruleset_version)
+        return result
+
+    @staticmethod
+    def _recommended_background(
+        class_entry: dict[str, Any], backgrounds: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        primary = {
+            value.casefold()
+            for value in class_entry["data"].get("primary_abilities", [])
+            if isinstance(value, str)
+        }
+        for background in backgrounds:
+            options = {
+                value.casefold()
+                for value in background["data"].get("ability_options", [])
+                if isinstance(value, str)
+            }
+            if primary & options:
+                return background
+        return backgrounds[0]
+
+    @staticmethod
+    def _recommended_standard_array(
+        class_entry: dict[str, Any],
+    ) -> dict[str, int]:
+        suggestions = {
+            "barbarian": (15, 13, 14, 10, 12, 8),
+            "bard": (8, 14, 12, 13, 10, 15),
+            "cleric": (14, 8, 13, 10, 15, 12),
+            "druid": (8, 12, 14, 13, 15, 10),
+            "fighter": (15, 14, 13, 8, 10, 12),
+            "monk": (12, 15, 13, 10, 14, 8),
+            "paladin": (15, 10, 13, 8, 12, 14),
+            "ranger": (12, 15, 13, 8, 14, 10),
+            "rogue": (12, 15, 13, 14, 10, 8),
+            "sorcerer": (10, 13, 14, 8, 12, 15),
+            "warlock": (8, 14, 13, 12, 10, 15),
+            "wizard": (8, 12, 13, 15, 14, 10),
+        }
+        slug = class_entry["id"].split(":", 1)[-1]
+        values = suggestions.get(slug, STANDARD_ARRAY)
+        return dict(zip(ABILITY_KEYS, values, strict=True))
+
+    @staticmethod
+    def _recommended_background_increases(
+        class_entry: dict[str, Any],
+        background: dict[str, Any],
+        scores: dict[str, int],
+    ) -> dict[str, int]:
+        options = [
+            value.casefold()
+            for value in background["data"].get("ability_options", [])
+            if isinstance(value, str) and value.casefold() in ABILITY_KEYS
+        ]
+        if len(options) < 2:
+            raise CharacterDraftValidationError(
+                "Background ability secenekleri Quick Build icin yetersiz."
+            )
+        primary = [
+            value.casefold()
+            for value in class_entry["data"].get("primary_abilities", [])
+            if isinstance(value, str) and value.casefold() in options
+        ]
+        ordered = primary + [
+            ability
+            for ability in sorted(options, key=lambda key: scores[key], reverse=True)
+            if ability not in primary
+        ]
+        return {ordered[0]: 2, ordered[1]: 1}
+
+    def _recommended_skills(
+        self,
+        ruleset_version: str,
+        class_entry: dict[str, Any],
+        species_entry: dict[str, Any],
+        background: dict[str, Any],
+    ) -> list[str]:
+        selected = [
+            value.casefold().replace(" ", "_")
+            for value in background["data"].get("skill_proficiencies", [])
+        ]
+        policy = CLASS_SKILL_POLICIES.get(
+            (ruleset_version, class_entry["id"])
+        )
+        if policy is None and class_entry["id"] == "class:fighter":
+            policy = CLASS_SKILL_POLICIES[("srd-5.2.1", "class:fighter")]
+        count = int(
+            class_entry["data"].get(
+                "skill_proficiency_count",
+                policy["count"] if policy else 0,
+            )
+        )
+        options = class_entry["data"].get(
+            "skill_proficiency_options",
+            sorted(policy["options"]) if policy else [],
+        )
+        for skill in options:
+            normalized = skill.casefold().replace(" ", "_")
+            if normalized not in selected and count:
+                selected.append(normalized)
+                count -= 1
+        if count:
+            raise CharacterDraftValidationError(
+                "Class skill secenekleri Quick Build icin yetersiz."
+            )
+        traits = {
+            value.casefold()
+            for value in species_entry["data"].get("traits", [])
+            if isinstance(value, str)
+        }
+        species_count = int(
+            species_entry["data"].get(
+                "skill_choice_count", 1 if "skillful" in traits else 0
+            )
+        )
+        for skill in SKILL_ABILITIES:
+            if skill not in selected and species_count:
+                selected.append(skill)
+                species_count -= 1
+        if species_count:
+            raise CharacterDraftValidationError(
+                "Species skill secenekleri Quick Build icin yetersiz."
+            )
+        return sorted(selected)
 
     @staticmethod
     def migrate_v1(draft: dict[str, Any]) -> dict[str, Any]:

@@ -95,6 +95,54 @@ class MultiplayerAPITest(unittest.TestCase):
             current = response.json()
         return current
 
+    def test_dm_campaign_vault_lists_and_reissues_an_auth_token(self):
+        vault = "b" * 64
+        attached = self.client.post(
+            "/api/campaign-vault/attach",
+            headers={
+                **self.auth(self.dm["token"]),
+                "X-Campaign-Vault": vault,
+            },
+        )
+        self.assertEqual(attached.status_code, 200, attached.text)
+
+        listed = self.client.get(
+            "/api/campaign-vault/campaigns",
+            headers={"X-Campaign-Vault": vault},
+        )
+        self.assertEqual(listed.status_code, 200, listed.text)
+        self.assertEqual(
+            listed.json()["campaigns"][0]["game_id"],
+            self.dm["game_id"],
+        )
+
+        logged_out = self.client.post(
+            "/api/auth/logout", headers=self.auth(self.dm["token"])
+        )
+        self.assertEqual(logged_out.status_code, 200, logged_out.text)
+        resumed = self.client.post(
+            "/api/campaign-vault/resume",
+            headers={"X-Campaign-Vault": vault},
+            json={"game_id": self.dm["game_id"]},
+        )
+        self.assertEqual(resumed.status_code, 200, resumed.text)
+        self.assertNotEqual(resumed.json()["token"], self.dm["token"])
+        snapshot = self.client.get(
+            "/api/snapshot",
+            headers=self.auth(resumed.json()["token"]),
+        )
+        self.assertEqual(snapshot.status_code, 200, snapshot.text)
+
+    def test_player_cannot_attach_campaign_vault(self):
+        response = self.client.post(
+            "/api/campaign-vault/attach",
+            headers={
+                **self.auth(self.player["token"]),
+                "X-Campaign-Vault": "c" * 64,
+            },
+        )
+        self.assertEqual(response.status_code, 403, response.text)
+
     def test_player_damage_request_requires_dm_approval(self):
         before = self.client.get("/api/snapshot", headers=self.auth(self.player["token"])).json()
         character_id = self.player["character_id"]
@@ -172,7 +220,7 @@ class MultiplayerAPITest(unittest.TestCase):
             },
         )
         self.assertEqual(navigated.status_code, 200, navigated.text)
-        self.assertEqual(navigated.json()["current_step"], "abilities")
+        self.assertEqual(navigated.json()["current_step"], "class")
         review = self.navigate_draft_to_review(
             route, self.player["token"], navigated.json()
         )
@@ -223,6 +271,53 @@ class MultiplayerAPITest(unittest.TestCase):
             },
         )
         self.assertEqual(rejected_reopen.status_code, 409)
+
+    def test_quick_build_is_server_authored_and_reviewable(self):
+        character_id = self.player["character_id"]
+        route = f"/api/characters/{character_id}/draft"
+        draft = self.client.post(
+            route, headers=self.auth(self.player["token"])
+        ).json()
+
+        built = self.client.post(
+            route + "/quick-build",
+            headers=self.auth(self.player["token"]),
+            json={
+                "expected_revision": draft["revision"],
+                "name": "  Riva  ",
+                "class_id": "class:fighter",
+                "species_id": "species:human",
+            },
+        )
+        self.assertEqual(built.status_code, 200, built.text)
+        payload = built.json()
+        self.assertEqual(payload["current_step"], "review")
+        self.assertEqual(payload["data"]["name"], "Riva")
+        self.assertEqual(payload["data"]["ability_score_method"], "standard_array")
+        self.assertEqual(
+            sorted(payload["data"]["ability_scores"].values(), reverse=True),
+            [15, 14, 13, 12, 10, 8],
+        )
+        self.assertEqual(
+            sorted(
+                payload["data"]["background_ability_increases"].values(),
+                reverse=True,
+            ),
+            [2, 1],
+        )
+        self.assertEqual(len(payload["data"]["skill_proficiencies"]), 5)
+
+        stale = self.client.post(
+            route + "/quick-build",
+            headers=self.auth(self.player["token"]),
+            json={
+                "expected_revision": draft["revision"],
+                "name": "Duplicate",
+                "class_id": "class:fighter",
+                "species_id": "species:human",
+            },
+        )
+        self.assertEqual(stale.status_code, 409)
 
     def test_character_draft_is_private_and_failed_publish_is_atomic(self):
         second = self.client.post(

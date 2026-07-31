@@ -653,6 +653,219 @@ class GameStore:
                 )
         return {"token": new_token, "token_expires_at": expires_at}
 
+    @staticmethod
+    def _validate_campaign_vault_secret(secret: str) -> None:
+        if (
+            not isinstance(secret, str)
+            or len(secret) != 64
+            or any(character not in "0123456789abcdef" for character in secret)
+        ):
+            raise ValueError("Campaign vault kimligi gecersiz.")
+
+    def attach_campaign_vault(
+        self, auth: AuthContext, secret: str
+    ) -> dict:
+        self._validate_campaign_vault_secret(secret)
+        if auth.role not in {"dm", "co_dm"}:
+            raise PermissionError(
+                "Campaign vault yalnizca DM rolleri icindir."
+            )
+        secret_hash = self._credential_hash(secret, "campaign_vault")
+        timestamp = now()
+        expires_at = self._expires_at(24 * 365)
+        with self.transaction():
+            with self.connect() as db:
+                scope = db.execute(
+                    """SELECT games.campaign_id
+                    FROM games
+                    JOIN members ON members.game_id = games.id
+                    WHERE games.id = ? AND members.id = ?""",
+                    (auth.game_id, auth.member_id),
+                ).fetchone()
+                if scope is None:
+                    raise ValueError("Campaign uyeligi bulunamadi.")
+                vault = db.execute(
+                    """SELECT id FROM campaign_device_vaults
+                    WHERE secret_hash = ?""",
+                    (secret_hash,),
+                ).fetchone()
+                if vault is None:
+                    vault_id = uuid4().hex
+                    db.execute(
+                        """INSERT INTO campaign_device_vaults (
+                            id, secret_hash, expires_at, last_seen_at, created_at
+                        ) VALUES (?, ?, ?, ?, ?)""",
+                        (
+                            vault_id, secret_hash, expires_at,
+                            timestamp, timestamp,
+                        ),
+                    )
+                else:
+                    vault_id = vault["id"]
+                    db.execute(
+                        """UPDATE campaign_device_vaults
+                        SET expires_at = ?, last_seen_at = ?
+                        WHERE id = ?""",
+                        (expires_at, timestamp, vault_id),
+                    )
+                db.execute(
+                    """INSERT INTO campaign_device_memberships (
+                        vault_id, campaign_id, member_id, created_at
+                    ) VALUES (?, ?, ?, ?)
+                    ON CONFLICT(vault_id, campaign_id) DO UPDATE SET
+                        member_id = excluded.member_id""",
+                    (
+                        vault_id, scope["campaign_id"],
+                        auth.member_id, timestamp,
+                    ),
+                )
+                self._add_security_audit(
+                    db, auth.game_id, auth.member_id,
+                    "campaign_vault_attached", vault_id,
+                )
+        return {"attached": True, "expires_at": expires_at}
+
+    def campaign_vault_campaigns(self, secret: str) -> list[dict]:
+        self._validate_campaign_vault_secret(secret)
+        secret_hash = self._credential_hash(secret, "campaign_vault")
+        timestamp = now()
+        with self.transaction():
+            with self.connect() as db:
+                vault = db.execute(
+                    """SELECT id FROM campaign_device_vaults
+                    WHERE secret_hash = ? AND expires_at > ?""",
+                    (secret_hash, timestamp),
+                ).fetchone()
+                if vault is None:
+                    return []
+                db.execute(
+                    """UPDATE campaign_device_vaults SET last_seen_at = ?
+                    WHERE id = ?""",
+                    (timestamp, vault["id"]),
+                )
+                rows = db.execute(
+                    """SELECT
+                        games.id AS game_id,
+                        games.campaign_id,
+                        games.active_session_id AS session_id,
+                        games.updated_at,
+                        campaigns.name,
+                        campaigns.status,
+                        members.role,
+                        CASE WHEN games.owner_id = members.id
+                            THEN 1 ELSE 0 END AS is_owner
+                    FROM campaign_device_memberships AS links
+                    JOIN members ON members.id = links.member_id
+                    JOIN games ON games.id = members.game_id
+                      AND games.campaign_id = links.campaign_id
+                    JOIN campaigns ON campaigns.id = links.campaign_id
+                    WHERE links.vault_id = ?
+                      AND members.role IN ('dm', 'co_dm')
+                    ORDER BY games.updated_at DESC, campaigns.name""",
+                    (vault["id"],),
+                ).fetchall()
+        return [
+            {
+                "game_id": row["game_id"],
+                "campaign_id": row["campaign_id"],
+                "session_id": row["session_id"],
+                "name": row["name"],
+                "status": row["status"],
+                "role": row["role"],
+                "is_owner": bool(row["is_owner"]),
+                "updated_at": row["updated_at"],
+            }
+            for row in rows
+        ]
+
+    def resume_campaign_vault(self, secret: str, game_id: str) -> dict:
+        self._validate_campaign_vault_secret(secret)
+        secret_hash = self._credential_hash(secret, "campaign_vault")
+        timestamp = now()
+        with self.transaction():
+            with self.connect() as db:
+                member = db.execute(
+                    """SELECT
+                        members.id AS member_id,
+                        members.role,
+                        members.character_id,
+                        games.id AS game_id,
+                        games.campaign_id,
+                        games.active_session_id AS session_id,
+                        campaign_device_vaults.id AS vault_id
+                    FROM campaign_device_vaults
+                    JOIN campaign_device_memberships AS links
+                      ON links.vault_id = campaign_device_vaults.id
+                    JOIN members ON members.id = links.member_id
+                    JOIN games ON games.id = members.game_id
+                    WHERE campaign_device_vaults.secret_hash = ?
+                      AND campaign_device_vaults.expires_at > ?
+                      AND games.id = ?""",
+                    (secret_hash, timestamp, game_id),
+                ).fetchone()
+                if member is None or member["role"] not in {"dm", "co_dm"}:
+                    raise KeyError("Campaign bu cihaz kasasinda bulunamadi.")
+                token = secrets.token_urlsafe(32)
+                token_hash = self._credential_hash(token, "auth")
+                expires_at = self._expires_at(self.token_ttl_hours)
+                token_id = uuid4().hex
+                db.execute(
+                    """INSERT INTO auth_tokens (
+                        id, member_id, token_hash, expires_at, revoked_at,
+                        rotated_from_id, created_at
+                    ) VALUES (?, ?, ?, ?, NULL, NULL, ?)""",
+                    (
+                        token_id, member["member_id"], token_hash,
+                        expires_at, timestamp,
+                    ),
+                )
+                db.execute(
+                    "UPDATE members SET token = ? WHERE id = ?",
+                    (
+                        f"hashed:{token_hash}",
+                        member["member_id"],
+                    ),
+                )
+                db.execute(
+                    """UPDATE campaign_device_vaults
+                    SET last_seen_at = ? WHERE id = ?""",
+                    (timestamp, member["vault_id"]),
+                )
+                self._add_security_audit(
+                    db, member["game_id"], member["member_id"],
+                    "campaign_vault_resumed", token_id,
+                )
+        return {
+            "game_id": member["game_id"],
+            "campaign_id": member["campaign_id"],
+            "session_id": member["session_id"],
+            "member_id": member["member_id"],
+            "character_id": member["character_id"],
+            "role": member["role"],
+            "token": token,
+            "token_expires_at": expires_at,
+        }
+
+    def detach_campaign_vault(
+        self, secret: str, game_id: str
+    ) -> bool:
+        self._validate_campaign_vault_secret(secret)
+        secret_hash = self._credential_hash(secret, "campaign_vault")
+        with self.transaction():
+            with self.connect() as db:
+                cursor = db.execute(
+                    """DELETE FROM campaign_device_memberships
+                    WHERE campaign_id = (
+                        SELECT campaign_id FROM games WHERE id = ?
+                    )
+                    AND vault_id = (
+                        SELECT id FROM campaign_device_vaults
+                        WHERE secret_hash = ?
+                    )""",
+                    (game_id, secret_hash),
+                )
+        return cursor.rowcount == 1
+
     def revoke_token(self, token: str) -> bool:
         token_hash = self._credential_hash(token, "auth")
         with self.transaction():

@@ -29,10 +29,12 @@ from api.models import (
     DeleteCampaignRequest,
     JoinGameRequest,
     RotateInviteRequest,
+    ResumeCampaignVaultRequest,
     RuleQuestionRequest,
     SaveCatalogEntryRequest,
     SaveCharacterDraftRequest,
     NavigateCharacterDraftRequest,
+    QuickBuildCharacterDraftRequest,
     ScheduleSessionRequest,
     UpdateCampaignSettingsRequest,
     UpdateDicePreferencesRequest,
@@ -952,6 +954,82 @@ async def rotate_auth_token(
     return result
 
 
+@app.post("/api/campaign-vault/attach")
+def attach_campaign_vault(
+    x_campaign_vault: str = Header(default="", alias="X-Campaign-Vault"),
+    auth: AuthContext = Depends(require_auth),
+):
+    enforce_rate_limit("campaign_vault_attach", auth.member_id, 20)
+    try:
+        return store.attach_campaign_vault(auth, x_campaign_vault)
+    except PermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.get("/api/campaign-vault/campaigns")
+def list_campaign_vault(
+    request: Request,
+    x_campaign_vault: str = Header(default="", alias="X-Campaign-Vault"),
+):
+    enforce_rate_limit(
+        "campaign_vault_read",
+        request.client.host if request.client else "unknown",
+        60,
+    )
+    try:
+        return {"campaigns": store.campaign_vault_campaigns(x_campaign_vault)}
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.post("/api/campaign-vault/resume")
+def resume_campaign_vault(
+    payload: ResumeCampaignVaultRequest,
+    request: Request,
+    x_campaign_vault: str = Header(default="", alias="X-Campaign-Vault"),
+):
+    enforce_rate_limit(
+        "campaign_vault_resume",
+        request.client.host if request.client else "unknown",
+        20,
+    )
+    try:
+        return store.resume_campaign_vault(
+            x_campaign_vault, payload.game_id
+        )
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.delete("/api/campaign-vault/campaigns/{game_id}")
+def detach_campaign_vault(
+    game_id: str,
+    request: Request,
+    x_campaign_vault: str = Header(default="", alias="X-Campaign-Vault"),
+):
+    if len(game_id) != 32 or any(
+        character not in "0123456789abcdef" for character in game_id
+    ):
+        raise HTTPException(status_code=422, detail="Game ID gecersiz.")
+    enforce_rate_limit(
+        "campaign_vault_detach",
+        request.client.host if request.client else "unknown",
+        20,
+    )
+    try:
+        return {
+            "detached": store.detach_campaign_vault(
+                x_campaign_vault, game_id
+            )
+        }
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
 @app.post("/api/auth/logout")
 async def logout(
     authorization: str = Header(default=""),
@@ -1298,6 +1376,51 @@ def navigate_character_draft(
                 request.expected_revision,
                 draft["data"],
                 DRAFT_STEPS[target],
+            )
+    except CharacterDraftStorageError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except (ValueError, CharacterDraftValidationError) as error:
+        status = 409 if "revision conflict" in str(error).lower() else 400
+        raise HTTPException(status_code=status, detail=str(error)) from error
+
+
+@app.post("/api/characters/{character_id}/draft/quick-build")
+def quick_build_character_draft(
+    character_id: str,
+    request: QuickBuildCharacterDraftRequest,
+    auth: AuthContext = Depends(require_auth),
+):
+    enforce_rate_limit("character_draft", auth.member_id, 30)
+    character = authorize_character_draft(auth, character_id)
+    try:
+        with store.transaction():
+            draft = store.character_draft(auth.game_id, character_id)
+            if draft is None:
+                raise KeyError("Character draft bulunamadi.")
+            if (
+                draft["revision"] != request.expected_revision
+                or draft["status"] != "active"
+            ):
+                raise ValueError(
+                    "Draft revision conflict: expected "
+                    f"{request.expected_revision}, actual {draft['revision']}; "
+                    f"status {draft['status']}."
+                )
+            data = store.character_draft_engine.quick_build(
+                draft["data"],
+                character["ruleset_version"],
+                name=request.name,
+                class_id=request.class_id,
+                species_id=request.species_id,
+            )
+            return store.update_character_draft(
+                auth.game_id,
+                character_id,
+                request.expected_revision,
+                data,
+                "review",
             )
     except CharacterDraftStorageError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error

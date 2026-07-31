@@ -21,7 +21,7 @@ class CatalogStartupOrderTest(unittest.TestCase):
             store = GameStore(db_path)
 
             with closing(sqlite3.connect(db_path)) as db:
-                db.execute("DELETE FROM schema_migrations WHERE version = 27")
+                db.execute("DELETE FROM schema_migrations WHERE version >= 27")
                 db.execute("DROP TABLE ruleset_entries")
                 db.execute("DROP TABLE rulesets")
                 db.commit()

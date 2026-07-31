@@ -44,6 +44,21 @@ class NavigateCharacterDraftRequest(BaseModel):
     direction: Literal["next", "previous"]
 
 
+class ResumeCampaignVaultRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    game_id: Annotated[str, Field(pattern=r"^[a-f0-9]{32}$")]
+
+
+class QuickBuildCharacterDraftRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_revision: Annotated[int, Field(ge=1)]
+    name: Annotated[str, Field(min_length=1, max_length=80)]
+    class_id: Annotated[str, Field(pattern=r"^class:[a-z0-9-]{1,64}$")]
+    species_id: Annotated[str, Field(pattern=r"^species:[a-z0-9-]{1,64}$")]
+
+
 class CloneRulesetRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

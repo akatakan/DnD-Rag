@@ -14,6 +14,7 @@ import type {
   RulesCatalogEntry,
   RulesCatalogPage,
   RulesetSummary,
+  ServerCampaign,
   SessionWorkspace,
   Snapshot,
 } from "./types";
@@ -149,6 +150,37 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ invite_code: inviteCode, player_name: playerName }),
     }),
+  attachCampaignVault: (token: string, vaultSecret: string) =>
+    request<{ attached: boolean; expires_at: string }>(
+      "/api/campaign-vault/attach",
+      {
+        method: "POST",
+        headers: { "X-Campaign-Vault": vaultSecret },
+      },
+      token,
+    ),
+  campaignVault: (vaultSecret: string) =>
+    request<{ campaigns: ServerCampaign[] }>(
+      "/api/campaign-vault/campaigns",
+      { headers: { "X-Campaign-Vault": vaultSecret } },
+    ),
+  resumeCampaignVault: (vaultSecret: string, gameId: string) =>
+    request<Credentials>(
+      "/api/campaign-vault/resume",
+      {
+        method: "POST",
+        headers: { "X-Campaign-Vault": vaultSecret },
+        body: JSON.stringify({ game_id: gameId }),
+      },
+    ),
+  detachCampaignVault: (vaultSecret: string, gameId: string) =>
+    request<{ detached: boolean }>(
+      `/api/campaign-vault/campaigns/${encodeURIComponent(gameId)}`,
+      {
+        method: "DELETE",
+        headers: { "X-Campaign-Vault": vaultSecret },
+      },
+    ),
   snapshot: (token: string) => request<Snapshot>("/api/snapshot", {}, token),
   dicePreferences: (token: string) =>
     request<DicePreferences>("/api/me/dice-preferences", {}, token),
@@ -399,6 +431,23 @@ export const api = {
         body: JSON.stringify({
           expected_revision: expectedRevision,
           direction,
+        }),
+      },
+      token,
+    ),
+  quickBuildCharacterDraft: (
+    token: string,
+    characterId: string,
+    expectedRevision: number,
+    choices: { name: string; class_id: string; species_id: string },
+  ) =>
+    request<CharacterDraft>(
+      `/api/characters/${encodeURIComponent(characterId)}/draft/quick-build`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          expected_revision: expectedRevision,
+          ...choices,
         }),
       },
       token,
