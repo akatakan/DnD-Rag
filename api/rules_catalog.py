@@ -13,9 +13,17 @@ from pathlib import Path
 from threading import RLock
 from typing import Any
 
+# The seven shapes every ruleset must carry; the engines depend on all of them.
 ENTITY_TYPES = frozenset(
     {"class", "species", "background", "spell", "feature", "item", "condition"}
 )
+SCHEMA_VERSIONS = frozenset({1, 2})
+# Schema v2 adds subclasses. v1 rulesets keep exactly the shapes they were
+# published with: an already-published row is never reinterpreted.
+ENTITY_TYPES_BY_SCHEMA: dict[int, frozenset[str]] = {
+    1: ENTITY_TYPES,
+    2: ENTITY_TYPES | {"subclass"},
+}
 RULESET_VERSION_PATTERN = re.compile(r"^[a-z0-9][a-z0-9.-]{0,63}$")
 SLUG_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -632,7 +640,8 @@ class RulesCatalog:
             "entries",
         }:
             raise CatalogValidationError("Katalog kok alanlari schema ile eslesmiyor.")
-        if catalog.get("schema_version") != 1:
+        schema_version = catalog.get("schema_version")
+        if schema_version not in SCHEMA_VERSIONS:
             raise CatalogValidationError("Desteklenmeyen katalog schema surumu.")
         if catalog.get("id") != expected_version:
             raise CatalogValidationError("Ruleset kimligi dizin surumuyle eslesmiyor.")
@@ -651,7 +660,9 @@ class RulesCatalog:
         seen_slugs: set[tuple[str, str]] = set()
         present_types: set[str] = set()
         for entry in entries:
-            RulesCatalog._validate_entry(entry, source, license_info)
+            RulesCatalog._validate_entry(
+                entry, source, license_info, schema_version
+            )
             entry_id = entry["id"]
             entity_type = entry["type"]
             slug = entry["slug"]
@@ -661,7 +672,7 @@ class RulesCatalog:
             seen_slugs.add((entity_type, slug))
             present_types.add(entity_type)
 
-        RulesCatalog._validate_references(entries)
+        RulesCatalog._validate_references(entries, schema_version)
         if expected_version == "srd-5.2.1":
             actual_hashes = {
                 entry["id"]: hashlib.sha256(
@@ -690,6 +701,7 @@ class RulesCatalog:
         entry: Any,
         source: dict[str, Any],
         license_info: dict[str, Any],
+        schema_version: int = 1,
     ) -> None:
         if not isinstance(entry, dict):
             raise CatalogValidationError("Katalog kaydi bir obje olmali.")
@@ -722,7 +734,8 @@ class RulesCatalog:
             raise CatalogValidationError(
                 "Kayit kimligi, slug'i ve adi zorunludur."
             )
-        if entity_type not in ENTITY_TYPES:
+        allowed_types = ENTITY_TYPES_BY_SCHEMA[schema_version]
+        if entity_type not in allowed_types:
             raise CatalogValidationError(
                 f"Gecersiz katalog tipi: {entity_type}"
             )
@@ -745,7 +758,9 @@ class RulesCatalog:
             raise CatalogValidationError(
                 "Katalog kaydi data boyut sinirini asiyor."
             )
-        RulesCatalog._validate_entity_data(entity_type, entry["data"])
+        RulesCatalog._validate_entity_data(
+            entity_type, entry["data"], schema_version
+        )
         if entry.get("source") != source:
             raise CatalogValidationError(
                 "Kayit kaynagi ruleset kaynagiyla eslesmiyor."
@@ -755,6 +770,56 @@ class RulesCatalog:
                 "Kayit lisansi ruleset lisansiyla eslesmiyor."
             )
         RulesCatalog._validate_provenance(entry.get("provenance"), source)
+
+    @staticmethod
+    def _validate_subclass_data(data: dict[str, Any]) -> None:
+        """Schema v2 subclass record.
+
+        Descriptive only: which class it belongs to, when it unlocks, and which
+        feature records it grants. Execution stays with the engines, so nothing
+        here carries operations, rolls or resource maths.
+        """
+        if set(data) != {
+            "class_id",
+            "unlock_level",
+            "feature_ids",
+            "summary",
+        }:
+            raise CatalogValidationError(
+                "Subclass alanlari schema ile eslesmiyor."
+            )
+        class_id = data.get("class_id")
+        if not isinstance(class_id, str) or not class_id.startswith("class:"):
+            raise CatalogValidationError(
+                "Subclass class_id degeri bir class kimligi olmali."
+            )
+        unlock_level = data.get("unlock_level")
+        if (
+            not isinstance(unlock_level, int)
+            or isinstance(unlock_level, bool)
+            or not 1 <= unlock_level <= 20
+        ):
+            raise CatalogValidationError(
+                "Subclass unlock_level 1 ile 20 arasinda olmali."
+            )
+        feature_ids = data.get("feature_ids")
+        if (
+            not isinstance(feature_ids, list)
+            or len(feature_ids) > 40
+            or any(
+                not isinstance(value, str) or not value.startswith("feature:")
+                for value in feature_ids
+            )
+            or len(set(feature_ids)) != len(feature_ids)
+        ):
+            raise CatalogValidationError(
+                "Subclass feature_ids benzersiz feature kimlikleri olmali."
+            )
+        summary = data.get("summary")
+        if not isinstance(summary, str) or not 1 <= len(summary) <= 600:
+            raise CatalogValidationError(
+                "Subclass summary 1-600 karakter olmali."
+            )
 
     @staticmethod
     def _validate_source(source: Any) -> None:
@@ -831,7 +896,12 @@ class RulesCatalog:
             raise CatalogValidationError("Kayit provenance zinciri eksik veya gecersiz.")
 
     @staticmethod
-    def _validate_entity_data(entity_type: str, data: dict[str, Any]) -> None:
+    def _validate_entity_data(
+        entity_type: str, data: dict[str, Any], schema_version: int = 1
+    ) -> None:
+        if entity_type == "subclass":
+            RulesCatalog._validate_subclass_data(data)
+            return
         schemas: dict[str, tuple[set[str], set[str]]] = {
             "class": (
                 {
@@ -1172,7 +1242,9 @@ class RulesCatalog:
             raise CatalogValidationError(f"{entity_type} data degerleri gecersiz.")
 
     @staticmethod
-    def _validate_references(entries: list[dict[str, Any]]) -> None:
+    def _validate_references(
+        entries: list[dict[str, Any]], schema_version: int = 1
+    ) -> None:
         by_id = {entry["id"]: entry for entry in entries}
         for entry in entries:
             references: list[tuple[str, str]] = []
@@ -1189,6 +1261,12 @@ class RulesCatalog:
                     )
             elif entry["type"] == "feature":
                 references.append((entry["data"]["class_id"], "class"))
+            elif entry["type"] == "subclass":
+                references.append((entry["data"]["class_id"], "class"))
+                references.extend(
+                    (reference, "feature")
+                    for reference in entry["data"]["feature_ids"]
+                )
             for reference, expected_type in references:
                 target = by_id.get(reference)
                 if target is None or target["type"] != expected_type:
@@ -1218,7 +1296,7 @@ def initialize_catalog_database(
         CREATE TABLE IF NOT EXISTS rulesets (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
-            schema_version INTEGER NOT NULL CHECK (schema_version = 1),
+            schema_version INTEGER NOT NULL CHECK (schema_version IN (1, 2)),
             status TEXT NOT NULL CHECK (status IN ('foundation', 'complete')),
             publication_status TEXT NOT NULL
                 CHECK (publication_status IN ('draft', 'published')),

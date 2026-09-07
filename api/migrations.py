@@ -2160,6 +2160,71 @@ def _migration_029_character_portraits(db: sqlite3.Connection) -> None:
     )
 
 
+def _migration_030_catalog_schema_v2(db: sqlite3.Connection) -> None:
+    """Let a ruleset declare catalog schema v2, without touching v1 rows.
+
+    SQLite cannot alter a CHECK constraint, so the table is rebuilt. Two things
+    make that delicate here and both are handled explicitly:
+
+    - ruleset_entries cascades on delete, so dropping the old parent would take
+      every catalog entry with it. The children are carried across.
+    - rulesets.based_on references rulesets itself, so a cloned ruleset would
+      dangle the moment the old table is dropped. The lineage is cleared for
+      the swap and written back afterwards.
+    """
+    row = db.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'rulesets'"
+    ).fetchone()
+    if row is None or "schema_version IN (1, 2)" in row["sql"]:
+        return
+    lineage = {
+        record["id"]: record["based_on"]
+        for record in db.execute("SELECT id, based_on FROM rulesets")
+        if record["based_on"] is not None
+    }
+    db.execute("PRAGMA defer_foreign_keys = ON")
+    db.execute("CREATE TEMP TABLE _ruleset_entries_backup AS SELECT * FROM ruleset_entries")
+    db.execute("UPDATE rulesets SET based_on = NULL")
+    db.execute(
+        """
+        CREATE TABLE rulesets_schema_v2 (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            schema_version INTEGER NOT NULL CHECK (schema_version IN (1, 2)),
+            status TEXT NOT NULL CHECK (status IN ('foundation', 'complete')),
+            publication_status TEXT NOT NULL
+                CHECK (publication_status IN ('draft', 'published')),
+            source_json TEXT NOT NULL,
+            license_json TEXT NOT NULL,
+            catalog_sha256 TEXT NOT NULL,
+            revision INTEGER NOT NULL CHECK (revision >= 1),
+            is_default INTEGER NOT NULL DEFAULT 0
+                CHECK (is_default IN (0, 1)),
+            based_on TEXT REFERENCES rulesets(id),
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            published_at TEXT
+        )
+        """
+    )
+    db.execute("INSERT INTO rulesets_schema_v2 SELECT * FROM rulesets")
+    db.execute("DROP TABLE rulesets")
+    db.execute("ALTER TABLE rulesets_schema_v2 RENAME TO rulesets")
+    db.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_rulesets_single_default
+        ON rulesets (is_default) WHERE is_default = 1
+        """
+    )
+    for ruleset_id, based_on in lineage.items():
+        db.execute(
+            "UPDATE rulesets SET based_on = ? WHERE id = ?", (based_on, ruleset_id)
+        )
+    db.execute("DELETE FROM ruleset_entries")
+    db.execute("INSERT INTO ruleset_entries SELECT * FROM _ruleset_entries_backup")
+    db.execute("DROP TABLE _ruleset_entries_backup")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "initial_multiplayer_schema", _migration_001_initial_multiplayer_schema),
     (2, "dm_handover", _migration_002_dm_handover),
@@ -2190,6 +2255,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     (27, "database_rules_catalog", _migration_027_database_rules_catalog),
     (28, "campaign_device_vault", _migration_028_campaign_device_vault),
     (29, "character_portraits", _migration_029_character_portraits),
+    (30, "catalog_schema_v2", _migration_030_catalog_schema_v2),
 )
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1][0]
 
