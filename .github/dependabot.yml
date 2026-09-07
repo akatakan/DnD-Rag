@@ -1,6 +1,8 @@
 version: 2
 updates:
-  - package-ecosystem: pip
+  # uv, not pip: the pip ecosystem does not read uv.lock, so transitive
+  # dependencies were never proposed even though CI installs with --locked.
+  - package-ecosystem: uv
     directory: /
     schedule:
       interval: weekly

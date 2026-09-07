@@ -6,7 +6,10 @@ requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.116.0",
     "fastembed>=0.7.3",
-    "gitpython>=3.1.55",
+    # Security floor only: gitpython arrives through streamlit and setuptools
+    # through llama-index-core. Neither is imported by Tetsu; both are listed
+    # so an audit finding can be floored without waiting on the parent package.
+    "gitpython>=3.1.59",
     "llama-index>=0.14.23",
     "llama-index-embeddings-ollama>=0.9.0",
     "llama-index-llms-ollama>=0.10.1",
@@ -22,3 +25,23 @@ dependencies = [
     "streamlit>=1.58.0",
     "uvicorn[standard]>=0.35.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.6",
+]
+
+[tool.ruff]
+target-version = "py310"
+extend-exclude = [".venv", "web", "runtime"]
+
+[tool.ruff.lint]
+# Correctness-focused set. ASYNC is deliberate: it flags blocking calls that
+# creep back into async handlers, alongside tests/test_event_loop_blocking.py.
+# Style-only rules stay out so the gate reports real defects, not churn.
+select = ["E4", "E7", "E9", "F", "I", "B", "UP", "ASYNC"]
+# FastAPI's Depends()/Header()/Query() in parameter defaults is the framework's
+# documented dependency-injection form, not the mutable-default trap B008 hunts.
+ignore = ["B008"]

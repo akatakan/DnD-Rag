@@ -6,9 +6,12 @@ from unittest.mock import MagicMock, patch
 
 from api.http_load_probe import run_probe
 from api.release_gate import (
+    DependencyException,
+    audit_ignore_flags,
+    dependency_exceptions_current,
+    expired_dependency_exceptions,
     release_gates,
     run_gates,
-    dependency_exceptions_current,
     workflow_actions_are_pinned,
 )
 from api.upload_scan import MalwareDetected, UploadScanError, scan_with_clamav
@@ -61,8 +64,10 @@ class ReleaseToolsTest(unittest.TestCase):
             (root / "web").mkdir()
             with patch("api.release_gate.subprocess.run") as runner:
                 runner.return_value = MagicMock(returncode=0)
+                # Pin "today" so a future exception expiry cannot turn this
+                # plan assertion into an unrelated failure.
                 result = run_gates(
-                    root, skip_network_scans=True
+                    root, skip_network_scans=True, today=date(2000, 1, 1)
                 )
         self.assertFalse(result["release_eligible"])
         self.assertEqual(
@@ -95,8 +100,30 @@ class ReleaseToolsTest(unittest.TestCase):
                 encoding="utf-8",
             )
             self.assertTrue(workflow_actions_are_pinned(root))
-        self.assertTrue(dependency_exceptions_current(date(2026, 8, 30)))
-        self.assertFalse(dependency_exceptions_current(date(2026, 8, 31)))
+
+    def test_dependency_exceptions_fail_closed_after_their_expiry(self):
+        exception = DependencyException("GHSA-test", "somepkg", date(2026, 8, 30))
+        with patch("api.release_gate._DEPENDENCY_EXCEPTIONS", (exception,)):
+            self.assertTrue(dependency_exceptions_current(date(2026, 8, 30)))
+            self.assertFalse(dependency_exceptions_current(date(2026, 8, 31)))
+            self.assertEqual(
+                expired_dependency_exceptions(date(2026, 8, 31)), (exception,)
+            )
+            # The audit command mirrors the list, so a stale flag cannot linger.
+            self.assertEqual(
+                audit_ignore_flags(), ("--ignore-vuln", "GHSA-test")
+            )
+            audit = next(
+                gate
+                for gate in release_gates(Path("repo"))
+                if gate.name == "python-dependency-audit"
+            )
+            self.assertIn("GHSA-test", audit.command)
+
+        with patch("api.release_gate._DEPENDENCY_EXCEPTIONS", ()):
+            # No exceptions must mean an always-green policy gate, not a red one.
+            self.assertTrue(dependency_exceptions_current(date(2099, 1, 1)))
+            self.assertEqual(audit_ignore_flags(), ())
 
     def test_clamav_stream_protocol_and_fail_closed_result(self):
         connection = MagicMock()

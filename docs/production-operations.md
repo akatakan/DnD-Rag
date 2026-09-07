@@ -94,13 +94,28 @@ CI runs Python and npm dependency audits. Dependabot watches Python, npm and Git
 Actions weekly. A vulnerability exception needs an owner, affected version/risk
 assessment, compensating control and expiry date; do not silently lower audit severity.
 
-Current exception: `PYSEC-2026-597` affects NLTK's archive downloader and has no fixed
-release as of 2026-07-30. NLTK is transitive; Tetsu never invokes `nltk.download`, never
-accepts an NLTK archive, and runtime services have no reason to write NLTK data.
-The audit ignores only this advisory. Security owner must recheck it by 2026-08-30 and
-remove the exception immediately when an upstream fix is available. This exception does
-not cover any other NLTK advisory or use of its downloader. CI and the local release
-gate fail closed after that date even if the ignore flag remains in configuration.
+Exceptions live in one place: `_DEPENDENCY_EXCEPTIONS` in `api/release_gate.py`. Both
+the local release gate and the CI audit build their `--ignore-vuln` flags from that
+list, so an ignore flag cannot outlive its expiry date. An empty list ignores nothing
+and keeps the policy gate green; do not add a bare date constant back.
+
+Current exception: `GHSA-8mgp-746c-j5xp` (`CVE-2026-81726`, `PYSEC-2026-3740`), NLTK
+path traversal in the model-artifact APIs — `TransitionParser`, `AveragedPerceptron`,
+`PerceptronTagger` and the maxent parameter APIs use raw file operations on
+caller-controlled paths and bypass pathsec. Published 2026-09-02 with
+`last_affected: 3.10.3` and no fixed release; note the PYSEC mirror wrongly records it
+as fixed in 3.10.3, so trust the GHSA record. NLTK is transitive through
+`llama-index-core`, which uses only `PunktSentenceTokenizer` and `stopwords`; none of
+the affected APIs appear anywhere in `llama_index` or `fastembed`, and Tetsu itself
+never imports NLTK. NLTK data resolves from the static cache bundled in
+`llama_index/core/_static/nltk_cache` with a fixed download directory, so no
+caller-controlled path ever reaches the affected code. Security owner must recheck by
+2026-12-01 and drop the entry as soon as a fixed release ships. The exception covers
+this advisory only. CI and the local release gate fail closed after that date.
+
+The superseded `PYSEC-2026-597` downloader exception was removed on 2026-09-07: the
+lockfile refresh that closed it also moved NLTK to 3.10.3 along with `aiohttp`,
+`banks`, `gitpython`, `h2` and `pypdf`, clearing 54 of 55 outstanding advisories.
 
 ## Bounded load probe
 

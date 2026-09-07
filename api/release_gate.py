@@ -11,7 +11,44 @@ from pathlib import Path
 
 _ACTION_REF = re.compile(r"^\s*-\s+uses:\s+[^@\s]+@([^\s#]+)", re.MULTILINE)
 _COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
-_DEPENDENCY_EXCEPTION_EXPIRY = date(2026, 8, 30)
+
+
+@dataclass(frozen=True)
+class DependencyException:
+    """One time-boxed audit ignore for an advisory with no upstream fix."""
+
+    advisory_id: str
+    package: str
+    expires_on: date
+
+
+# Single source of truth for audit ignores: the local release gate and the CI
+# workflow both read this list, so an ignore flag can never outlive its expiry
+# date. Every entry needs an owner, risk assessment and compensating control in
+# docs/production-operations.md. An empty tuple ignores nothing.
+_DEPENDENCY_EXCEPTIONS: tuple[DependencyException, ...] = (
+    DependencyException("GHSA-8mgp-746c-j5xp", "nltk", date(2026, 12, 1)),
+)
+
+
+def audit_ignore_flags() -> tuple[str, ...]:
+    """pip-audit flags for the documented exceptions, empty when there are none."""
+    flags: list[str] = []
+    for exception in _DEPENDENCY_EXCEPTIONS:
+        flags.extend(("--ignore-vuln", exception.advisory_id))
+    return tuple(flags)
+
+
+def expired_dependency_exceptions(
+    current: date | None = None,
+) -> tuple[DependencyException, ...]:
+    """Exceptions past their recheck date; non-empty means the gate fails closed."""
+    today = current or date.today()
+    return tuple(
+        exception
+        for exception in _DEPENDENCY_EXCEPTIONS
+        if today > exception.expires_on
+    )
 
 
 @dataclass(frozen=True)
@@ -58,8 +95,7 @@ def release_gates(root: Path) -> list[Gate]:
                 "pip-audit==2.10.1",
                 "-r",
                 str(audit_requirements),
-                "--ignore-vuln",
-                "PYSEC-2026-597",
+                *audit_ignore_flags(),
             ),
             root,
             True,
@@ -85,16 +121,21 @@ def workflow_actions_are_pinned(root: Path) -> bool:
 
 
 def dependency_exceptions_current(current: date | None = None) -> bool:
-    """Fail closed once the documented temporary advisory exception expires."""
-    return (current or date.today()) <= _DEPENDENCY_EXCEPTION_EXPIRY
+    """Fail closed once a documented temporary advisory exception expires."""
+    return not expired_dependency_exceptions(current)
 
 
-def run_gates(root: Path, *, skip_network_scans: bool = False) -> dict:
+def run_gates(
+    root: Path,
+    *,
+    skip_network_scans: bool = False,
+    today: date | None = None,
+) -> dict:
     audit_requirements = root / "runtime" / "release-audit-requirements.txt"
     audit_requirements.parent.mkdir(parents=True, exist_ok=True)
     outcomes = []
     try:
-        if not dependency_exceptions_current():
+        if not dependency_exceptions_current(today):
             return {
                 "release_eligible": False,
                 "gates": [{
@@ -169,9 +210,25 @@ def main() -> int:
         action="store_true",
         help="CI icin expiring security-policy kontrolu.",
     )
+    parser.add_argument(
+        "--print-audit-ignores",
+        action="store_true",
+        help="pip-audit ignore bayraklarini yazar; CI komutu bunu tuketir.",
+    )
     arguments = parser.parse_args()
+    if arguments.print_audit_ignores:
+        print(" ".join(audit_ignore_flags()))
+        return 0
     if arguments.check_policy_only:
-        return 0 if dependency_exceptions_current() else 1
+        expired = expired_dependency_exceptions()
+        for exception in expired:
+            print(
+                f"{exception.advisory_id} ({exception.package}) istisnasinin "
+                f"suresi {exception.expires_on} tarihinde doldu; advisory'yi "
+                "yeniden degerlendirin.",
+                file=sys.stderr,
+            )
+        return 1 if expired else 0
     result = run_gates(
         arguments.root.resolve(),
         skip_network_scans=arguments.skip_network_scans,
