@@ -106,6 +106,8 @@ export interface Character extends PublicCharacter {
     max_hp: number;
     speed: number;
     passive_perception: number;
+    passive_investigation: number;
+    passive_insight: number;
   };
   resource_state: {
     schema_version: number;

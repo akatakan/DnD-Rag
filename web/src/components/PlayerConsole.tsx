@@ -5,6 +5,7 @@ import {
   useState,
 } from "react";
 import {
+  Award,
   Backpack,
   Bot,
   BookOpen,
@@ -227,10 +228,18 @@ export default function PlayerConsole({
         </div>
         <div className="sheet-vitals">
           <Vital icon={Shield} label="Armor Class" value={character.ac ?? character.derived.armor_class} />
-          <Vital icon={Heart} label="Hit Points" value={`${character.hp}/${character.max_hp}`} tone="hp" />
+          <Vital
+            icon={Heart}
+            label="Hit Points"
+            value={(character.temp_hp ?? 0) > 0
+              ? `${character.hp}/${character.max_hp} +${character.temp_hp}`
+              : `${character.hp}/${character.max_hp}`}
+            tone="hp"
+          />
           <Vital icon={Dices} label="Initiative" value={signed(character.derived.initiative)} />
+          {/* The engine has always computed this; the sheet simply never showed it. */}
+          <Vital icon={Award} label="Proficiency Bonus" value={signed(character.derived.proficiency_bonus)} />
           <Vital icon={Feather} label="Speed" value={`${character.derived.speed} ft`} />
-          <Vital icon={Brain} label="Passive Perception" value={character.derived.passive_perception} />
         </div>
       </section>
       <div className="sheet-context">
@@ -367,6 +376,21 @@ function Overview({
               <small>Score {character.inputs.ability_scores[ability]}</small>
             </div>
           ))}
+        </div>
+      </section>
+      <section className="sheet-panel">
+        <h2>Pasif skorlar ve durum</h2>
+        <div className="passive-row">
+          <div><small>Passive Perception</small><strong>{character.derived.passive_perception}</strong></div>
+          <div><small>Passive Investigation</small><strong>{character.derived.passive_investigation}</strong></div>
+          <div><small>Passive Insight</small><strong>{character.derived.passive_insight}</strong></div>
+        </div>
+        <div className="condition-row">
+          {character.conditions.length
+            ? character.conditions.map((condition) => (
+              <span className="condition-chip" key={condition}>{title(condition)}</span>
+            ))
+            : <p className="empty-state">Aktif durum yok.</p>}
         </div>
       </section>
       <section className="sheet-panel">

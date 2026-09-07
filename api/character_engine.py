@@ -330,7 +330,11 @@ class CharacterEngine:
             "initiative": modifiers["dexterity"],
             "max_hp": maximum_hp,
             "speed": max(0, speed_base + speed_bonus),
+            # Passive score is 10 + the skill modifier. Derived here so the
+            # sheet never has to compute a rules value on the client.
             "passive_perception": 10 + skills["perception"],
+            "passive_investigation": 10 + skills["investigation"],
+            "passive_insight": 10 + skills["insight"],
         }
         result["hp"] = min(maximum_hp, max(0, int(result.get("hp", maximum_hp))))
         result["temp_hp"] = max(0, int(result.get("temp_hp", 0)))
