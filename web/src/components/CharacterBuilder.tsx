@@ -642,6 +642,8 @@ export default function CharacterBuilder({
           byType={byType}
           change={change}
           onQuickBuild={() => setBuilderMode("quick")}
+          worldNotes={snapshot.campaign.world_notes}
+          allowSubclasses={snapshot.campaign.allow_subclasses}
         />
         {localStepError && (
           <p
@@ -705,12 +707,17 @@ function StepContent({
   byType,
   change,
   onQuickBuild,
+  worldNotes,
+  allowSubclasses,
 }: {
   step: CharacterDraftStep;
   data: CharacterDraftData;
   byType: Map<string, RulesCatalogEntry[]>;
   change: <K extends keyof CharacterDraftData>(field: K, value: CharacterDraftData[K]) => void;
   onQuickBuild: () => void;
+  /** The DM's setting notes, written for whoever is building a character. */
+  worldNotes: string;
+  allowSubclasses: boolean;
 }) {
   if (step === "basics") return <div className="builder-step">
     <div className="builder-home-identity">
@@ -728,6 +735,12 @@ function StepContent({
         <Sparkles size={16} /> Önerileri göster
       </button>
     </div>
+    {worldNotes.trim() && (
+      <section className="builder-world-note" aria-label="DM'in evren notu">
+        <h2>Bu evren hakkında</h2>
+        <p>{worldNotes}</p>
+      </section>
+    )}
     <div className="builder-preferences-heading">
       <StepHeading
         title="Karakter tercihleri"
@@ -751,6 +764,10 @@ function StepContent({
       <article>
         <div><strong>Ön koşullar</strong><p>Class, proficiency ve katalog bağıntıları yayınlamada tekrar doğrulanır.</p></div>
         <span className="policy-pill">Zorunlu</span>
+      </article>
+      <article>
+        <div><strong>Subclass</strong><p>{allowSubclasses ? "Bu kampanyada subclass secimine izin veriliyor." : "Bu kampanyada subclass secimi kapali."}</p></div>
+        <span className="policy-pill">{allowSubclasses ? "Acik" : "Kapali"}</span>
       </article>
       <article>
         <div><strong>Encumbrance</strong><p>Taşıma kapasitesi Strength × 15 lb; 50 coin 1 lb kabul edilir.</p></div>

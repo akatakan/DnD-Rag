@@ -533,6 +533,12 @@ def _snapshot(auth: AuthContext) -> dict:
             "language": campaign["language"],
             "play_style": campaign["play_style"],
             "public_notes": campaign["public_notes"],
+            # The rest of the settings stay DM-side and travel via the lobby.
+            # These two are written for players and needed while building a
+            # character, so they are exposed explicitly rather than by
+            # widening the whole settings object into the snapshot.
+            "world_notes": campaign["settings"]["world_notes"],
+            "allow_subclasses": campaign["settings"]["allow_subclasses"],
             "settings_version": campaign["settings_version"],
         },
         "session": {
@@ -1694,6 +1700,8 @@ async def update_campaign_settings(
                 ],
                 "safety_tools": list(dict.fromkeys(request.safety_tools)),
                 "session_zero_agenda": request.session_zero_agenda,
+                "world_notes": request.world_notes,
+                "allow_subclasses": request.allow_subclasses,
             }
             campaign = store.update_campaign_settings(
                 auth.game_id, request.expected_version, settings

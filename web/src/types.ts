@@ -217,6 +217,9 @@ export interface CampaignSummary {
   language: string;
   play_style: string;
   public_notes: string;
+  /** Written by the DM for players; shown on the character creation screen. */
+  world_notes: string;
+  allow_subclasses: boolean;
   settings_version: number;
 }
 
@@ -323,6 +326,8 @@ export interface CampaignLobby {
       "x_card" | "lines_veils" | "open_door" | "stars_wishes"
     >;
     session_zero_agenda: string[];
+    world_notes: string;
+    allow_subclasses: boolean;
   };
   settings_version: number;
   scheduled_at: string | null;

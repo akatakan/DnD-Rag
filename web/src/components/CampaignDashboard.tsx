@@ -263,6 +263,8 @@ export default function CampaignDashboard({
             <h2><ShieldCheck /> Session Zero güvenlik araçları</h2>
             <div className="safety-tools">{SAFETY_TOOLS.map((tool) => <label key={tool.id}><input type="checkbox" disabled={!activeDm || Boolean(busy)} checked={settings.safety_tools.includes(tool.id)} onChange={() => { setSettingsDirty(true); setSettings({ ...settings, safety_tools: toggle(settings.safety_tools, tool.id) }); }} /> {tool.label}</label>)}</div>
             <label>Session Zero agenda<textarea disabled={!activeDm || Boolean(busy)} value={settings.session_zero_agenda.join("\n")} onChange={(event) => { setSettingsDirty(true); setSettings({ ...settings, session_zero_agenda: linesOf(event.target.value, 30) }); }} placeholder="Ton ve tema&#10;Karakter bağları&#10;Masa kuralları" /></label>
+            <label>Evren notu<textarea disabled={!activeDm || Boolean(busy)} maxLength={4000} value={settings.world_notes} onChange={(event) => { setSettingsDirty(true); setSettings({ ...settings, world_notes: event.target.value }); }} placeholder="Oyuncular karakterini olustururken bunu gorur: evrenin tonu, kisitlar, bilinmesi gerekenler." /></label>
+            <label className="check-label"><input type="checkbox" disabled={!activeDm || Boolean(busy)} checked={settings.allow_subclasses} onChange={(event) => { setSettingsDirty(true); setSettings({ ...settings, allow_subclasses: event.target.checked }); }} /> Subclass secimine izin ver</label>
             {activeDm && <button className="primary-button" disabled={Boolean(busy)} onClick={() => perform("settings", async () => {
               const response = await api.updateCampaignSettings(token, settingsVersion, settings);
               setSettings(response.lobby.settings);

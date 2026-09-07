@@ -55,6 +55,19 @@ def _redact_export_value(value, sensitive_keys: set[str]):
     return value
 
 
+def _campaign_settings_with_defaults(settings: dict) -> dict:
+    """Fill in settings added after a campaign was created.
+
+    Older rows predate these keys and nothing rewrites them on upgrade, so
+    without this every reader would have to invent a default of its own.
+    """
+    return {
+        "world_notes": "",
+        "allow_subclasses": True,
+        **settings,
+    }
+
+
 class MapSceneConflict(ValueError):
     def __init__(self, expected: int, actual: int):
         self.expected = expected
@@ -1608,7 +1621,7 @@ class GameStore:
             raise RuntimeError("Campaign settings JSON gecersiz.") from error
         if not isinstance(settings, dict):
             raise RuntimeError("Campaign settings obje olmali.")
-        result["settings"] = settings
+        result["settings"] = _campaign_settings_with_defaults(settings)
         return result
 
     def campaign_for_game(self, game_id: str) -> dict:
@@ -1628,7 +1641,7 @@ class GameStore:
             raise RuntimeError("Campaign settings JSON gecersiz.") from error
         if not isinstance(settings, dict):
             raise RuntimeError("Campaign settings obje olmali.")
-        result["settings"] = settings
+        result["settings"] = _campaign_settings_with_defaults(settings)
         return result
 
     @staticmethod

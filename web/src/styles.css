@@ -2073,3 +2073,21 @@ html, body, #root { max-width: 100%; overflow-x: clip; }
   background-position: center;
 }
 .map-token.has-portrait span { display: none; }
+
+/* The DM's setting notes sit above the policy list: they are the context for
+   every choice below them, so they read as prose rather than another card. */
+.builder-world-note {
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  background: var(--panel-sunken);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+.builder-world-note p {
+  margin: 0;
+  font-family: var(--text-serif);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+  white-space: pre-wrap;
+}

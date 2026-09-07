@@ -367,6 +367,8 @@ export const api = {
           house_rules: settings.house_rules,
           safety_tools: settings.safety_tools,
           session_zero_agenda: settings.session_zero_agenda,
+          world_notes: settings.world_notes,
+          allow_subclasses: settings.allow_subclasses,
         }),
       },
       token,

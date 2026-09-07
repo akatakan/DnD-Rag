@@ -109,6 +109,10 @@ class UpdateCampaignSettingsRequest(BaseModel):
         list[Annotated[str, Field(min_length=1, max_length=240)]],
         Field(max_length=30),
     ]
+    # Setting notes the DM leaves for players on the character creation screen.
+    world_notes: Annotated[str, Field(max_length=4000)] = ""
+    # Whether this campaign allows subclasses. Changeable mid-campaign.
+    allow_subclasses: bool = True
 
     @model_validator(mode="after")
     def unique_settings_entries(self):
