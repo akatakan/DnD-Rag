@@ -280,7 +280,6 @@ export default function DeveloperCatalog() {
     return <main className="developer-login" id="main-content">
       <form onSubmit={(event) => { event.preventDefault(); void login(); }}>
         <LockKeyhole size={34} />
-        <span className="eyebrow">Restricted Development Surface</span>
         <h1>Catalog Developer</h1>
         <p>Bu ekran navigasyonda görünmez ve backend developer token olmadan yanıt vermez.</p>
         <label>Developer token
@@ -302,8 +301,7 @@ export default function DeveloperCatalog() {
   return <main className="developer-shell" id="main-content">
     <header className="developer-header">
       <div>
-        <span className="eyebrow">Restricted Development Surface</span>
-        <h1><Database size={25} /> Rules Catalog DB</h1>
+        <h1><Database size={25} /> Rules Catalog DB<span className="restricted-badge">Restricted</span></h1>
         <p>Draft üzerinde çalış, doğrula, immutable sürüm olarak yayınla.</p>
       </div>
       <button onClick={() => { void run(async () => { await refreshRulesets(); }); }} disabled={busy}>

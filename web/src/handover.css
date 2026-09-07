@@ -27,15 +27,15 @@
   display: grid;
   gap: 12px;
   background: #fff;
-  border: 1px solid #d2d5d1;
+  border: 1px solid var(--rule);
   border-radius: 5px;
 }
 
 .handover-panel h2 { margin-bottom: 0; }
 .dm-status { display: flex; align-items: center; gap: 9px; }
 .dm-status > div { display: grid; }
-.dm-status small { color: #747a76; }
-.presence { width: 9px; height: 9px; border-radius: 50%; background: #9c9c9c; }
+.dm-status small { color: var(--ink-soft); }
+.presence { width: 9px; height: 9px; border-radius: 50%; background: #a2988a; }
 .presence.online { background: #258650; }
 .handover-note { margin: 0; color: #71541f; font-size: 13px; }
 .full-button { width: 100%; }

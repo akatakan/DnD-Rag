@@ -49,7 +49,7 @@ test("DM resumes a server-listed campaign after the old token is revoked", async
   ).toBeVisible();
   await expect(page.getByText("A Week Later", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Devam et" }).click();
-  await expect(page.getByText("Encounter Control")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "DM Kontrolu" })).toBeVisible();
 
   const stored = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("dnd-table-credentials") || "{}")

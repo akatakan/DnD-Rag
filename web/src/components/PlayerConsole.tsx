@@ -149,8 +149,7 @@ export default function PlayerConsole({
       )}
       <section className="sheet-hero">
         <div className="sheet-identity">
-          <span className="eyebrow">Character Sheet</span>
-          <h1>{character.name}</h1>
+                    <h1>{character.name}</h1>
           <p>{character.class_name} · Seviye {character.level} · {character.ruleset_version}</p>
         </div>
         <div className="sheet-vitals">
@@ -304,7 +303,26 @@ function Overview({
               key={skill}
               onClick={() => launchCheck("skill", skill, modifier, title(skill))}
             >
-              <span>{character.inputs.skill_expertise.includes(skill as CharacterSkill) ? "◆" : character.inputs.skill_proficiencies.includes(skill as CharacterSkill) ? "●" : "○"}</span>
+              {/* Drawn marks rather than ◆/●/○: glyph shapes shift between
+                  fonts, and a screen reader announces them as "black circle"
+                  instead of the proficiency state they stand for. */}
+              <span
+                className={`skill-mark ${
+                  character.inputs.skill_expertise.includes(skill as CharacterSkill)
+                    ? "expertise"
+                    : character.inputs.skill_proficiencies.includes(skill as CharacterSkill)
+                      ? "proficient"
+                      : "untrained"
+                }`}
+                role="img"
+                aria-label={
+                  character.inputs.skill_expertise.includes(skill as CharacterSkill)
+                    ? "Expertise"
+                    : character.inputs.skill_proficiencies.includes(skill as CharacterSkill)
+                      ? "Proficient"
+                      : "Yeterlilik yok"
+                }
+              />
               <strong>{title(skill)}</strong>
               <b>{signed(modifier)}</b>
             </button>

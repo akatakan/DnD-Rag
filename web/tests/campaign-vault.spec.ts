@@ -41,7 +41,7 @@ test("DM can resume and owner-delete campaigns saved on this device", async ({
   }, { active: first, campaigns: saved });
   const page = await context.newPage();
   await page.goto("/");
-  await expect(page.getByText("Encounter Control")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "DM Kontrolu" })).toBeVisible();
 
   await page.getByRole("button", { name: "Campaignler" }).click();
   await expect(page.getByRole("heading", { name: "Kayıtlı campaignler" })).toBeVisible();
@@ -66,6 +66,6 @@ test("DM can resume and owner-delete campaigns saved on this device", async ({
   expect(deletedSnapshot.ok()).toBeFalsy();
 
   await page.getByRole("button", { name: "Devam et" }).click();
-  await expect(page.getByText("Encounter Control")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "DM Kontrolu" })).toBeVisible();
   await context.close();
 });

@@ -215,8 +215,7 @@ export default function MapWorkspace({
     <section className="map-workspace">
       <header>
         <div>
-          <span className="eyebrow">Virtual Tabletop</span>
-          <h2><Grid3X3 /> Map Scene</h2>
+                    <h2><Grid3X3 /> Map Scene</h2>
         </div>
         <div className="map-header-actions">
           <button

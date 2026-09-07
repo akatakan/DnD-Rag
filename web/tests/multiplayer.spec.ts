@@ -20,8 +20,8 @@ test("DM and player receive separate live workspaces", async ({ browser, request
   }, dm);
   const dmPage = await dmContext.newPage();
   await dmPage.goto("/");
-  await expect(dmPage.getByText("Encounter Control")).toBeVisible();
-  await expect(dmPage.getByText("Advanced encounter")).toBeVisible();
+  await expect(dmPage.getByRole("heading", { name: "DM Kontrolu" })).toBeVisible();
+  await expect(dmPage.getByRole("heading", { name: "Turn & effects" })).toBeVisible();
   await expect(dmPage.getByRole("button", { name: "Son işlemi geri al" })).toBeDisabled();
   await expect(dmPage.getByText(dm.invite_code)).toBeVisible();
   await expect(dmPage.locator("html")).toHaveJSProperty(
@@ -103,12 +103,12 @@ test("DM and player receive separate live workspaces", async ({ browser, request
   await nextButton.click();
   await expect(playerPage.getByRole("heading", { name: "Karakterini kontrol et" })).toBeVisible();
   await playerPage.getByRole("button", { name: "Karakteri yayınla" }).click();
-  await expect(playerPage.getByText("Character Sheet")).toBeVisible();
+  await expect(playerPage.getByText("Armor Class")).toBeVisible();
   await expect(playerPage.getByText("Riva Revised")).toBeVisible();
   await expect(playerPage.getByText("HP Talebi")).toBeVisible();
   await expect(playerPage.getByText("Kurala Sor")).toBeVisible();
   await playerPage.getByRole("button", { name: "Campaign" }).click();
-  await expect(playerPage.getByText("Campaign Hub")).toBeVisible();
+  await expect(playerPage.getByRole("heading", { name: "Benim Session Zero durumum" })).toBeVisible();
   await expect(playerPage.getByRole("heading", { name: /Lobi ve readiness/ })).toBeVisible();
   await playerPage.getByRole("button", { name: /Campaign dashboard.*kapat/ }).click();
   await playerPage.getByRole("button", { name: "Session" }).click();
@@ -180,7 +180,7 @@ test("DM and player receive separate live workspaces", async ({ browser, request
   });
 
   await dmPage.getByLabel("Co-DM").selectOption(player.member_id);
-  await expect(playerPage.getByText("Encounter Control")).toBeVisible();
+  await expect(playerPage.getByText("Armor Class")).toBeVisible();
   await expect(playerPage.getByText("Izleme modu.")).toBeVisible();
 
   const blocked = await request.post(`${API}/api/commands`, {

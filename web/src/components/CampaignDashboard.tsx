@@ -183,7 +183,6 @@ export default function CampaignDashboard({
     <main className="campaign-dashboard" id="main-content">
       <header className="campaign-dashboard-header">
         <div>
-          <span className="eyebrow">Campaign Hub</span>
           <h1>{snapshot.campaign.name}</h1>
           <p>{snapshot.campaign.ruleset_version} · {snapshot.campaign.play_style}</p>
         </div>

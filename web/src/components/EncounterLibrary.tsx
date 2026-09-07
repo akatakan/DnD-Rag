@@ -205,7 +205,7 @@ export default function EncounterLibrary({
   return (
     <main id="main-content" className="encounter-library">
       <header className="workspace-header">
-        <div><span className="eyebrow">DM Workspace</span><h1><Library /> Encounter Library</h1></div>
+        <div><h1><Library /> Encounter Library</h1></div>
         <div className="button-row">
           {active && <button disabled={locked} onClick={() => void send("pause", "pause_encounter", {})}><CirclePause /> Duraklat</button>}
           {paused && <button disabled={locked} onClick={() => void send("resume", "resume_encounter", {})}><CirclePlay /> Devam et</button>}

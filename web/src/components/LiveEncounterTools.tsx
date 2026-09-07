@@ -91,7 +91,7 @@ export default function LiveEncounterTools({
   return (
     <section className="live-encounter-tools">
       <div className="advanced-encounter-heading">
-        <div><span className="eyebrow">Advanced encounter</span><h2>Turn & effects</h2></div>
+        <div><h2>Turn & effects</h2></div>
         <button
           disabled={!snapshot.state.encounter_undo_available || Boolean(busy)}
           onClick={() => void run("undo", "undo_encounter")}

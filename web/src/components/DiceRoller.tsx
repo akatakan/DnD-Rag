@@ -429,7 +429,6 @@ export default function DiceRoller({
           >
             <header className="dice-panel-header">
               <div>
-                <span className="eyebrow">Masa zarı</span>
                 <h2 id={titleId}>{sheetIntent?.label ?? "Zar at"}</h2>
               </div>
               <button ref={firstControlRef} className="icon-button" onClick={close} aria-label="Zar panelini kapat">

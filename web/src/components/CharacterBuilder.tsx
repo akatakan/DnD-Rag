@@ -457,7 +457,6 @@ export default function CharacterBuilder({
     <main className="builder-shell builder-welcome" id="main-content">
       <header className="builder-header">
         <div>
-          <span className="eyebrow">5.5e Character Builder</span>
           <h1>Kahramanını nasıl oluşturmak istersin?</h1>
           <p>Her iki yol da kampanyanın sabitlenmiş SRD 5.2.1 kataloğuyla sunucuda doğrulanır.</p>
         </div>
@@ -470,16 +469,14 @@ export default function CharacterBuilder({
       <section className="builder-mode-grid" aria-label="Karakter oluşturma yöntemi">
         <button className="builder-mode-card" onClick={() => setBuilderMode("standard")}>
           <span className="builder-mode-icon"><BookOpen /></span>
-          <span className="eyebrow">Tam kontrol</span>
           <strong>Standart Builder</strong>
           <p>Class, origin, ability, proficiency, ekipman ve detay seçimlerini adım adım yap.</p>
           <span className="builder-mode-action">Adım adım başla <ArrowRight size={18} /></span>
         </button>
         <button className="builder-mode-card featured" onClick={() => setBuilderMode("quick")}>
           <span className="builder-mode-icon"><Rocket /></span>
-          <span className="eyebrow">Hızlı başlangıç</span>
           <strong>Quick Build</strong>
-        <p>İsim, class ve species seç. Katalogta modellenen seviye 1 önerilerini sunucu hazırlasın; yayınlamadan önce kontrol et.</p>
+          <p>İsim, class ve species seç. Katalogta modellenen seviye 1 önerilerini sunucu hazırlasın; yayınlamadan önce kontrol et.</p>
           <span className="builder-mode-action">Hızlı oluştur <Sparkles size={18} /></span>
         </button>
       </section>
@@ -584,8 +581,7 @@ export default function CharacterBuilder({
           <button className="builder-back-link" onClick={() => setBuilderMode(null)}>
             <ArrowLeft size={16} /> Yöntemi değiştir
           </button>
-          <span className="eyebrow">5.5e Standard Builder</span>
-          <h1>{draft.data.name.trim() || "Yeni Kahraman"}</h1>
+                    <h1>{draft.data.name.trim() || "Yeni Kahraman"}</h1>
           <SaveIndicator state={saveState} />
         </div>
         {!required && (
