@@ -146,7 +146,7 @@ h3 { font-family: var(--display); font-weight: 600; letter-spacing: .02em; }
 .app-shell { min-height: 100vh; }
 .skip-link { position: fixed; top: 8px; left: 8px; z-index: 200; padding: 9px 12px; color: var(--on-iron); background: var(--iron); border-radius: 4px; transform: translateY(-160%); }
 .skip-link:focus { transform: translateY(0); }
-.topbar { height: 58px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; background: var(--iron); color: var(--on-iron); border-bottom: 3px solid #be3b32; }
+.topbar { height: 58px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; background: var(--iron); color: var(--on-iron); border-bottom: 3px solid var(--rail); }
 .brand, .topbar-meta, .role-label { display: flex; align-items: center; gap: 9px; }
 .brand { font-family: var(--display); font-size: 16px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .brand svg { color: var(--crimson); }
@@ -162,9 +162,9 @@ h3 { font-family: var(--display); font-weight: 600; letter-spacing: .02em; }
 .icon-button:hover { background: rgba(255,255,255,.1); }
 .builder-shell { width: min(1040px, calc(100% - 32px)); margin: 28px auto 80px; }
 .builder-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
-.builder-header h1 { margin-top: 4px; font-size: 30px; }
-.builder-header p { max-width: 720px; margin: 8px 0 0; color: var(--ink-soft); line-height: 1.55; }
-.builder-header .icon-button { color: var(--ink-muted); }
+.builder-header h1 { margin-top: 4px; font-size: 30px; color: var(--on-ground); }
+.builder-header p { max-width: 720px; margin: 8px 0 0; color: var(--on-ground-soft); line-height: 1.55; }
+.builder-header .icon-button { color: var(--on-ground-soft); }
 .builder-back-link {
   min-height: 30px;
   margin: 0 0 8px;
@@ -172,13 +172,13 @@ h3 { font-family: var(--display); font-weight: 600; letter-spacing: .02em; }
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #767066;
+  color: var(--on-ground-soft);
   background: transparent;
   border: 0;
   font-size: 12px;
   font-weight: 750;
 }
-.builder-back-link:hover { color: #982c26; }
+.builder-back-link:hover { color: var(--crimson); }
 .builder-welcome { max-width: 980px; padding-top: 4vh; }
 .builder-mode-grid {
   display: grid;
@@ -427,7 +427,7 @@ h3 { font-family: var(--display); font-weight: 600; letter-spacing: .02em; }
 .proficiency-summary span { padding: 10px 12px; display: grid; gap: 3px; color: #6f6a60; background: #f7f5f2; border: 1px solid #d9d7d3; border-radius: 5px; font-size: 11px; }
 .proficiency-summary strong { color: #38342f; font-size: 13px; }
 .review-grid { margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.review-grid div { padding: 13px; background: var(--ground); border-radius: 5px; }
+.review-grid div { padding: 13px; background: var(--panel-sunken); border-radius: 5px; }
 .review-grid dt { color: var(--ink-soft); font-size: 11px; text-transform: uppercase; }
 .review-grid dd { margin: 4px 0 0; font-weight: 800; }
 .ability-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
@@ -474,7 +474,7 @@ h3 { font-family: var(--display); font-weight: 600; letter-spacing: .02em; }
 .overview-grid { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 18px; }
 .overview-main, .overview-side { display: grid; align-content: start; gap: 16px; }
 .ability-sheet-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px; }
-.ability-sheet-grid > div { padding: 10px 7px; display: grid; gap: 6px; text-align: center; background: var(--ground); border: 1px solid #dcdad7; border-radius: 5px; }
+.ability-sheet-grid > div { padding: 10px 7px; display: grid; gap: 6px; text-align: center; background: var(--panel-sunken); border: 1px solid #dcdad7; border-radius: 5px; }
 .ability-sheet-grid > div > strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; }
 .ability-sheet-grid button { min-height: 44px; padding: 5px; display: grid; color: #3e3b36; background: var(--panel); border: 1px solid #d4d1cc; border-radius: 4px; }
 .ability-sheet-grid button:hover { color: #972b25; border-color: #b9443d; }
@@ -537,7 +537,7 @@ h3 { font-family: var(--display); font-weight: 600; letter-spacing: .02em; }
 .house-rule-list p { margin: 5px 0 0; color: #726c62; }
 .secondary-action { margin-top: 9px; min-height: 36px; padding: 7px 10px; display: inline-flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid #cfcdc8; border-radius: 4px; }
 .safety-tools { margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 7px; }
-.safety-tools label { padding: 7px 9px; grid-template-columns: auto 1fr; align-items: center; background: var(--ground); border-radius: 4px; }
+.safety-tools label { padding: 7px 9px; grid-template-columns: auto 1fr; align-items: center; background: var(--panel-sunken); border-radius: 4px; }
 .safety-tools input, .personal-zero > label > input { width: 17px; min-height: 17px; }
 .campaign-card > label { margin-bottom: 11px; }
 .campaign-card > label textarea { min-height: 90px; resize: vertical; }
@@ -555,11 +555,11 @@ h3 { font-family: var(--display); font-weight: 600; letter-spacing: .02em; }
 .muted { color: var(--ink-soft); font-size: 13px; }
 .error-banner, .form-error { background: #f9e4e1; color: #8c2c25; padding: 10px 16px; border-bottom: 1px solid #e9b8b3; }
 .center-state { min-height: 100vh; display: grid; place-content: center; text-align: center; color: var(--ink-muted); }
-.join-layout { min-height: 100vh; display: grid; place-content: center; gap: 26px; background: var(--ground); padding: 24px; }
+.join-layout { min-height: 100vh; display: grid; place-content: center; gap: 26px; padding: 24px; }
 .join-heading { text-align: center; }
-.join-heading svg { color: #be3b32; }
-.join-heading h1 { font-size: 38px; margin: 10px 0 6px; letter-spacing: .02em; }
-.join-heading p { color: var(--ink-soft); }
+.join-heading svg { color: var(--crimson); }
+.join-heading h1 { font-size: 38px; margin: 10px 0 6px; letter-spacing: .02em; color: var(--on-ground); }
+.join-heading p { color: var(--on-ground-soft); }
 .join-form { width: min(480px, calc(100vw - 32px)); background: var(--panel); border: 1px solid var(--rule); border-top: 1px solid var(--gold); padding: 24px; display: grid; gap: 16px; border-radius: 6px; box-shadow: 0 14px 40px rgba(60, 44, 20, .13); }
 .saved-campaigns {
   width: min(760px, calc(100vw - 32px));
@@ -1409,6 +1409,12 @@ h3 { font-family: var(--display); font-weight: 600; letter-spacing: .02em; }
 .map-fog-mask.player {
   z-index: 6;
 }
+/* The player's fog is burned into the pixels the server sends them, so this
+   overlay is the DM's own view and can be seen through. At full opacity the DM
+   was choosing what to reveal while looking at a black rectangle. */
+.map-fog-mask.dm {
+  opacity: .58;
+}
 .map-token-layer {
   position: absolute;
   inset: 0;
@@ -1798,7 +1804,7 @@ html, body, #root { max-width: 100%; overflow-x: clip; }
 .map-publish-state {
   color: #6e685e;
   border-color: var(--rule);
-  background: var(--ground);
+  background: var(--panel-sunken);
 }
 .map-publish-state.published {
   color: #245f44;
@@ -1989,7 +1995,7 @@ html, body, #root { max-width: 100%; overflow-x: clip; }
   width: min(480px, calc(100vw - 32px));
   margin: 0 auto;
 }
-.join-guide h2 { margin-bottom: 12px; color: var(--ink-muted); }
+.join-guide h2 { margin-bottom: 12px; color: var(--on-ground-soft); }
 .join-steps {
   margin: 0;
   padding: 0;
@@ -2005,7 +2011,7 @@ html, body, #root { max-width: 100%; overflow-x: clip; }
   font-family: var(--text-serif);
   font-size: 15.5px;
   line-height: 1.5;
-  color: var(--ink-muted);
+  color: var(--on-ground-soft);
 }
 .join-steps li::before {
   content: counter(join-step);
@@ -2192,4 +2198,270 @@ html, body, #root { max-width: 100%; overflow-x: clip; }
   font-family: var(--text-serif);
   font-size: 15px;
   color: var(--ink-muted);
+}
+
+/* ==========================================================================
+   The room
+   --------------------------------------------------------------------------
+   A flat fill behind the sheet is what made the app read as a form rather than
+   a table. The backdrop is built from four layers instead: a wash (the light in
+   the room), a motif (what the surface is made of), a vignette (the edge of the
+   lamplight) and a grain (the tooth of the material). Every one of them is a
+   token, so a theme is a palette swap and nothing else.
+
+   Both layers are fixed and pointer-events:none: they never scroll, never
+   repaint on scroll, and can never intercept a click.
+   ========================================================================== */
+:root {
+  --rail: var(--crimson);
+  /* Almost every string in the app sits on a parchment panel and keeps the ink
+     palette. These two are for the handful that sit on the ground itself --
+     page titles, their standfirsts, the back link -- which would otherwise be
+     dark ink on a dark table. */
+  --on-ground: var(--ink);
+  --on-ground-soft: var(--ink-soft);
+  --atmos-wash:
+    radial-gradient(120% 82% at 50% -12%, #fdf9f0 0%, transparent 58%),
+    radial-gradient(95% 62% at 8% 104%, #e6dcc6 0%, transparent 60%),
+    linear-gradient(180deg, #f5f0e4 0%, #e9e1cf 100%);
+  --atmos-motif:
+    repeating-linear-gradient(45deg, transparent 0 44px, rgba(154, 120, 66, .05) 44px 45px),
+    repeating-linear-gradient(-45deg, transparent 0 44px, rgba(154, 120, 66, .05) 44px 45px);
+  --atmos-vignette:
+    radial-gradient(132% 108% at 50% 40%, transparent 50%, rgba(58, 42, 22, .22) 100%);
+  --atmos-material: url("/textures/vellum-fibre.webp");
+  --atmos-material-strength: .55;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+body::before {
+  z-index: -2;
+  background: var(--atmos-vignette), var(--atmos-motif), var(--atmos-wash);
+  background-color: var(--ground);
+}
+/* The material the ground is made of: a seamless greyscale height map from
+   tools/generate_textures.py, blended so the theme's palette still owns the
+   colour and the texture only owns how the surface catches light. */
+body::after {
+  z-index: -1;
+  opacity: var(--atmos-material-strength);
+  mix-blend-mode: overlay;
+  background-image: var(--atmos-material);
+  background-size: 320px 320px;
+}
+
+/* Texture is atmosphere, not information. Anyone who has asked for more
+   contrast has asked for less of it. */
+@media (prefers-contrast: more) {
+  body::before { background: var(--ground); }
+  body::after { display: none; }
+}
+
+/* --- Kara Mahzen: candlelight on a stone table ---------------------------- */
+:root[data-theme="ebon"] {
+  --on-ground: #ece4d4;
+  --on-ground-soft: #a9a08e;
+  --ground: #101215;
+  --iron: #0b0d0f;
+  --iron-soft: #17191d;
+  --crimson: #d4623f;
+  --crimson-deep: #a8432a;
+  --gold: #b08c4e;
+  --gold-lit: #d7b579;
+  --gold-soft: #8a7448;
+  --rail: var(--gold);
+  --atmos-wash:
+    radial-gradient(105% 72% at 50% -8%, rgba(206, 148, 74, .22) 0%, transparent 56%),
+    radial-gradient(85% 62% at 88% 100%, rgba(70, 92, 118, .18) 0%, transparent 58%),
+    linear-gradient(180deg, #1c1f24 0%, #0c0e11 100%);
+  /* Flagstone courses, wide enough to read as masonry and not as a grid. */
+  --atmos-motif:
+    repeating-linear-gradient(0deg, transparent 0 78px, rgba(216, 186, 128, .045) 78px 79px),
+    repeating-linear-gradient(90deg, transparent 0 124px, rgba(216, 186, 128, .03) 124px 125px);
+  --atmos-vignette:
+    radial-gradient(128% 104% at 50% 34%, transparent 42%, rgba(0, 0, 0, .62) 100%);
+  --atmos-material: url("/textures/ebon-stone.webp");
+  --atmos-material-strength: .40;
+}
+
+/* --- Yaban Diyar: dusk in a glade ---------------------------------------- */
+:root[data-theme="feywild"] {
+  --on-ground: #e2ece6;
+  --on-ground-soft: #9fb3a8;
+  --ground: #0f1719;
+  --iron: #0b1316;
+  --iron-soft: #142023;
+  --crimson: #a681d8;
+  --crimson-deep: #7d57bb;
+  --gold: #7fbfa6;
+  --gold-lit: #a9dcc4;
+  --gold-soft: #5d8a78;
+  --rail: var(--crimson);
+  --atmos-wash:
+    radial-gradient(112% 72% at 20% -10%, rgba(88, 200, 178, .20) 0%, transparent 56%),
+    radial-gradient(92% 66% at 84% 106%, rgba(132, 96, 200, .22) 0%, transparent 58%),
+    linear-gradient(180deg, #172325 0%, #0b1214 100%);
+  /* Dappled light through a canopy, not a pattern. */
+  --atmos-motif:
+    radial-gradient(circle at 17% 22%, rgba(150, 224, 190, .07) 0%, transparent 24%),
+    radial-gradient(circle at 73% 14%, rgba(170, 136, 224, .06) 0%, transparent 20%),
+    radial-gradient(circle at 42% 76%, rgba(126, 202, 196, .06) 0%, transparent 27%),
+    radial-gradient(circle at 88% 62%, rgba(150, 224, 190, .05) 0%, transparent 22%);
+  --atmos-vignette:
+    radial-gradient(126% 104% at 50% 38%, transparent 44%, rgba(2, 10, 10, .60) 100%);
+  --atmos-material: url("/textures/feywild-lichen.webp");
+  --atmos-material-strength: .36;
+}
+
+/* --- Ejderha Hazinesi: embers and brass ---------------------------------- */
+:root[data-theme="hoard"] {
+  --on-ground: #f0e2d0;
+  --on-ground-soft: #b6a08a;
+  --ground: #150c09;
+  --iron: #120806;
+  --iron-soft: #1e100c;
+  --crimson: #e06a3a;
+  --crimson-deep: #b8401f;
+  --gold: #c08f42;
+  --gold-lit: #e6bd6c;
+  --gold-soft: #96703a;
+  --rail: var(--gold-lit);
+  --atmos-wash:
+    radial-gradient(108% 74% at 50% -6%, rgba(224, 140, 58, .22) 0%, transparent 54%),
+    radial-gradient(88% 62% at 6% 102%, rgba(140, 32, 26, .30) 0%, transparent 60%),
+    linear-gradient(180deg, #271510 0%, #130a07 100%);
+  /* The scales live in the material texture, at the depth a relief needs.
+     Drawing them again here would put two scale grids over each other. */
+  --atmos-motif:
+    radial-gradient(circle at 26% 18%, rgba(230, 150, 70, .07) 0%, transparent 30%),
+    radial-gradient(circle at 78% 82%, rgba(180, 48, 30, .09) 0%, transparent 34%);
+  --atmos-vignette:
+    radial-gradient(126% 104% at 50% 36%, transparent 42%, rgba(8, 2, 0, .64) 100%);
+  --atmos-material: url("/textures/hoard-brass.webp");
+  --atmos-material-strength: .42;
+}
+
+/* ==========================================================================
+   Theme picker
+   ========================================================================== */
+.theme-picker { position: relative; display: inline-flex; }
+.theme-trigger {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+}
+.theme-picker-dark .theme-trigger:hover { background: rgba(255, 255, 255, .1); }
+.theme-picker-light .theme-trigger { color: var(--ink-muted); }
+.theme-picker-light .theme-trigger:hover { background: var(--panel-sunken); }
+
+.theme-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 120;
+  width: 288px;
+  padding: 9px;
+  display: grid;
+  gap: 2px;
+  color: var(--ink);
+  background: var(--panel-raised);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  box-shadow: 0 18px 44px rgba(20, 14, 6, .28);
+}
+.theme-menu-title {
+  margin: 3px 6px 7px;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.theme-option {
+  min-height: 0;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+.theme-option:hover { background: var(--panel-sunken); }
+.theme-option.selected { border-color: var(--gold-soft); background: var(--panel-sunken); }
+.theme-option-text { display: grid; gap: 1px; min-width: 0; }
+.theme-option-text strong { font-family: var(--display); font-size: 13px; letter-spacing: .02em; }
+.theme-option-text small {
+  font-family: var(--text-serif);
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+.theme-option-mark { color: var(--crimson-deep); }
+
+/* The swatch is the theme in miniature: its ground, with a page lying on it. */
+.theme-swatch {
+  position: relative;
+  width: 44px;
+  height: 34px;
+  display: block;
+  border: 1px solid rgba(0, 0, 0, .22);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.theme-swatch-page {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  top: 8px;
+  bottom: 0;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, #fbf7ef, #ece3d1);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, .18);
+}
+.theme-swatch-page::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 6px;
+  height: 1px;
+}
+.theme-swatch-vellum { background: linear-gradient(180deg, #f7f2e6, #e5dcc7); }
+.theme-swatch-vellum .theme-swatch-page::after { background: #c9a86a; }
+.theme-swatch-ebon { background: linear-gradient(180deg, #262a30, #0c0e11); }
+.theme-swatch-ebon .theme-swatch-page::after { background: #d7b579; }
+.theme-swatch-feywild { background: linear-gradient(180deg, #1d2f30, #0b1214); }
+.theme-swatch-feywild .theme-swatch-page::after { background: #a9dcc4; }
+.theme-swatch-hoard { background: linear-gradient(180deg, #35190f, #130a07); }
+.theme-swatch-hoard .theme-swatch-page::after { background: #e6bd6c; }
+
+@media (max-width: 700px) {
+  .theme-menu { width: min(288px, calc(100vw - 24px)); }
+}
+
+/* No topbar here, so the trigger carries its own parchment chip: three of the
+   four grounds are dark and would swallow a bare icon. */
+.join-theme-slot { position: fixed; top: 18px; right: 18px; z-index: 60; }
+.join-theme-slot .theme-trigger {
+  background: var(--panel-raised);
+  border: 1px solid var(--rule);
+  box-shadow: 0 4px 14px rgba(12, 8, 2, .18);
 }

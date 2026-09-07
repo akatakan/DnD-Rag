@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { api } from "../api";
+import ThemePicker from "./ThemePicker";
 import type {
   Credentials,
   DMMode,
@@ -112,6 +113,7 @@ export default function JoinScreen({
 
   return (
     <main className="join-layout">
+      <div className="join-theme-slot"><ThemePicker tone="light" /></div>
       <section className="join-heading">
         <Swords size={34} />
         <h1>D&D Table</h1>

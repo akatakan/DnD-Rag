@@ -10,6 +10,7 @@ import CampaignDashboard from "./components/CampaignDashboard";
 import SessionWorkspace from "./components/SessionWorkspace";
 import EncounterLibrary from "./components/EncounterLibrary";
 import DeveloperCatalog from "./components/DeveloperCatalog";
+import ThemePicker from "./components/ThemePicker";
 import type {
   Credentials,
   GameEvent,
@@ -446,6 +447,7 @@ function GameApplication() {
             </button>
           )}
           {!dmWorkspace && !characterCreationRequired && <button className="builder-launch" disabled={campaignOpen || sessionOpen || encounterOpen} onClick={() => setBuilderOpen(true)}><Sparkles size={16} /> Karakter oluştur</button>}
+          <ThemePicker />
           <button
             className="icon-button"
             onClick={rotateSession}
