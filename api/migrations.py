@@ -2260,6 +2260,46 @@ def _migration_031_campaign_npcs(db: sqlite3.Connection) -> None:
     )
 
 
+def _migration_032_refresh_derived_stats(db: sqlite3.Connection) -> None:
+    """Rebuild every stored character's derived block.
+
+    Derived values live inside games.state_json and are only regenerated when
+    a character changes, so a character published before a new derived field
+    existed keeps serving a block without it. Passive Investigation and
+    Passive Insight arrived that way and rendered blank on older sheets.
+
+    A character the engine can no longer recalculate is left exactly as it is:
+    it was already in that state, and failing here would block startup.
+    """
+    from api.character_engine import CharacterEngine
+
+    engine = CharacterEngine()
+    for row in db.execute("SELECT id, state_json FROM games").fetchall():
+        try:
+            state = json.loads(row["state_json"] or "{}")
+        except (TypeError, json.JSONDecodeError):
+            continue
+        characters = state.get("characters")
+        if not isinstance(characters, dict) or not characters:
+            continue
+        changed = False
+        for character_id, character in list(characters.items()):
+            if not isinstance(character, dict):
+                continue
+            try:
+                refreshed = engine.recalculate(character)
+            except Exception:
+                continue
+            if refreshed != character:
+                characters[character_id] = refreshed
+                changed = True
+        if changed:
+            db.execute(
+                "UPDATE games SET state_json = ? WHERE id = ?",
+                (json.dumps(state, ensure_ascii=False), row["id"]),
+            )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "initial_multiplayer_schema", _migration_001_initial_multiplayer_schema),
     (2, "dm_handover", _migration_002_dm_handover),
@@ -2292,6 +2332,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     (29, "character_portraits", _migration_029_character_portraits),
     (30, "catalog_schema_v2", _migration_030_catalog_schema_v2),
     (31, "campaign_npcs", _migration_031_campaign_npcs),
+    (32, "refresh_derived_stats", _migration_032_refresh_derived_stats),
 )
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1][0]
 
