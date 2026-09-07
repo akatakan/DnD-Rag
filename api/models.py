@@ -98,6 +98,18 @@ class HouseRuleInput(BaseModel):
     enabled: bool = True
 
 
+class SaveCampaignNpcRequest(BaseModel):
+    """A DM-authored NPC. Not catalog content, so no ruleset or provenance."""
+
+    name: Annotated[str, Field(min_length=1, max_length=80)]
+    kind: Literal["monster", "npc"] = "monster"
+    armor_class: Annotated[int, Field(ge=0, le=100)]
+    max_hp: Annotated[int, Field(ge=1, le=1_000_000)]
+    initiative_modifier: Annotated[int, Field(ge=-20, le=20)] = 0
+    speed: Annotated[int, Field(ge=0, le=1000)] = 30
+    notes: Annotated[str, Field(max_length=2000)] = ""
+
+
 class UpdateCampaignSettingsRequest(BaseModel):
     expected_version: Annotated[int, Field(ge=1)]
     house_rules: Annotated[list[HouseRuleInput], Field(max_length=50)]
@@ -822,13 +834,23 @@ class CommandRequest(BaseModel):
 
         if self.type == "add_combatant":
             if set(payload) - {
-                "id", "character_id", "name", "initiative", "tie_breaker",
-                "hp", "kind", "hidden",
+                "id", "character_id", "npc_id", "name", "initiative",
+                "tie_breaker", "hp", "kind", "hidden",
             }:
                 raise ValueError("Bilinmeyen combatant alani.")
+            npc_id = payload.get("npc_id")
+            if npc_id is not None and (
+                not isinstance(npc_id, str) or not 1 <= len(npc_id) <= 64
+            ):
+                raise ValueError("npc_id gecersiz.")
             name = payload.get("name")
-            if not isinstance(name, str) or not 1 <= len(name.strip()) <= 80:
+            # An NPC brings its own name, so the caller need not repeat it.
+            if npc_id is None and (
+                not isinstance(name, str) or not 1 <= len(name.strip()) <= 80
+            ):
                 raise ValueError("Katilimci adi 1 ile 80 karakter arasinda olmalidir.")
+            if npc_id is not None and name is not None:
+                raise ValueError("NPC eklerken ad NPC kaydindan gelir.")
             if payload.get("kind", "monster") not in {"monster", "player", "npc"}:
                 raise ValueError("Gecersiz katilimci turu.")
             for field in ("initiative", "tie_breaker"):

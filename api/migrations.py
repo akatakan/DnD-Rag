@@ -2225,6 +2225,41 @@ def _migration_030_catalog_schema_v2(db: sqlite3.Connection) -> None:
     db.execute("DROP TABLE _ruleset_entries_backup")
 
 
+def _migration_031_campaign_npcs(db: sqlite3.Connection) -> None:
+    """DM-authored NPCs, reusable across the campaign's encounters.
+
+    These are not catalog content: the DM writes them, so nothing here is
+    bound to a ruleset or to source provenance.
+    """
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS campaign_npcs (
+            id TEXT PRIMARY KEY,
+            campaign_id TEXT NOT NULL
+                REFERENCES campaigns(id) ON DELETE CASCADE,
+            created_by TEXT NOT NULL REFERENCES members(id),
+            name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 80),
+            kind TEXT NOT NULL CHECK (kind IN ('monster', 'npc')),
+            armor_class INTEGER NOT NULL CHECK (armor_class BETWEEN 0 AND 100),
+            max_hp INTEGER NOT NULL CHECK (max_hp BETWEEN 1 AND 1000000),
+            initiative_modifier INTEGER NOT NULL
+                CHECK (initiative_modifier BETWEEN -20 AND 20),
+            speed INTEGER NOT NULL CHECK (speed BETWEEN 0 AND 1000),
+            notes TEXT NOT NULL CHECK (length(notes) <= 2000),
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE (campaign_id, name)
+        )
+        """
+    )
+    db.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_campaign_npcs_campaign
+        ON campaign_npcs (campaign_id, name)
+        """
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "initial_multiplayer_schema", _migration_001_initial_multiplayer_schema),
     (2, "dm_handover", _migration_002_dm_handover),
@@ -2256,6 +2291,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     (28, "campaign_device_vault", _migration_028_campaign_device_vault),
     (29, "character_portraits", _migration_029_character_portraits),
     (30, "catalog_schema_v2", _migration_030_catalog_schema_v2),
+    (31, "campaign_npcs", _migration_031_campaign_npcs),
 )
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1][0]
 

@@ -2357,6 +2357,116 @@ class GameStore:
             ).fetchall()
         return [self._map_asset_result(row) for row in rows]
 
+    @staticmethod
+    def _npc_result(row: sqlite3.Row) -> dict:
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "kind": row["kind"],
+            "armor_class": row["armor_class"],
+            "max_hp": row["max_hp"],
+            "initiative_modifier": row["initiative_modifier"],
+            "speed": row["speed"],
+            "notes": row["notes"],
+            "updated_at": row["updated_at"],
+        }
+
+    def campaign_npcs(self, auth: AuthContext) -> list[dict]:
+        campaign_id = self.game(auth.game_id)["campaign_id"]
+        with self.connect() as db:
+            rows = db.execute(
+                """
+                SELECT * FROM campaign_npcs
+                WHERE campaign_id = ? ORDER BY name LIMIT 500
+                """,
+                (campaign_id,),
+            ).fetchall()
+        return [self._npc_result(row) for row in rows]
+
+    def campaign_npc(self, auth: AuthContext, npc_id: str) -> dict:
+        campaign_id = self.game(auth.game_id)["campaign_id"]
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT * FROM campaign_npcs WHERE id = ? AND campaign_id = ?",
+                (npc_id, campaign_id),
+            ).fetchone()
+        if row is None:
+            raise KeyError("NPC bulunamadi.")
+        return self._npc_result(row)
+
+    def save_campaign_npc(
+        self, auth: AuthContext, npc: dict, npc_id: str | None = None
+    ) -> dict:
+        """Create or replace a DM-authored NPC.
+
+        The unique (campaign, name) pair keeps the library from filling with
+        duplicates the DM cannot tell apart mid-session.
+        """
+        campaign_id = self.game(auth.game_id)["campaign_id"]
+        timestamp = now()
+        target_id = npc_id or uuid4().hex
+        with self.connect() as db:
+            existing = db.execute(
+                "SELECT id FROM campaign_npcs WHERE id = ? AND campaign_id = ?",
+                (target_id, campaign_id),
+            ).fetchone()
+            if npc_id is not None and existing is None:
+                raise KeyError("NPC bulunamadi.")
+            clash = db.execute(
+                """
+                SELECT id FROM campaign_npcs
+                WHERE campaign_id = ? AND name = ? AND id != ?
+                """,
+                (campaign_id, npc["name"], target_id),
+            ).fetchone()
+            if clash is not None:
+                raise ValueError("Bu isimde bir NPC zaten var.")
+            if existing is None:
+                db.execute(
+                    """
+                    INSERT INTO campaign_npcs (
+                        id, campaign_id, created_by, name, kind, armor_class,
+                        max_hp, initiative_modifier, speed, notes,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        target_id, campaign_id, auth.member_id, npc["name"],
+                        npc["kind"], npc["armor_class"], npc["max_hp"],
+                        npc["initiative_modifier"], npc["speed"], npc["notes"],
+                        timestamp, timestamp,
+                    ),
+                )
+            else:
+                db.execute(
+                    """
+                    UPDATE campaign_npcs
+                    SET name = ?, kind = ?, armor_class = ?, max_hp = ?,
+                        initiative_modifier = ?, speed = ?, notes = ?,
+                        updated_at = ?
+                    WHERE id = ? AND campaign_id = ?
+                    """,
+                    (
+                        npc["name"], npc["kind"], npc["armor_class"],
+                        npc["max_hp"], npc["initiative_modifier"], npc["speed"],
+                        npc["notes"], timestamp, target_id, campaign_id,
+                    ),
+                )
+            row = db.execute(
+                "SELECT * FROM campaign_npcs WHERE id = ?", (target_id,)
+            ).fetchone()
+        return self._npc_result(row)
+
+    def delete_campaign_npc(self, auth: AuthContext, npc_id: str) -> None:
+        campaign_id = self.game(auth.game_id)["campaign_id"]
+        with self.connect() as db:
+            cursor = db.execute(
+                "DELETE FROM campaign_npcs WHERE id = ? AND campaign_id = ?",
+                (npc_id, campaign_id),
+            )
+            if cursor.rowcount != 1:
+                raise KeyError("NPC bulunamadi.")
+
     def _portrait_result(self, row: sqlite3.Row) -> dict:
         return {
             "character_id": row["character_id"],

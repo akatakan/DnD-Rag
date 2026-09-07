@@ -1,4 +1,5 @@
 import type {
+  CampaignNpc,
   CharacterPortrait,
   Credentials,
   CharacterDraft,
@@ -205,6 +206,25 @@ export const api = {
     request<MapScene>("/api/maps/scene", {}, token),
   mapAssets: (token: string) =>
     request<{ assets: MapAsset[] }>("/api/maps/assets", {}, token),
+  campaignNpcs: (token: string) =>
+    request<{ npcs: CampaignNpc[] }>("/api/npcs", {}, token),
+  saveCampaignNpc: (
+    token: string,
+    npc: Omit<CampaignNpc, "id" | "updated_at">,
+    npcId?: string,
+  ) =>
+    request<CampaignNpc>(
+      npcId ? `/api/npcs/${encodeURIComponent(npcId)}` : "/api/npcs",
+      { method: npcId ? "PATCH" : "POST", body: JSON.stringify(npc) },
+      token,
+    ),
+  deleteCampaignNpc: async (token: string, npcId: string) => {
+    const response = await fetch(`${API}/api/npcs/${encodeURIComponent(npcId)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new ApiError("NPC silinemedi.", response.status);
+  },
   uploadCharacterPortrait: async (
     token: string,
     characterId: string,

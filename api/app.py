@@ -49,6 +49,7 @@ from api.models import (
     ResumeCampaignVaultRequest,
     RotateInviteRequest,
     RuleQuestionRequest,
+    SaveCampaignNpcRequest,
     SaveCatalogEntryRequest,
     SaveCharacterDraftRequest,
     ScheduleSessionRequest,
@@ -1011,6 +1012,74 @@ def get_character_portrait(
             "Content-Security-Policy": "default-src 'none'",
         },
     )
+
+
+@app.get("/api/npcs")
+def list_campaign_npcs(auth: AuthContext = Depends(require_auth)):
+    enforce_rate_limit("npc", auth.member_id, 120)
+    if auth.role == "player":
+        raise HTTPException(status_code=403, detail="NPC kutuphanesi DM'e aittir.")
+    return {"npcs": store.campaign_npcs(auth)}
+
+
+@app.post("/api/npcs", status_code=201)
+async def create_campaign_npc(
+    request: SaveCampaignNpcRequest,
+    auth: AuthContext = Depends(require_auth),
+):
+    await enforce_rate_limit_async("npc_write", auth.member_id, 60)
+
+    def persist() -> dict:
+        game_engine.require_active_dm(auth)
+        return store.save_campaign_npc(auth, request.model_dump())
+
+    try:
+        return await asyncio.to_thread(persist)
+    except CommandError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.patch("/api/npcs/{npc_id}")
+async def update_campaign_npc(
+    npc_id: str,
+    request: SaveCampaignNpcRequest,
+    auth: AuthContext = Depends(require_auth),
+):
+    await enforce_rate_limit_async("npc_write", auth.member_id, 60)
+
+    def persist() -> dict:
+        game_engine.require_active_dm(auth)
+        return store.save_campaign_npc(auth, request.model_dump(), npc_id)
+
+    try:
+        return await asyncio.to_thread(persist)
+    except CommandError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.delete("/api/npcs/{npc_id}", status_code=204)
+async def delete_campaign_npc(
+    npc_id: str, auth: AuthContext = Depends(require_auth)
+):
+    await enforce_rate_limit_async("npc_write", auth.member_id, 60)
+
+    def remove() -> None:
+        game_engine.require_active_dm(auth)
+        store.delete_campaign_npc(auth, npc_id)
+
+    try:
+        await asyncio.to_thread(remove)
+    except CommandError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return Response(status_code=204)
 
 
 @app.get("/api/maps/fog-mask")

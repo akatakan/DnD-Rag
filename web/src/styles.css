@@ -2153,3 +2153,43 @@ html, body, #root { max-width: 100%; overflow-x: clip; }
 .hit-dice-spend { margin: 10px 0 12px; }
 .hit-dice-spend input { max-width: 110px; }
 .hit-dice-spend small { font-weight: 400; color: var(--ink-soft); }
+
+/* The DM's NPC library. Stat blocks are reference material, so the list reads
+   as entries rather than another grid of cards. */
+.npc-library {
+  width: min(1180px, calc(100% - 36px));
+  margin: 0 auto 40px;
+  padding: 20px 22px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+.npc-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+.npc-form .npc-notes,
+.npc-form .button-row { grid-column: 1 / -1; }
+.npc-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.npc-list li {
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--panel-sunken);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+}
+.npc-list strong { display: block; font-family: var(--display); font-size: 16px; }
+.npc-list small { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.npc-list p {
+  margin: 6px 0 0;
+  font-family: var(--text-serif);
+  font-size: 15px;
+  color: var(--ink-muted);
+}

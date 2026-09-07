@@ -236,6 +236,18 @@ export interface SessionSummary {
   ended_at?: string;
 }
 
+export interface CampaignNpc {
+  id: string;
+  name: string;
+  kind: "monster" | "npc";
+  armor_class: number;
+  max_hp: number;
+  initiative_modifier: number;
+  speed: number;
+  notes: string;
+  updated_at: string;
+}
+
 export interface CharacterPortrait {
   character_id: string;
   asset_id: string;

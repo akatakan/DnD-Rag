@@ -3,6 +3,7 @@ import {
   CirclePause, CirclePlay, Copy, Library, Plus, Save, Square, Trash2, X,
 } from "lucide-react";
 import { api, ApiError } from "../api";
+import NpcLibrary from "./NpcLibrary";
 import type {
   CommandResponse, EncounterCombatantDraft, EncounterDraft, Snapshot,
 } from "../types";
@@ -344,6 +345,12 @@ export default function EncounterLibrary({
           </>}
         </section>
       </div>
+      <NpcLibrary
+        token={token}
+        revision={snapshot.revision}
+        onError={(value: string) => { setMessage(value); setMessageIsError(Boolean(value)); }}
+        onRefresh={onRefresh}
+      />
     </main>
   );
 }

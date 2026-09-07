@@ -1489,6 +1489,21 @@ class GameEngine:
                 )
             if len(state["combatants"]) >= 200:
                 raise CommandError("Encounter combatant limiti asildi.")
+            npc_id = payload.get("npc_id")
+            npc = self.store.campaign_npc(auth, str(npc_id)) if npc_id else None
+            if npc is not None:
+                # The DM stored these once; retyping them per encounter is how
+                # a stat block drifts from the one the table agreed on.
+                payload = {
+                    **payload,
+                    "name": npc["name"],
+                    "kind": npc["kind"],
+                    "hp": payload.get("hp", npc["max_hp"]),
+                    "initiative": payload.get(
+                        "initiative",
+                        roll(f"1d20{npc['initiative_modifier']:+d}").total,
+                    ),
+                }
             combatant_id = str(
                 payload.get("id") or payload.get("character_id") or uuid4().hex
             )
@@ -1496,18 +1511,22 @@ class GameEngine:
                 raise CommandError("Combatant zaten initiative listesinde.")
             state["combatants"].append({
                 "id": combatant_id,
-                "source": {
-                    "type": (
-                        "character"
-                        if combatant_id in state["characters"]
-                        else "manual"
-                    ),
-                    "id": (
-                        combatant_id
-                        if combatant_id in state["characters"]
-                        else None
-                    ),
-                },
+                "source": (
+                    {"type": "npc", "id": str(npc_id)}
+                    if npc is not None
+                    else {
+                        "type": (
+                            "character"
+                            if combatant_id in state["characters"]
+                            else "manual"
+                        ),
+                        "id": (
+                            combatant_id
+                            if combatant_id in state["characters"]
+                            else None
+                        ),
+                    }
+                ),
                 "name": str(payload["name"]), "initiative": int(payload.get("initiative", 0)),
                 "tie_breaker": int(payload.get("tie_breaker", 0)),
                 "hp": payload.get("hp"), "max_hp": payload.get("hp"),
