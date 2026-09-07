@@ -160,7 +160,7 @@ class MultiplayerAPITest(unittest.TestCase):
     def test_invite_code_is_short_readable_and_case_insensitive(self):
         self.assertRegex(
             self.dm["invite_code"],
-            r"^[23456789A-HJ-KM-NP-TV-Z]{8}-[23456789A-HJ-KM-NP-TV-Z]{8}$",
+            r"^[23456789A-HJ-KM-NP-TV-Z]{4}-[23456789A-HJ-KM-NP-TV-Z]{4}$",
         )
         joined = self.client.post(
             "/api/games/join",

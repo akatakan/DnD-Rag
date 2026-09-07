@@ -37,8 +37,18 @@ def now() -> str:
 
 
 def new_invite_code() -> str:
-    raw = "".join(secrets.choice(INVITE_CODE_ALPHABET) for _ in range(16))
-    return f"{raw[:8]}-{raw[8:]}"
+    """A code short enough to read down a phone line.
+
+    Eight characters from a thirty-symbol alphabet is about 39 bits. Joining is
+    rate limited to 30 attempts a minute per address, so working through that
+    space would take on the order of 10^10 minutes from one caller. The old
+    sixteen-character code bought nothing against that limit and cost every
+    table a string nobody could dictate without repeating themselves.
+
+    Codes already issued keep working: lookup is by exact value, not by length.
+    """
+    raw = "".join(secrets.choice(INVITE_CODE_ALPHABET) for _ in range(8))
+    return f"{raw[:4]}-{raw[4:]}"
 
 
 def _redact_export_value(value, sensitive_keys: set[str]):
