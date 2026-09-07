@@ -231,9 +231,21 @@ export interface SessionSummary {
   ended_at?: string;
 }
 
+export interface CharacterPortrait {
+  character_id: string;
+  asset_id: string;
+  content_type: string;
+  width: number;
+  height: number;
+  updated_at: string;
+  url: string;
+}
+
 export interface Snapshot {
   revision: number;
   event_cursor: number;
+  /** Keyed by character id; a character without one simply has no entry. */
+  portraits: Record<string, CharacterPortrait>;
   game: {
     id: string;
     name: string;

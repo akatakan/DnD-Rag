@@ -21,9 +21,12 @@ export default function MapBoard({
   onMapPing,
   onMapDraw,
   allowDraw = false,
+  portraits = {},
 }: {
   scene: MapScene;
   token: string;
+  /** Keyed by character id, which for a player is also the combatant id. */
+  portraits?: Record<string, { url: string; updated_at: string }>;
   compact?: boolean;
   activeCombatantId?: string;
   onMoveToken?: (token: MapToken, x: number, y: number) => void;
@@ -33,6 +36,46 @@ export default function MapBoard({
   onMapDraw?: (points: [number, number][]) => void;
   allowDraw?: boolean;
 }) {
+  // Token faces come from the same authenticated endpoint as the sheet
+  // portrait, so they have to be fetched as blobs before CSS can show them.
+  const [portraitObjectUrls, setPortraitObjectUrls] = useState<
+    Record<string, string>
+  >({});
+  const portraitKey = Object.entries(portraits)
+    .map(([id, value]) => `${id}:${value.updated_at}`)
+    .sort()
+    .join("|");
+  useEffect(() => {
+    const controller = new AbortController();
+    const created: string[] = [];
+    let cancelled = false;
+    Promise.all(
+      Object.entries(portraits).map(async ([characterId, portrait]) => {
+        try {
+          const blob = await api.mapAssetBlob(
+            token, portrait.url, controller.signal,
+          );
+          const objectUrl = URL.createObjectURL(blob);
+          created.push(objectUrl);
+          return [characterId, objectUrl] as const;
+        } catch {
+          return null;
+        }
+      }),
+    ).then((entries) => {
+      if (cancelled) return;
+      setPortraitObjectUrls(
+        Object.fromEntries(entries.filter(Boolean) as [string, string][]),
+      );
+    });
+    return () => {
+      cancelled = true;
+      controller.abort();
+      created.forEach((objectUrl) => URL.revokeObjectURL(objectUrl));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, portraitKey]);
+
   const [imageUrl, setImageUrl] = useState("");
   const [failed, setFailed] = useState(false);
   const [fogUrl, setFogUrl] = useState("");
@@ -331,16 +374,22 @@ export default function MapBoard({
           {scene.tokens.map((mapToken) => {
             const position = preview[mapToken.id] ?? mapToken;
             const active = mapToken.combatant_id === activeCombatantId;
+            const portrait = portraitObjectUrls[mapToken.combatant_id];
             return (
               <button
                 key={mapToken.id}
                 type="button"
-                className={`map-token ${active ? "active" : ""} ${mapToken.can_move ? "movable" : ""}`}
+                className={`map-token ${active ? "active" : ""} ${mapToken.can_move ? "movable" : ""} ${portrait ? "has-portrait" : ""}`}
                 style={{
                   width: mapToken.size_px,
                   height: mapToken.size_px,
                   left: position.x,
                   top: position.y,
+                  ...(portrait
+                    ? {
+                        backgroundImage: `url(${portrait})`,
+                      }
+                    : null),
                 }}
                 aria-label={`${mapToken.name} token${mapToken.can_move ? ", taşınabilir" : ""}`}
                 aria-disabled={!mapToken.can_move}

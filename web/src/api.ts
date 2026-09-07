@@ -1,4 +1,5 @@
 import type {
+  CharacterPortrait,
   Credentials,
   CharacterDraft,
   CampaignLobby,
@@ -204,6 +205,35 @@ export const api = {
     request<MapScene>("/api/maps/scene", {}, token),
   mapAssets: (token: string) =>
     request<{ assets: MapAsset[] }>("/api/maps/assets", {}, token),
+  uploadCharacterPortrait: async (
+    token: string,
+    characterId: string,
+    file: File,
+  ) => {
+    const safeName = file.name.replace(/[^ -~]/g, "_").slice(0, 160);
+    const response = await fetch(
+      `${API}/api/characters/${encodeURIComponent(characterId)}/portrait`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": file.type,
+          "X-Filename": safeName || "portrait",
+        },
+        body: file,
+      },
+    );
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({
+        detail: response.statusText,
+      }));
+      throw new ApiError(
+        typeof body.detail === "string" ? body.detail : "Portre yüklenemedi.",
+        response.status,
+      );
+    }
+    return response.json() as Promise<CharacterPortrait>;
+  },
   uploadMapAsset: async (token: string, file: File) => {
     const safeName = file.name.replace(/[^\x20-\x7e]/g, "_").slice(0, 160);
     const response = await fetch(`${API}/api/maps/assets`, {

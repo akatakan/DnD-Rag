@@ -515,6 +515,9 @@ def _snapshot(auth: AuthContext) -> dict:
     return {
         "revision": game["state_revision"],
         "event_cursor": store.event_cursor(auth.game_id),
+        # Portraits ride along so the sheet and the map tokens can draw a face
+        # without a second round trip per character.
+        "portraits": store.character_portraits(auth),
         "game": {
             "id": game["id"], "name": game["name"],
             "invite_code": None,
@@ -921,6 +924,87 @@ def get_map_asset_content(
 def get_map_scene(auth: AuthContext = Depends(require_auth)):
     enforce_rate_limit("map_read", auth.member_id, 120)
     return store.map_scene(auth)
+
+
+@app.post("/api/characters/{character_id}/portrait", status_code=201)
+async def upload_character_portrait(
+    character_id: str,
+    request: Request,
+    x_filename: str = Header(default="portrait"),
+    auth: AuthContext = Depends(require_auth),
+):
+    """Attach a portrait to a character.
+
+    Reuses the map upload pipeline: the same byte, MIME, dimension and quota
+    validation, the same optional malware scan, and the same content-addressed
+    object store. Only the owner of the character or a DM may replace it.
+    """
+    await enforce_rate_limit_async("portrait_upload", auth.member_id, 10)
+    try:
+        if (
+            not 1 <= len(x_filename) <= 160
+            or any(ord(character) < 32 for character in x_filename)
+        ):
+            raise MapAssetError("Portre dosya adi gecersiz.")
+        data = await request.body()
+        declared_content_type = request.headers.get("content-type", "")
+
+        def persist() -> dict:
+            metadata = validate_map_image(
+                data, declared_content_type, MAX_MAP_UPLOAD_BYTES
+            )
+            if UPLOAD_SCAN_REQUIRED:
+                scan_with_clamav(data, host=CLAMAV_HOST, port=CLAMAV_PORT)
+            with store.transaction():
+                portrait = store.set_character_portrait(
+                    auth,
+                    character_id,
+                    x_filename,
+                    f"{metadata['sha256']}.{metadata['extension']}",
+                    metadata,
+                )
+                # Only write the object once the quota reservation committed.
+                map_object_store.put(
+                    data, metadata["sha256"], metadata["extension"]
+                )
+                return portrait
+
+        result = await asyncio.to_thread(persist)
+    except PermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except MalwareDetected as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except UploadScanError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except (MapAssetError, ValueError) as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    await connections.broadcast_snapshot(auth.game_id, snapshot)
+    return result
+
+
+@app.get("/api/characters/{character_id}/portrait")
+def get_character_portrait(
+    character_id: str, auth: AuthContext = Depends(require_auth)
+):
+    enforce_rate_limit("map_content", auth.member_id, 240)
+    try:
+        with store.read_transaction():
+            portrait = store.character_portrait_content(auth, character_id)
+            path = map_object_store.path(portrait["storage_key"])
+    except (KeyError, MapAssetError) as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return FileResponse(
+        path,
+        media_type=portrait["content_type"],
+        headers={
+            "Cache-Control": "private, max-age=3600, immutable",
+            "ETag": f'"{path.stem}"',
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'",
+        },
+    )
 
 
 @app.get("/api/maps/fog-mask")

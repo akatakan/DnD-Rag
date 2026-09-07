@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from api.migrations import LATEST_SCHEMA_VERSION
+from api.migrations import MIGRATIONS
 from api.store import GameStore
 
 
@@ -90,9 +90,17 @@ class CampaignVaultTest(unittest.TestCase):
         try:
             db.execute("DROP TABLE campaign_device_memberships")
             db.execute("DROP TABLE campaign_device_vaults")
+            # Revert the migration this test actually undid, not whichever
+            # one happens to be last: a later migration would otherwise leave
+            # the dropped vault tables missing after the upgrade.
+            vault_version = next(
+                version
+                for version, name, _ in MIGRATIONS
+                if name == "campaign_device_vault"
+            )
             db.execute(
-                "DELETE FROM schema_migrations WHERE version = ?",
-                (LATEST_SCHEMA_VERSION,),
+                "DELETE FROM schema_migrations WHERE version >= ?",
+                (vault_version,),
             )
             db.commit()
         finally:

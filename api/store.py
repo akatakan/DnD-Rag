@@ -2337,12 +2337,153 @@ class GameStore:
             rows = db.execute(
                 """
                 SELECT * FROM map_assets
-                WHERE campaign_id = ?
+                WHERE campaign_id = ? AND kind = 'map'
                 ORDER BY created_at DESC, id DESC LIMIT 100
                 """,
                 (campaign_id,),
             ).fetchall()
         return [self._map_asset_result(row) for row in rows]
+
+    def _portrait_result(self, row: sqlite3.Row) -> dict:
+        return {
+            "character_id": row["character_id"],
+            "asset_id": row["asset_id"],
+            "content_type": row["content_type"],
+            "width": row["width"],
+            "height": row["height"],
+            "updated_at": row["updated_at"],
+            "url": f"/api/characters/{row['character_id']}/portrait",
+        }
+
+    def set_character_portrait(
+        self,
+        auth: AuthContext,
+        character_id: str,
+        original_name: str,
+        storage_key: str,
+        metadata: dict,
+    ) -> dict:
+        """Attach an uploaded image to a character.
+
+        Portraits are presentation, so they live beside the rules aggregate
+        rather than inside it, and reuse the campaign image store for quota,
+        validation and content-addressed de-duplication.
+        """
+        game = self.game(auth.game_id)
+        campaign_id = game["campaign_id"]
+        state = game["state"]
+        character = state.get("characters", {}).get(character_id)
+        if character is None:
+            raise KeyError("Karakter bulunamadi.")
+        is_dm = auth.role in {"dm", "co_dm"}
+        if not is_dm and character.get("owner_id") != auth.member_id:
+            raise PermissionError(
+                "Portreyi yalnizca karakterin sahibi veya DM degistirebilir."
+            )
+        timestamp = now()
+        asset_id = uuid4().hex
+        safe_name = original_name.strip()[:160] or f"portrait.{metadata['extension']}"
+        with self.transaction():
+            with self.connect() as db:
+                total = int(
+                    db.execute(
+                        """
+                        SELECT COALESCE(SUM(byte_size), 0)
+                        FROM map_assets WHERE campaign_id = ?
+                        """,
+                        (campaign_id,),
+                    ).fetchone()[0]
+                )
+                if total + int(metadata["byte_size"]) > 100 * 1024 * 1024:
+                    raise ValueError("Kampanya gorsel depolama limiti asildi.")
+                db.execute(
+                    """
+                    INSERT INTO map_assets (
+                        id, campaign_id, uploader_id, original_name, storage_key,
+                        sha256, content_type, byte_size, width, height,
+                        created_at, kind
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'portrait')
+                    """,
+                    (
+                        asset_id, campaign_id, auth.member_id, safe_name,
+                        storage_key, metadata["sha256"], metadata["content_type"],
+                        metadata["byte_size"], metadata["width"],
+                        metadata["height"], timestamp,
+                    ),
+                )
+                db.execute(
+                    """
+                    INSERT INTO character_portraits
+                        (campaign_id, character_id, asset_id, updated_at)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(campaign_id, character_id)
+                    DO UPDATE SET asset_id = excluded.asset_id,
+                                  updated_at = excluded.updated_at
+                    """,
+                    (campaign_id, character_id, asset_id, timestamp),
+                )
+                row = db.execute(
+                    """
+                    SELECT character_portraits.character_id,
+                           character_portraits.asset_id,
+                           character_portraits.updated_at,
+                           map_assets.content_type, map_assets.width,
+                           map_assets.height
+                    FROM character_portraits
+                    JOIN map_assets ON map_assets.id = character_portraits.asset_id
+                    WHERE character_portraits.campaign_id = ?
+                      AND character_portraits.character_id = ?
+                    """,
+                    (campaign_id, character_id),
+                ).fetchone()
+        return self._portrait_result(row)
+
+    def character_portraits(self, auth: AuthContext) -> dict[str, dict]:
+        """Every portrait at this table, keyed by character id."""
+        campaign_id = self.game(auth.game_id)["campaign_id"]
+        with self.connect() as db:
+            rows = db.execute(
+                """
+                SELECT character_portraits.character_id,
+                       character_portraits.asset_id,
+                       character_portraits.updated_at,
+                       map_assets.content_type, map_assets.width,
+                       map_assets.height
+                FROM character_portraits
+                JOIN map_assets ON map_assets.id = character_portraits.asset_id
+                WHERE character_portraits.campaign_id = ?
+                """,
+                (campaign_id,),
+            ).fetchall()
+        return {row["character_id"]: self._portrait_result(row) for row in rows}
+
+    def character_portrait_content(
+        self, auth: AuthContext, character_id: str
+    ) -> dict:
+        campaign_id = self.game(auth.game_id)["campaign_id"]
+        with self.connect() as db:
+            row = db.execute(
+                """
+                SELECT character_portraits.character_id,
+                       character_portraits.asset_id,
+                       character_portraits.updated_at,
+                       map_assets.content_type, map_assets.width,
+                       map_assets.height, map_assets.storage_key,
+                       map_assets.sha256
+                FROM character_portraits
+                JOIN map_assets ON map_assets.id = character_portraits.asset_id
+                WHERE character_portraits.campaign_id = ?
+                  AND character_portraits.character_id = ?
+                """,
+                (campaign_id, character_id),
+            ).fetchone()
+        if row is None:
+            raise KeyError("Karakter portresi bulunamadi.")
+        return {
+            **self._portrait_result(row),
+            "storage_key": row["storage_key"],
+            "sha256": row["sha256"],
+        }
 
     def map_asset_content(self, auth: AuthContext, asset_id: str) -> dict:
         campaign_id = self.game(auth.game_id)["campaign_id"]

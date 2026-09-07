@@ -19,6 +19,7 @@ import {
   Swords,
 } from "lucide-react";
 import { api } from "../api";
+import { useAuthedImage } from "../useAuthedImage";
 import { openSheetRoll } from "../rollIntent";
 import type {
   Character,
@@ -46,6 +47,67 @@ const ABILITIES: CharacterAbility[] = [
   "strength", "dexterity", "constitution",
   "intelligence", "wisdom", "charisma",
 ];
+
+function CharacterPortraitFrame({
+  name,
+  url,
+  updatedAt,
+  token,
+  characterId,
+  onUploaded,
+  onError,
+}: {
+  name: string;
+  url?: string;
+  updatedAt?: string;
+  token: string;
+  characterId: string;
+  onUploaded: () => Promise<void>;
+  onError: (value: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const src = useAuthedImage(token, url, updatedAt);
+  // The default is a drawn monogram rather than a stock silhouette: it says
+  // who this is, and it cannot be mistaken for a real photograph.
+  const monogram = name.trim().slice(0, 1).toLocaleUpperCase("tr-TR") || "?";
+  return (
+    <div className="portrait-frame">
+      {src
+        ? <img src={src} alt={`${name} portresi`} />
+        : <span aria-hidden="true">{monogram}</span>}
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => inputRef.current?.click()}
+      >
+        {busy ? "Yükleniyor…" : url ? "Portreyi değiştir" : "Portre ekle"}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg"
+        hidden
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          setBusy(true);
+          try {
+            await api.uploadCharacterPortrait(token, characterId, file);
+            await onUploaded();
+          } catch (reason) {
+            onError(
+              reason instanceof Error ? reason.message : "Portre yüklenemedi.",
+            );
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+    </div>
+  );
+}
 
 export default function PlayerConsole({
   snapshot,
@@ -149,8 +211,19 @@ export default function PlayerConsole({
       )}
       <section className="sheet-hero">
         <div className="sheet-identity">
-                    <h1>{character.name}</h1>
-          <p>{character.class_name} · Seviye {character.level} · {character.ruleset_version}</p>
+          <CharacterPortraitFrame
+            name={character.name}
+            url={snapshot.portraits[character.id]?.url}
+            updatedAt={snapshot.portraits[character.id]?.updated_at}
+            token={token}
+            characterId={character.id}
+            onUploaded={onRefresh}
+            onError={onError}
+          />
+          <div>
+            <h1>{character.name}</h1>
+            <p>{character.class_name} · Seviye {character.level} · {character.ruleset_version}</p>
+          </div>
         </div>
         <div className="sheet-vitals">
           <Vital icon={Shield} label="Armor Class" value={character.ac ?? character.derived.armor_class} />
@@ -167,6 +240,7 @@ export default function PlayerConsole({
       {snapshot.map_scene.published && snapshot.map_scene.asset && (
         <section className="player-map-panel" aria-label="Yayınlanmış kampanya haritası">
           <MapBoard
+            portraits={snapshot.portraits}
             scene={snapshot.map_scene}
             token={token}
             compact

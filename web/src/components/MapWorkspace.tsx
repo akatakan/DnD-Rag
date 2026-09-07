@@ -11,6 +11,7 @@ export default function MapWorkspace({
   canControl,
   activeCombatantId,
   onError,
+  portraits = {},
 }: {
   initialScene: MapScene;
   gameRevision: number;
@@ -18,6 +19,7 @@ export default function MapWorkspace({
   canControl: boolean;
   activeCombatantId?: string;
   onError: (value: string) => void;
+  portraits?: Record<string, { url: string; updated_at: string }>;
 }) {
   const [scene, setScene] = useState(initialScene);
   const [assets, setAssets] = useState<MapAsset[]>([]);
@@ -237,6 +239,7 @@ export default function MapWorkspace({
         </div>
       </header>
       <MapBoard
+        portraits={portraits}
         scene={scene}
         token={token}
         activeCombatantId={activeCombatantId}

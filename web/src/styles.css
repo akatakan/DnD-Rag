@@ -2033,3 +2033,43 @@ html, body, #root { max-width: 100%; overflow-x: clip; }
   line-height: 1.45;
   color: var(--ink-soft);
 }
+
+/* Portrait frame on the sheet. The default is a drawn monogram, never a stock
+   silhouette that could read as a real person. */
+.portrait-frame {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+}
+.portrait-frame img,
+.portrait-frame > span {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 2px solid var(--gold-lit);
+  object-fit: cover;
+  background: rgba(255, 255, 255, .09);
+}
+.portrait-frame > span {
+  display: grid;
+  place-content: center;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--gold-lit);
+}
+.portrait-frame button {
+  min-height: 26px;
+  padding: 3px 9px;
+  font-size: 11px;
+  color: var(--on-iron);
+  background: rgba(255, 255, 255, .1);
+  border: 1px solid rgba(255, 255, 255, .26);
+  border-radius: 4px;
+}
+.sheet-identity { display: flex; align-items: center; gap: 18px; }
+.map-token.has-portrait {
+  background-size: cover;
+  background-position: center;
+}
+.map-token.has-portrait span { display: none; }

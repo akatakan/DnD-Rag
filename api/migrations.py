@@ -2131,6 +2131,35 @@ def _migration_028_campaign_device_vault(db: sqlite3.Connection) -> None:
         )
 
 
+def _migration_029_character_portraits(db: sqlite3.Connection) -> None:
+    # Portraits are presentation, not rules: keeping them out of the character
+    # aggregate avoids a schema bump and leaves the engines untouched.
+    columns = _columns(db, "map_assets")
+    if "kind" not in columns:
+        db.execute(
+            "ALTER TABLE map_assets ADD COLUMN kind TEXT NOT NULL DEFAULT 'map'"
+        )
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS character_portraits (
+            campaign_id TEXT NOT NULL
+                REFERENCES campaigns(id) ON DELETE CASCADE,
+            character_id TEXT NOT NULL,
+            asset_id TEXT NOT NULL
+                REFERENCES map_assets(id) ON DELETE CASCADE,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (campaign_id, character_id)
+        )
+        """
+    )
+    db.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_character_portraits_asset
+        ON character_portraits(asset_id)
+        """
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "initial_multiplayer_schema", _migration_001_initial_multiplayer_schema),
     (2, "dm_handover", _migration_002_dm_handover),
@@ -2160,6 +2189,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     (26, "character_creation_gate", _migration_026_character_creation_gate),
     (27, "database_rules_catalog", _migration_027_database_rules_catalog),
     (28, "campaign_device_vault", _migration_028_campaign_device_vault),
+    (29, "character_portraits", _migration_029_character_portraits),
 )
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1][0]
 
