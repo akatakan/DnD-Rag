@@ -1,46 +1,61 @@
 import asyncio
-from contextlib import asynccontextmanager
-from copy import deepcopy
 import hashlib
 import json
 import os
 import secrets
+from contextlib import asynccontextmanager
+from copy import deepcopy
 from math import ceil
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    Depends,
+    FastAPI,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from agent import build_engine
 from api.ai_dm import AIDMOrchestrator
+from api.character_draft_engine import (
+    DRAFT_STEPS,
+    CharacterDraftStorageError,
+    CharacterDraftValidationError,
+)
+from api.encounter_engine import EncounterDraftConflict, EncounterStorageError
 from api.game_engine import CommandError, GameEngine, RevisionConflict
 from api.map_assets import LocalMapObjectStore, MapAssetError, validate_map_image
 from api.map_fog import render_fog_mask, render_fogged_map
 from api.models import (
     AIDMStepRequest,
     AuthContext,
-    CommandRequest,
     CloneRulesetRequest,
+    CommandRequest,
     CreateGameRequest,
     CreateSessionRequest,
-    DeleteCatalogEntryRequest,
     DeleteCampaignRequest,
+    DeleteCatalogEntryRequest,
     JoinGameRequest,
-    RotateInviteRequest,
+    NavigateCharacterDraftRequest,
+    PublishRulesetRequest,
+    QuickBuildCharacterDraftRequest,
     ResumeCampaignVaultRequest,
+    RotateInviteRequest,
     RuleQuestionRequest,
     SaveCatalogEntryRequest,
     SaveCharacterDraftRequest,
-    NavigateCharacterDraftRequest,
-    QuickBuildCharacterDraftRequest,
     ScheduleSessionRequest,
     UpdateCampaignSettingsRequest,
     UpdateDicePreferencesRequest,
-    UpdateSessionZeroMemberRequest,
     UpdateSessionStatusRequest,
-    PublishRulesetRequest,
+    UpdateSessionZeroMemberRequest,
 )
 from api.observability import (
     MetricsRegistry,
@@ -48,12 +63,6 @@ from api.observability import (
     content_security_policy,
     correlation_headers,
 )
-from api.character_draft_engine import (
-    DRAFT_STEPS,
-    CharacterDraftStorageError,
-    CharacterDraftValidationError,
-)
-from api.encounter_engine import EncounterDraftConflict, EncounterStorageError
 from api.rate_limit import RateLimiter
 from api.realtime import ConnectionManager
 from api.rules_catalog import CatalogValidationError
@@ -73,6 +82,7 @@ from api.upload_scan import (
     UploadScanError,
     scan_with_clamav,
 )
+from retriever import aclose_clients as aclose_retrieval_clients
 from sources import extract_sources
 
 DB_PATH = Path(os.getenv("GAME_DB", "runtime/multiplayer.db"))
@@ -179,7 +189,10 @@ async def app_lifespan(_app: FastAPI):
         try:
             await connections.close_async()
         finally:
-            await asyncio.to_thread(rate_limiter.close)
+            try:
+                await asyncio.to_thread(rate_limiter.close)
+            finally:
+                await aclose_retrieval_clients()
 
 
 app = FastAPI(
@@ -553,62 +566,69 @@ def _snapshot(auth: AuthContext) -> dict:
 
 async def handle_dm_grace_expired(game_id: str, offline_dm_id: str) -> None:
     online_member_ids = await connections.online_member_ids_async(game_id)
-    with store.transaction():
-        game = store.game(game_id)
-        handover = game.get("handover") or {}
-        if (
-            game["active_dm_id"] != offline_dm_id
-            or handover.get("status") != "grace"
-            or handover.get("offline_dm_id") != offline_dm_id
-            or offline_dm_id in online_member_ids
-        ):
-            return
-        co_dm = next(
-            (member for member in store.members(game_id)
-             if member["role"] == "co_dm"
-             and member["id"] in online_member_ids),
-            None,
-        )
-        if co_dm:
-            handover = {
-                "status": "offered", "offline_dm_id": offline_dm_id,
-                "candidate_id": co_dm["id"],
-            }
-            store.set_handover(game_id, handover)
-            event = store.add_event(
-                game_id, "dm_handover_offered", offline_dm_id,
-                "party", handover,
+
+    # One thread for the whole transaction; returning None means the grace
+    # window no longer applies and nothing should be broadcast.
+    def resolve_handover() -> dict | None:
+        with store.transaction():
+            game = store.game(game_id)
+            handover = game.get("handover") or {}
+            if (
+                game["active_dm_id"] != offline_dm_id
+                or handover.get("status") != "grace"
+                or handover.get("offline_dm_id") != offline_dm_id
+                or offline_dm_id in online_member_ids
+            ):
+                return None
+            co_dm = next(
+                (member for member in store.members(game_id)
+                 if member["role"] == "co_dm"
+                 and member["id"] in online_member_ids),
+                None,
             )
-        elif game["fallback_dm_mode"] == "vote_ai":
-            players = [
-                member["id"] for member in store.members(game_id)
-                if member["role"] == "player"
-            ]
-            handover = {
-                "status": "vote_ai", "offline_dm_id": offline_dm_id,
-                "eligible_voters": players, "votes": [],
-                "required": max(1, ceil(len(players) / 2)),
-            }
-            store.set_dm_mode(game_id, "assisted")
-            store.set_handover(game_id, handover)
-            event = store.add_event(
-                game_id, "ai_takeover_vote_started", offline_dm_id,
-                "party", {
-                    "required": handover["required"],
-                    "eligible_count": len(players),
-                },
-            )
-        else:
+            if co_dm:
+                handover = {
+                    "status": "offered", "offline_dm_id": offline_dm_id,
+                    "candidate_id": co_dm["id"],
+                }
+                store.set_handover(game_id, handover)
+                return store.add_event(
+                    game_id, "dm_handover_offered", offline_dm_id,
+                    "party", handover,
+                )
+            if game["fallback_dm_mode"] == "vote_ai":
+                players = [
+                    member["id"] for member in store.members(game_id)
+                    if member["role"] == "player"
+                ]
+                handover = {
+                    "status": "vote_ai", "offline_dm_id": offline_dm_id,
+                    "eligible_voters": players, "votes": [],
+                    "required": max(1, ceil(len(players) / 2)),
+                }
+                store.set_dm_mode(game_id, "assisted")
+                store.set_handover(game_id, handover)
+                return store.add_event(
+                    game_id, "ai_takeover_vote_started", offline_dm_id,
+                    "party", {
+                        "required": handover["required"],
+                        "eligible_count": len(players),
+                    },
+                )
             handover = {
                 "status": "assisted",
                 "offline_dm_id": offline_dm_id,
             }
             store.set_dm_mode(game_id, "assisted")
             store.set_handover(game_id, handover)
-            event = store.add_event(
+            return store.add_event(
                 game_id, "dm_fallback_assisted", offline_dm_id,
                 "party", {},
             )
+
+    event = await asyncio.to_thread(resolve_handover)
+    if event is None:
+        return
     await connections.broadcast_event(event)
     await connections.broadcast_snapshot(game_id, snapshot)
 
@@ -907,7 +927,7 @@ def get_map_scene(auth: AuthContext = Depends(require_auth)):
 async def get_map_fog_mask(auth: AuthContext = Depends(require_auth)):
     await enforce_rate_limit_async("map_content", auth.member_id, 240)
     try:
-        fog = store.map_fog_mask(auth)
+        fog = await asyncio.to_thread(store.map_fog_mask, auth)
         content = await asyncio.to_thread(
             render_fog_mask,
             fog["columns"],
@@ -928,7 +948,7 @@ async def get_map_fog_mask(auth: AuthContext = Depends(require_auth)):
                         f"{auth.game_id}:{fog['asset_sha256']}:"
                         f"{fog['revision']}:{fog['scene_revision']}:"
                         f"{fog['grid_size_px']}"
-                    ).encode("utf-8")
+                    ).encode()
                 ).hexdigest()
                 + '"'
             ),
@@ -945,7 +965,9 @@ async def rotate_auth_token(
 ):
     await enforce_rate_limit_async("auth_rotate", auth.member_id, 10)
     try:
-        result = store.rotate_token(bearer_token(authorization))
+        result = await asyncio.to_thread(
+            store.rotate_token, bearer_token(authorization)
+        )
     except (KeyError, ValueError) as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     await connections.disconnect_member(
@@ -1036,7 +1058,9 @@ async def logout(
     auth: AuthContext = Depends(require_auth),
 ):
     await enforce_rate_limit_async("logout", auth.member_id, 10)
-    revoked = store.revoke_token(bearer_token(authorization))
+    revoked = await asyncio.to_thread(
+        store.revoke_token, bearer_token(authorization)
+    )
     if revoked:
         await connections.disconnect_member(auth.game_id, auth.member_id)
     return {"revoked": revoked}
@@ -1066,10 +1090,14 @@ async def rotate_invite(
     auth: AuthContext = Depends(require_auth),
 ):
     await enforce_rate_limit_async("invite_manage", auth.member_id, 20)
-    require_invite_manager(auth)
-    result = store.rotate_invite(
-        auth.game_id, auth.member_id, request.max_uses
-    )
+
+    def rotate() -> dict:
+        require_invite_manager(auth)
+        return store.rotate_invite(
+            auth.game_id, auth.member_id, request.max_uses
+        )
+
+    result = await asyncio.to_thread(rotate)
     await connections.broadcast_snapshot(auth.game_id, snapshot)
     return result
 
@@ -1077,8 +1105,12 @@ async def rotate_invite(
 @app.post("/api/invites/revoke")
 async def revoke_invites(auth: AuthContext = Depends(require_auth)):
     await enforce_rate_limit_async("invite_manage", auth.member_id, 20)
-    require_invite_manager(auth)
-    result = {"revoked": store.revoke_invites(auth.game_id, auth.member_id)}
+
+    def revoke() -> int:
+        require_invite_manager(auth)
+        return store.revoke_invites(auth.game_id, auth.member_id)
+
+    result = {"revoked": await asyncio.to_thread(revoke)}
     await connections.broadcast_snapshot(auth.game_id, snapshot)
     return result
 
@@ -1476,7 +1508,10 @@ async def create_session(
     auth: AuthContext = Depends(require_auth),
 ):
     await enforce_rate_limit_async("session", auth.member_id, 30)
-    try:
+
+    # One thread for the whole transaction: GameStore keeps its connection in
+    # a threading.local, so splitting these calls would split the transaction.
+    def create() -> tuple[dict, dict]:
         with store.transaction():
             game = game_engine.require_active_dm(auth)
             session = store.create_session(auth.game_id, request.title)
@@ -1495,6 +1530,10 @@ async def create_session(
                 },
             )
             session["revision"] = revision
+        return session, event
+
+    try:
+        session, event = await asyncio.to_thread(create)
     except (CommandError, KeyError, ValueError) as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     await connections.broadcast_event(event)
@@ -1560,7 +1599,8 @@ async def update_campaign_settings(
     auth: AuthContext = Depends(require_auth),
 ):
     await enforce_rate_limit_async("campaign", auth.member_id, 30)
-    try:
+
+    def update() -> tuple[dict, int, dict]:
         with store.transaction():
             game = game_engine.require_active_dm(auth)
             settings = {
@@ -1588,6 +1628,10 @@ async def update_campaign_settings(
                     "safety_tools": settings["safety_tools"],
                 },
             )
+        return campaign, revision, event
+
+    try:
+        campaign, revision, event = await asyncio.to_thread(update)
     except (CommandError, KeyError, ValueError) as error:
         status = 409 if "conflict" in str(error).lower() else 400
         raise HTTPException(status_code=status, detail=str(error)) from error
@@ -1595,7 +1639,7 @@ async def update_campaign_settings(
     await connections.broadcast_snapshot(auth.game_id, snapshot)
     return {
         "campaign": campaign,
-        "lobby": store.campaign_lobby(auth),
+        "lobby": await asyncio.to_thread(store.campaign_lobby, auth),
         "revision": revision,
     }
 
@@ -1606,7 +1650,8 @@ async def update_session_zero_member(
     auth: AuthContext = Depends(require_auth),
 ):
     await enforce_rate_limit_async("campaign", auth.member_id, 60)
-    try:
+
+    def update() -> tuple[dict, int, dict]:
         with store.transaction():
             game = store.game(auth.game_id)
             member = store.update_session_zero_member(
@@ -1635,6 +1680,10 @@ async def update_session_zero_member(
                     "consent_status": member["consent_status"],
                 },
             )
+        return member, revision, event
+
+    try:
+        member, revision, event = await asyncio.to_thread(update)
     except (KeyError, ValueError) as error:
         status = 409 if "conflict" in str(error).lower() else 400
         raise HTTPException(status_code=status, detail=str(error)) from error
@@ -1642,7 +1691,7 @@ async def update_session_zero_member(
     await connections.broadcast_snapshot(auth.game_id, snapshot)
     return {
         "member": member,
-        "lobby": store.campaign_lobby(auth),
+        "lobby": await asyncio.to_thread(store.campaign_lobby, auth),
         "revision": revision,
     }
 
@@ -1653,7 +1702,8 @@ async def schedule_session(
     auth: AuthContext = Depends(require_auth),
 ):
     await enforce_rate_limit_async("session", auth.member_id, 30)
-    try:
+
+    def reschedule() -> tuple[dict, int, dict]:
         with store.transaction():
             game = game_engine.require_active_dm(auth)
             if int(game["state_revision"]) != request.expected_revision:
@@ -1681,6 +1731,10 @@ async def schedule_session(
                     "scheduled_at": session["scheduled_at"],
                 },
             )
+        return session, revision, event
+
+    try:
+        session, revision, event = await asyncio.to_thread(reschedule)
     except RevisionConflict as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     except (CommandError, KeyError, ValueError) as error:
@@ -1696,7 +1750,8 @@ async def update_session_status(
     auth: AuthContext = Depends(require_auth),
 ):
     await enforce_rate_limit_async("session", auth.member_id, 30)
-    try:
+
+    def change_status() -> tuple[dict, dict]:
         with store.transaction():
             game = game_engine.require_active_dm(auth)
             if int(game["state_revision"]) != request.expected_revision:
@@ -1715,6 +1770,10 @@ async def update_session_status(
                 {"session_id": session["id"], "status": session["status"]},
             )
             session["revision"] = revision
+        return session, event
+
+    try:
+        session, event = await asyncio.to_thread(change_status)
     except RevisionConflict as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     except (CommandError, KeyError, ValueError) as error:
@@ -1734,7 +1793,7 @@ async def command(request: CommandRequest, auth: AuthContext = Depends(require_a
             "map_fog_write", auth.member_id, 60
         )
     try:
-        result = game_engine.apply(auth, request)
+        result = await asyncio.to_thread(game_engine.apply, auth, request)
     except (CharacterDraftStorageError, EncounterStorageError) as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
     except EncounterDraftConflict as error:
@@ -1770,11 +1829,17 @@ async def command(request: CommandRequest, auth: AuthContext = Depends(require_a
         await connections.broadcast_event(result["event"])
         await connections.broadcast_snapshot(auth.game_id, snapshot)
     result["state"] = project_state(auth, result["state"])
-    current_game = store.game(auth.game_id)
-    result["state"]["encounter_undo_available"] = (
-        auth.role in {"dm", "co_dm"}
-        and auth.member_id == current_game["active_dm_id"]
-        and store.encounter_undo_count(auth.game_id) > 0
+
+    def undo_available() -> bool:
+        current_game = store.game(auth.game_id)
+        return (
+            auth.role in {"dm", "co_dm"}
+            and auth.member_id == current_game["active_dm_id"]
+            and store.encounter_undo_count(auth.game_id) > 0
+        )
+
+    result["state"]["encounter_undo_available"] = await asyncio.to_thread(
+        undo_available
     )
     result["own_character"] = (
         result["state"]["characters"].get(auth.character_id)
@@ -1799,40 +1864,52 @@ def ask_rules(request: RuleQuestionRequest, auth: AuthContext = Depends(require_
 
 @app.post("/api/ai-dm/step")
 async def ai_dm_step(request: AIDMStepRequest, auth: AuthContext = Depends(require_auth)):
-    game = store.game(auth.game_id)
+    game = await asyncio.to_thread(store.game, auth.game_id)
     await enforce_rate_limit_async("ai_dm", auth.game_id, 10)
     if game["dm_mode"] == "human":
         raise HTTPException(status_code=400, detail="Human DM modunda AI plani kapalidir.")
     is_active_dm = auth.role in {"dm", "co_dm"} and auth.member_id == game["active_dm_id"]
     if game["dm_mode"] != "ai" and not is_active_dm:
         raise HTTPException(status_code=403, detail="Assisted modda AI planini yalnizca aktif DM olusturabilir.")
-    active_member = store.member(auth.game_id, game["active_dm_id"])
+    active_member = await asyncio.to_thread(
+        store.member, auth.game_id, game["active_dm_id"]
+    )
     execution_auth = AuthContext(
         game_id=auth.game_id, member_id=active_member["id"], role=active_member["role"],
         character_id=active_member["character_id"], is_owner=active_member["id"] == game["owner_id"],
     )
-    plan = ai_dm.plan(execution_auth, request.objective)
+    plan = await asyncio.to_thread(ai_dm.plan, execution_auth, request.objective)
     applied = []
     should_apply = game["dm_mode"] == "ai" or request.auto_apply
     if should_apply:
         # A plan is one logical action. If a later command fails, roll back all
         # earlier state changes and events instead of leaving a partial turn.
-        with store.transaction():
-            fresh_game = store.game(auth.game_id)
-            if (
-                fresh_game["dm_mode"] != game["dm_mode"]
-                or fresh_game["active_dm_id"] != game["active_dm_id"]
-                or fresh_game["updated_at"] != game["updated_at"]
-            ):
-                raise HTTPException(status_code=409, detail="Oyun durumu degisti; AI planini yeniden olusturun.")
-            for executable in ai_dm.executable_commands(plan):
-                result = game_engine.apply(execution_auth, executable)
-                applied.append(result["event"])
+        # The whole transaction runs on one thread; GameStore keeps its
+        # connection in a threading.local, so splitting it would split the
+        # transaction and leave a partial turn committed.
+        def execute() -> list[dict]:
+            events = []
+            with store.transaction():
+                fresh_game = store.game(auth.game_id)
+                if (
+                    fresh_game["dm_mode"] != game["dm_mode"]
+                    or fresh_game["active_dm_id"] != game["active_dm_id"]
+                    or fresh_game["updated_at"] != game["updated_at"]
+                ):
+                    raise HTTPException(status_code=409, detail="Oyun durumu degisti; AI planini yeniden olusturun.")
+                for executable in ai_dm.executable_commands(plan):
+                    result = game_engine.apply(execution_auth, executable)
+                    events.append(result["event"])
+            return events
+
+        applied = await asyncio.to_thread(execute)
         for event in applied:
             await connections.broadcast_event(event)
         await connections.broadcast_snapshot(auth.game_id, snapshot)
     else:
-        event = store.add_event(auth.game_id, "ai_plan_created", auth.member_id, "dm_only", plan.to_dict())
+        event = await asyncio.to_thread(
+            store.add_event, auth.game_id, "ai_plan_created", auth.member_id, "dm_only", plan.to_dict()
+        )
         await connections.broadcast_event(event)
     return {"plan": plan.to_dict(), "applied": applied, "requires_approval": not should_apply}
 
@@ -1852,11 +1929,12 @@ async def game_socket(
     if PUBLIC_MODE and origin not in web_origins:
         await websocket.close(code=4403)
         return
-    auth = (
-        store.consume_websocket_ticket(ticket, game_id)
-        if ticket
-        else None if PUBLIC_MODE else store.authenticate(token)
-    )
+    def resolve_auth() -> AuthContext | None:
+        if ticket:
+            return store.consume_websocket_ticket(ticket, game_id)
+        return None if PUBLIC_MODE else store.authenticate(token)
+
+    auth = await asyncio.to_thread(resolve_auth)
     if auth is None or auth.game_id != game_id:
         await websocket.close(code=4401)
         return
@@ -1869,15 +1947,16 @@ async def game_socket(
         await websocket.close(code=4429)
         return
     await connections.connect(websocket, auth)
-    fresh_auth = store.refresh_auth_context(auth)
+    fresh_auth = await asyncio.to_thread(store.refresh_auth_context, auth)
     if fresh_auth is None:
         await websocket.close(code=4401)
         await connections.disconnect_async(websocket, auth)
         return
     auth = fresh_auth
+    catch_up = await asyncio.to_thread(store.event_page, auth, after, 200)
     await websocket.send_json({
         "kind": "catch_up",
-        **store.event_page(auth, after, 200),
+        **catch_up,
     })
     initial_snapshot = await asyncio.to_thread(snapshot, auth)
     await websocket.send_json({
@@ -1893,7 +1972,9 @@ async def game_socket(
                 )
             except asyncio.TimeoutError:
                 pass
-            if not store.auth_context_active(auth):
+            # Runs once per socket every 30s, so it must stay off the loop:
+            # otherwise every connected player adds a serialized DB read.
+            if not await asyncio.to_thread(store.auth_context_active, auth):
                 await websocket.close(code=4401)
                 await connections.disconnect_async(
                     websocket, auth, trigger_grace=True
