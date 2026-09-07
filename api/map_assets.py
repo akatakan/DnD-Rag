@@ -1,9 +1,9 @@
 import hashlib
 import os
-from pathlib import Path
 import re
 import tempfile
 import zlib
+from pathlib import Path
 
 
 class MapAssetError(ValueError):

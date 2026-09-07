@@ -8,7 +8,6 @@ from api.character_engine import ABILITY_KEYS, SKILL_ABILITIES
 from api.rules_catalog import RulesCatalog
 from dice import DiceError, parse_roll, roll
 
-
 ACTION_SCHEMA_VERSION = 1
 ROLL_MODES = {"normal", "advantage", "disadvantage"}
 MAX_ATTACKS = 100

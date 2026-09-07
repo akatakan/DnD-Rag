@@ -11,7 +11,6 @@ from api.catalog_curation import (
 )
 from api.rules_catalog import RulesCatalog
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PACK_PATH = (
     PROJECT_ROOT

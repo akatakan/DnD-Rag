@@ -1,8 +1,9 @@
 import unittest
 from types import SimpleNamespace
 
-from agent import MultiBookQueryEngine
 from llama_index.core.base.response.schema import Response
+
+from agent import MultiBookQueryEngine
 
 
 class FakeRetriever:

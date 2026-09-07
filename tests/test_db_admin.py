@@ -1,8 +1,8 @@
 import sqlite3
 import tempfile
 import unittest
-from contextlib import closing
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import math
+from copy import deepcopy
 from typing import Any
 from uuid import uuid4
 
 from api.rules_catalog import RulesCatalog
-
 
 INVENTORY_SCHEMA_VERSION = 1
 MAX_INVENTORY_ENTRIES = 500

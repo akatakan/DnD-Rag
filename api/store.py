@@ -11,13 +11,13 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
-from api.character_engine import CharacterEngine
 from api.character_draft_engine import (
     DRAFT_STEPS,
     CharacterDraftEngine,
     CharacterDraftStorageError,
     CharacterDraftValidationError,
 )
+from api.character_engine import CharacterEngine
 from api.encounter_engine import (
     ENCOUNTER_SCHEMA_VERSION,
     EncounterDraftConflict,
@@ -28,7 +28,6 @@ from api.encounter_engine import (
 from api.migrations import apply_migrations
 from api.models import AuthContext, DMMode
 from api.rules_catalog import RulesCatalog
-
 
 INVITE_CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTVWXYZ"
 
@@ -243,7 +242,7 @@ class GameStore:
     def _credential_hash(self, secret: str, purpose: str) -> str:
         return hmac.new(
             self.auth_pepper,
-            f"{purpose}:{secret}".encode("utf-8"),
+            f"{purpose}:{secret}".encode(),
             hashlib.sha256,
         ).hexdigest()
 

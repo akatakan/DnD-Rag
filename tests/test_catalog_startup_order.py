@@ -9,7 +9,6 @@ from pathlib import Path
 
 from api.store import GameStore
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -18,7 +17,9 @@ class CatalogStartupOrderTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             db_path = root / "game.db"
-            store = GameStore(db_path)
+            # Constructed for the side effect: migrate a fresh database to the
+            # latest schema so the rollback below has something to undo.
+            GameStore(db_path)
 
             with closing(sqlite3.connect(db_path)) as db:
                 db.execute("DELETE FROM schema_migrations WHERE version >= 27")

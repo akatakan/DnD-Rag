@@ -10,7 +10,6 @@ import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-
 MessageCallback = Callable[[dict[str, Any]], Awaitable[None]]
 GraceCallback = Callable[[str, str], Awaitable[bool]]
 _NAMESPACE_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z")

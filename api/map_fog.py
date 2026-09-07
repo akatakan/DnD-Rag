@@ -1,13 +1,12 @@
-import struct
-import zlib
-from pathlib import Path
 import os
+import struct
 import tempfile
 import threading
+import zlib
 from contextlib import contextmanager
+from pathlib import Path
 
 from PIL import Image, ImageDraw
-
 
 _RENDER_LOCKS_GUARD = threading.Lock()
 _RENDER_LOCKS: dict[str, tuple[threading.Lock, int]] = {}

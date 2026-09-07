@@ -1,6 +1,5 @@
 from urllib.parse import urlparse
 
-
 LOCAL_AUTH_PEPPER = "tetsu-local-development-pepper"
 
 

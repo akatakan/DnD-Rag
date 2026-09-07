@@ -13,7 +13,6 @@ from pathlib import Path
 from threading import RLock
 from typing import Any
 
-
 ENTITY_TYPES = frozenset(
     {"class", "species", "background", "spell", "feature", "item", "condition"}
 )

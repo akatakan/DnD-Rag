@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import math
 import socket
 import struct
-import math
 
 
 class UploadScanError(RuntimeError):

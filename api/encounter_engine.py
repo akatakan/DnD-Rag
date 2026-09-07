@@ -4,7 +4,6 @@ from copy import deepcopy
 from typing import Any
 from uuid import uuid4
 
-
 ENCOUNTER_SCHEMA_VERSION = 1
 ENCOUNTER_FIELDS = {"schema_version", "name", "description", "combatants"}
 COMBATANT_FIELDS = {

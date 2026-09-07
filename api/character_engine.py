@@ -5,7 +5,6 @@ from typing import Any
 
 from api.rules_catalog import RulesCatalog
 
-
 ABILITY_KEYS = (
     "strength",
     "dexterity",
@@ -89,9 +88,9 @@ class CharacterEngine:
             "inventory": [],
         }
         recalculated = self.recalculate(character)
-        from api.resource_engine import ResourceEngine
-        from api.inventory_engine import InventoryEngine
         from api.action_engine import ActionEngine
+        from api.inventory_engine import InventoryEngine
+        from api.resource_engine import ResourceEngine
 
         with_resources = ResourceEngine(self.catalog).initialize(recalculated)
         with_inventory = InventoryEngine(self.catalog).initialize(with_resources)

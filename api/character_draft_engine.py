@@ -13,7 +13,6 @@ from api.character_engine import (
 )
 from api.inventory_engine import InventoryEngine, InventoryValidationError
 
-
 DRAFT_SCHEMA_VERSION = 2
 LEGACY_DRAFT_SCHEMA_VERSION = 1
 STANDARD_ARRAY = (15, 14, 13, 12, 10, 8)

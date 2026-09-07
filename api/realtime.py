@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import secrets
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
@@ -12,6 +13,10 @@ from api.shared_runtime import RedisRealtimeCoordinator
 from api.store import GameStore
 
 GraceCallback = Callable[[str, str], Awaitable[None]]
+
+# Socket close failures on an already-dead peer are expected and stay silent;
+# coordinator failures are not, because they leave shared presence state wrong.
+_logger = logging.getLogger("tetsu.realtime")
 
 
 class ConnectionManager:
@@ -462,7 +467,16 @@ class ConnectionManager:
                                 game_id, auth.member_id, connection_id
                             )
                         except Exception:
-                            pass
+                            # Shutdown continues, but a failed leave strands a
+                            # presence entry that other workers still read.
+                            _logger.warning(
+                                "realtime_leave_failed",
+                                exc_info=True,
+                                extra={
+                                    "game_id": game_id,
+                                    "member_id": auth.member_id,
+                                },
+                            )
             self.coordinator.close()
         self.connections.clear()
         self.connection_ids.clear()
@@ -490,7 +504,16 @@ class ConnectionManager:
                                 connection_id,
                             )
                         except Exception:
-                            pass
+                            # Shutdown continues, but a failed leave strands a
+                            # presence entry that other workers still read.
+                            _logger.warning(
+                                "realtime_leave_failed",
+                                exc_info=True,
+                                extra={
+                                    "game_id": game_id,
+                                    "member_id": auth.member_id,
+                                },
+                            )
             await asyncio.to_thread(self.coordinator.close)
         self.connections.clear()
         self.connection_ids.clear()

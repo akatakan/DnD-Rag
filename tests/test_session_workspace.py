@@ -72,6 +72,7 @@ class SessionWorkspaceTest(unittest.TestCase):
             {"content": "We enter the keep", "visibility": "party"},
             "session-party-note-001",
         )
+        self.assertEqual(party_note.status_code, 200, party_note.text)
         replay = self.command(
             self.player,
             "add_session_note",

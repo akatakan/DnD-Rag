@@ -6,12 +6,11 @@ from copy import deepcopy
 from pathlib import Path
 
 from api.rules_catalog import (
-    CatalogValidationError,
     ENTITY_TYPES,
     MAX_CATALOG_BYTES,
+    CatalogValidationError,
     RulesCatalog,
 )
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BUNDLED_CATALOG = (

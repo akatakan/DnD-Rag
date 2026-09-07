@@ -6,7 +6,6 @@ from typing import Any
 from api.rules_catalog import RulesCatalog
 from dice import roll
 
-
 RESOURCE_SCHEMA_VERSION = 2
 
 

@@ -13,7 +13,6 @@ from api.rules_catalog import (
     RulesCatalog,
 )
 
-
 MAX_CURATION_PACK_BYTES = 5 * 1024 * 1024
 PACK_KEYS = {
     "schema_version",

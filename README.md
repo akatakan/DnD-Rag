@@ -130,15 +130,15 @@ koduyla kendi cihazından bağlanır. DM ve Player tamamen ayrı çalışma yüz
 alır; Streamlit yalnızca RAG/evaluation laboratuvarı olarak tutulur.
 
 ```bash
-+# Frontend bağımlılıkları ve production build
-+cd web
-+npm install
-+npm run build
-+cd ..
-+
-+# API + build edilmiş React, tek adres
-+uv run python run_api.py
-+```
+# Frontend bağımlılıkları ve production build
+cd web
+npm install
+npm run build
+cd ..
+
+# API + build edilmiş React, tek adres
+uv run python run_api.py
+```
 
 Uygulama `http://localhost:8000` adresindedir. Aynı ağdaki oyuncular sunucunun LAN
 IP adresini ve DM'nin ekranda gördüğü davet kodunu kullanır. Frontend geliştirirken
