@@ -268,6 +268,26 @@ export default function JoinScreen({
         {error && <div className="form-error">{error}</div>}
         <button className="primary-button" disabled={busy}>{busy ? "Bağlanıyor..." : mode === "join" ? "Masaya katıl" : "Oyunu başlat"}</button>
       </form>
+      {/* First-run guidance. The two roles arrive with different questions, so
+          the steps follow whichever tab is open instead of explaining both. */}
+      <section className="join-guide" aria-live="polite">
+        <h2>Nasıl çalışır</h2>
+        <ol className="join-steps">
+          {mode === "join" ? (
+            <>
+              <li>Masayı kuran kişiden davet kodunu iste. Kod iki bölümlü bir metindir ve DM'in ekranında görünür.</li>
+              <li>Adınla kodu yukarıya gir. Kendi telefonundan ya da bilgisayarından bağlanırsın; kimsenin ekran paylaşmasına gerek yok.</li>
+              <li>Karakterini oluştur. Class, origin ve ability seçimlerin kampanyanın sabitlenmiş SRD 5.2.1 kurallarıyla sunucuda doğrulanır. Sonrasında zar atar, HP değişikliği talep eder ve DM'in yayınladığı haritayı görürsün.</li>
+            </>
+          ) : (
+            <>
+              <li>Masana bir ad ver ve DM modunu seç: Human'da her şeyi sen yönetirsin, Assisted'da AI plan önerir sen onaylarsın, Ai'de turu AI yürütür.</li>
+              <li>Oluşan kodu oyuncularına ilet. Aynı ağdaki herkes kendi cihazından gelir; kodu istediğin an yenileyebilir ya da iptal edebilirsin.</li>
+              <li>Haritanı yayınla, encounter başlat, sırayı ve HP'yi yönet. Oyuncuların gönderdiği HP talepleri uygulanmadan önce senin onayına düşer.</li>
+            </>
+          )}
+        </ol>
+      </section>
     </main>
   );
 }
