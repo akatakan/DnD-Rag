@@ -55,7 +55,11 @@ test("5.5e standard and quick builder are clear, legal, and responsive", async (
   await page.getByLabel("Karakter adı").fill("Riva");
   await page.getByRole("button", { name: "İleri" }).click();
   await expect(page.getByRole("heading", { name: "Class seç" })).toBeVisible();
-  await expect(page.getByText("1 · Class", { exact: true })).toBeVisible();
+  // Scoped to the live phase indicator: the step nav renders every step label,
+  // so an unscoped "1 · Class" also matches the always-present nav entry.
+  await expect(
+    page.locator(".builder-phase").getByText("1 · Class", { exact: true }),
+  ).toBeVisible();
   await page.screenshot({
     path: "test-results/character-builder-standard-class-desktop.png",
     fullPage: true,
@@ -88,14 +92,12 @@ test("5.5e standard and quick builder are clear, legal, and responsive", async (
   expect(draftResponse.ok()).toBeTruthy();
   const draft = await draftResponse.json();
   expect(draft.current_step).toBe("review");
-  expect(Object.values(draft.data.ability_scores).sort((a, b) => b - a)).toEqual(
-    [15, 14, 13, 12, 10, 8],
-  );
-  expect(
-    Object.values(draft.data.background_ability_increases).sort(
-      (a, b) => b - a,
-    ),
-  ).toEqual([2, 1]);
+  // response.json() is `any`, so Object.values widens to unknown[]; name the
+  // shape once instead of leaving the comparators untyped.
+  const descending = (scores: unknown): number[] =>
+    Object.values(scores as Record<string, number>).sort((a, b) => b - a);
+  expect(descending(draft.data.ability_scores)).toEqual([15, 14, 13, 12, 10, 8]);
+  expect(descending(draft.data.background_ability_increases)).toEqual([2, 1]);
   await desktop.close();
 
   const joinedMobile = await request.post(`${API}/api/games/join`, {
