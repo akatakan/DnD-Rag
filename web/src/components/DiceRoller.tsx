@@ -1,6 +1,4 @@
 import {
-  Component,
-  type ReactNode,
   type KeyboardEvent as ReactKeyboardEvent,
   lazy,
   Suspense,
@@ -10,6 +8,7 @@ import {
   useState,
 } from "react";
 import { Dices, Minus, Plus, Volume2, VolumeX, X } from "lucide-react";
+import ErrorBoundary from "./ErrorBoundary";
 import { api } from "../api";
 import { primeDiceAudio, releaseDiceAudio } from "../diceAudio";
 import type {
@@ -25,21 +24,6 @@ import {
   type SheetRollIntent,
 } from "../rollIntent";
 const Dice3DTray = lazy(() => import("./Dice3DTray"));
-
-class DiceTrayBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false };
-
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-
-  render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
-  }
-}
 
 const DICE: DiceSides[] = [4, 6, 8, 10, 12, 20, 100];
 const MODES: { value: RollMode; label: string }[] = [
@@ -403,8 +387,9 @@ export default function DiceRoller({
       {result && (reducedMotion
         ? <StaticDiceTray result={result} tossKey={tossKey} reducedMotion />
         : (
-          <DiceTrayBoundary
+          <ErrorBoundary
             key={tossKey}
+            area="3B zar tepsisi"
             fallback={<StaticDiceTray result={result} tossKey={tossKey} />}
           >
             <Suspense
@@ -422,7 +407,7 @@ export default function DiceRoller({
                 tossKey={tossKey}
               />
             </Suspense>
-          </DiceTrayBoundary>
+          </ErrorBoundary>
         )
       )}
 
