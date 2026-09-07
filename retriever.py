@@ -1,3 +1,4 @@
+import threading
 from dataclasses import dataclass
 
 import yaml
@@ -70,9 +71,44 @@ def build_metadata_filters(
     return MetadataFilters(filters=filters)
 
 
+_CLIENT_LOCK = threading.Lock()
+_CLIENTS: tuple[QdrantClient, AsyncQdrantClient] | None = None
+
+
 def _clients() -> tuple[QdrantClient, AsyncQdrantClient]:
-    kwargs = {"url": QDRANT_URL, "timeout": 20, "check_compatibility": False}
-    return QdrantClient(**kwargs), AsyncQdrantClient(**kwargs)
+    """Return the process-wide Qdrant client pair.
+
+    These used to be constructed on every call and never closed, so each
+    /api/rules request abandoned two clients and their sockets. The clients
+    carry no per-query state, so one pair is shared and closed on shutdown.
+    """
+    global _CLIENTS
+    with _CLIENT_LOCK:
+        if _CLIENTS is None:
+            kwargs = {
+                "url": QDRANT_URL,
+                "timeout": 20,
+                "check_compatibility": False,
+            }
+            _CLIENTS = (QdrantClient(**kwargs), AsyncQdrantClient(**kwargs))
+        return _CLIENTS
+
+
+def _take_clients() -> tuple[QdrantClient, AsyncQdrantClient] | None:
+    global _CLIENTS
+    with _CLIENT_LOCK:
+        clients, _CLIENTS = _CLIENTS, None
+        return clients
+
+
+async def aclose_clients() -> None:
+    """Close the shared clients; AsyncQdrantClient.close is a coroutine."""
+    clients = _take_clients()
+    if clients is None:
+        return
+    sync_client, async_client = clients
+    sync_client.close()
+    await async_client.close()
 
 
 def _existing_collections(client: QdrantClient) -> set[str]:
