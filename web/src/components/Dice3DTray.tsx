@@ -294,12 +294,15 @@ export default function Dice3DTray({
   theme,
   sound,
   tossKey,
+  honourReducedMotion = true,
 }: {
   result: DiceRollPayload;
   sides: DiceSides;
   theme: DiceTheme;
   sound: boolean;
   tossKey: number;
+  /** False once the player has explicitly asked for the 3D tray anyway. */
+  honourReducedMotion?: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -308,7 +311,10 @@ export default function Dice3DTray({
     if (!host) return;
     delete host.dataset.reducedMotion;
     delete host.dataset.rendererUnavailable;
-    const reducedMotion = window.matchMedia(
+    // Second gate. DiceRoller already decides whether to mount this tray, so
+    // re-reading the OS preference here used to override an explicit opt-in
+    // and leave the player with no way to get the 3D dice back.
+    const reducedMotion = honourReducedMotion && window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     if (reducedMotion) {
@@ -590,7 +596,7 @@ export default function Dice3DTray({
       window.clearTimeout(releaseTimer);
       release();
     };
-  }, [result, sides, sound, theme, tossKey]);
+  }, [honourReducedMotion, result, sides, sound, theme, tossKey]);
 
   return (
     <div

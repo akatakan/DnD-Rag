@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Dices, Minus, Plus, Volume2, VolumeX, X } from "lucide-react";
+import { Boxes, Dices, Minus, Plus, Square, Volume2, VolumeX, X } from "lucide-react";
 import ErrorBoundary from "./ErrorBoundary";
 import { api } from "../api";
 import { primeDiceAudio, releaseDiceAudio } from "../diceAudio";
@@ -16,6 +16,7 @@ import type {
   DiceRollPayload,
   DiceSides,
   DiceTheme,
+  GameEvent,
   RollMode,
 } from "../types";
 import {
@@ -25,6 +26,7 @@ import {
 } from "../rollIntent";
 const Dice3DTray = lazy(() => import("./Dice3DTray"));
 
+const TRAY_3D_KEY = "tetsu.dice.tray3d";
 const DICE: DiceSides[] = [4, 6, 8, 10, 12, 20, 100];
 const MODES: { value: RollMode; label: string }[] = [
   { value: "normal", label: "Normal" },
@@ -70,6 +72,16 @@ function diceResultFrom(response: CommandResponse): DiceRollPayload {
     throw new Error("Sunucu geçerli bir zar sonucu döndürmedi.");
   }
   return result as DiceRollPayload;
+}
+
+const SIDES: readonly DiceSides[] = [4, 6, 8, 10, 12, 20, 100];
+
+function sidesFromExpression(expression: string): DiceSides {
+  const match = /d(\d+)/i.exec(expression);
+  const parsed = match ? Number(match[1]) : NaN;
+  return (SIDES as readonly number[]).includes(parsed)
+    ? (parsed as DiceSides)
+    : 20;
 }
 
 function keptIndexes(result: DiceRollPayload) {
@@ -129,12 +141,15 @@ export default function DiceRoller({
   actorCharacterId,
   onError,
   onRefresh,
+  remoteRoll,
 }: {
   token: string;
   revision: number;
   actorCharacterId?: string;
   onError: (value: string) => void;
   onRefresh: () => Promise<void>;
+  /** A roll made by someone else that this seat is allowed to watch. */
+  remoteRoll?: GameEvent | null;
 }) {
   const [open, setOpen] = useState(false);
   const [sides, setSides] = useState<DiceSides>(20);
@@ -145,6 +160,19 @@ export default function DiceRoller({
   const [reducedMotion, setReducedMotion] = useState(
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
+  // The OS preference is the default, not a verdict. Without an override the
+  // 3D tray silently never appears, and the theme and sound controls below
+  // configure a presentation the player never sees. Stored per device, since
+  // "reduce motion" describes this device rather than the account.
+  const [tray3dOverride, setTray3dOverride] = useState<boolean | null>(() => {
+    try {
+      const stored = localStorage.getItem(TRAY_3D_KEY);
+      return stored === null ? null : stored === "true";
+    } catch {
+      return null;
+    }
+  });
+  const tray3d = tray3dOverride ?? !reducedMotion;
   const [theme, setTheme] = useState<DiceTheme>("crimson");
   const [sound, setSound] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -220,6 +248,21 @@ export default function DiceRoller({
   useEffect(() => {
     revisionRef.current = Math.max(revisionRef.current, revision);
   }, [revision]);
+
+  useEffect(() => {
+    if (!remoteRoll) return;
+    let resolved: DiceRollPayload;
+    try {
+      // Same validation as a local roll; a malformed broadcast is ignored
+      // rather than allowed to blank the tray.
+      resolved = diceResultFrom({ event: remoteRoll } as CommandResponse);
+    } catch {
+      return;
+    }
+    setResult(resolved);
+    setResultSides(sidesFromExpression(resolved.expression));
+    setTossKey((value) => value + 1);
+  }, [remoteRoll]);
 
   useEffect(() => {
     if (!sheetIntent) {
@@ -384,7 +427,7 @@ export default function DiceRoller({
 
   return (
     <>
-      {result && (reducedMotion
+      {result && (!tray3d
         ? <StaticDiceTray result={result} tossKey={tossKey} reducedMotion />
         : (
           <ErrorBoundary
@@ -405,6 +448,7 @@ export default function DiceRoller({
                 theme={theme}
                 sound={sound}
                 tossKey={tossKey}
+                honourReducedMotion={tray3dOverride === null}
               />
             </Suspense>
           </ErrorBoundary>
@@ -561,6 +605,29 @@ export default function DiceRoller({
                 {sound ? <Volume2 size={17} /> : <VolumeX size={17} />}
                 {sound ? "Çarpışma sesi açık" : "Çarpışma sesi kapalı"}
               </button>
+              <button
+                type="button"
+                className="dice-sound-toggle"
+                aria-pressed={tray3d}
+                onClick={() => {
+                  const next = !tray3d;
+                  setTray3dOverride(next);
+                  try {
+                    localStorage.setItem(TRAY_3D_KEY, String(next));
+                  } catch {
+                    // A device that refuses storage still gets the change now.
+                  }
+                }}
+              >
+                {tray3d ? <Boxes size={17} /> : <Square size={17} />}
+                {tray3d ? "3B zar tepsisi açık" : "3B zar tepsisi kapalı"}
+              </button>
+              {reducedMotion && tray3dOverride === null && (
+                <p className="dice-motion-note">
+                  Sisteminde “hareketi azalt” açık olduğu için 3B tepsi kapalı
+                  başladı. Yukarıdan bu cihaz için açabilirsin.
+                </p>
+              )}
             </div>
 
             <p className="dice-help" id={helpId}>

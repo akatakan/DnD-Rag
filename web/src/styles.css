@@ -2024,3 +2024,12 @@ html, body, #root { max-width: 100%; overflow-x: clip; }
   border: 1px solid var(--gold-soft);
   border-radius: 50%;
 }
+
+.dice-motion-note {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-family: var(--text-serif);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}

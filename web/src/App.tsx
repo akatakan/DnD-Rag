@@ -12,11 +12,19 @@ import EncounterLibrary from "./components/EncounterLibrary";
 import DeveloperCatalog from "./components/DeveloperCatalog";
 import type {
   Credentials,
+  GameEvent,
   SavedCampaign,
   ServerCampaign,
   Snapshot,
 } from "./types";
 
+// Every server event that carries a dice result the tray can present.
+const ROLL_EVENT_TYPES = new Set([
+  "dice_rolled",
+  "typed_roll_resolved",
+  "character_check_rolled",
+  "death_save_rolled",
+]);
 const STORAGE_KEY = "dnd-table-credentials";
 const CAMPAIGN_STORAGE_KEY = "dnd-table-saved-campaigns-v1";
 const CAMPAIGN_VAULT_KEY = "dnd-table-campaign-vault-v1";
@@ -119,6 +127,10 @@ function GameApplication() {
   const [sessionOpen, setSessionOpen] = useState(false);
   const [encounterOpen, setEncounterOpen] = useState(false);
   const eventCursor = useRef(0);
+  const myMemberId = useRef("");
+  // A party roll reaches every client as an event, but nothing used to
+  // open the tray anywhere except on the roller's own screen.
+  const [remoteRoll, setRemoteRoll] = useState<GameEvent | null>(null);
 
   const loadServerCampaigns = useCallback(async () => {
     setCampaignVaultLoading(true);
@@ -134,6 +146,7 @@ function GameApplication() {
 
   const acceptSnapshot = useCallback((next: Snapshot) => {
     eventCursor.current = Math.max(eventCursor.current, next.event_cursor);
+    myMemberId.current = next.me.member_id;
     setSnapshot((current) =>
       !current || next.revision >= current.revision ? next : current
     );
@@ -242,6 +255,14 @@ function GameApplication() {
           if (data.kind === "snapshot") acceptSnapshot(data.snapshot);
           if (data.kind === "event") {
             eventCursor.current = Math.max(eventCursor.current, data.event.id);
+            // The server already filters events by visibility, so anything
+            // that arrives here is a roll this seat is allowed to watch.
+            if (
+              ROLL_EVENT_TYPES.has(data.event.type)
+              && data.event.actor_id !== myMemberId.current
+            ) {
+              setRemoteRoll(data.event);
+            }
             refresh();
           }
           if (data.kind === "catch_up") {
@@ -498,6 +519,7 @@ function GameApplication() {
       actorCharacterId={snapshot.me.character_id}
       onError={setError}
       onRefresh={refresh}
+      remoteRoll={remoteRoll}
       />}
     </div>
   );
