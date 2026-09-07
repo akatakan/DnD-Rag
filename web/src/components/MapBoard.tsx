@@ -16,6 +16,7 @@ export default function MapBoard({
   compact = false,
   activeCombatantId,
   onMoveToken,
+  onRemoveToken,
   fogPaintMode,
   onPaintFog,
   onMapPing,
@@ -27,6 +28,7 @@ export default function MapBoard({
   token: string;
   /** Keyed by character id, which for a player is also the combatant id. */
   portraits?: Record<string, { url: string; updated_at: string }>;
+  onRemoveToken?: (mapToken: MapToken) => void;
   compact?: boolean;
   activeCombatantId?: string;
   onMoveToken?: (token: MapToken, x: number, y: number) => void;
@@ -395,7 +397,19 @@ export default function MapBoard({
                 aria-disabled={!mapToken.can_move}
                 aria-current={active ? "true" : undefined}
                 title={`${mapToken.name} · init ${mapToken.initiative}${typeof mapToken.hp === "number" ? ` · ${mapToken.hp}/${mapToken.max_hp ?? "?"} HP` : ""}`}
-                onKeyDown={(event) => moveFromKeyboard(event, mapToken)}
+                onKeyDown={(event) => {
+                  if (onRemoveToken && (event.key === "Delete" || event.key === "Backspace")) {
+                    event.preventDefault();
+                    onRemoveToken(mapToken);
+                    return;
+                  }
+                  moveFromKeyboard(event, mapToken);
+                }}
+                onContextMenu={(event) => {
+                  if (!onRemoveToken) return;
+                  event.preventDefault();
+                  onRemoveToken(mapToken);
+                }}
                 onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {
                   if (
                     event.button !== 0

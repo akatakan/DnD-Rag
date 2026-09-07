@@ -294,7 +294,13 @@ export default function PlayerConsole({
         tabIndex={0}
       >
         {tab === "overview" && (
-          <Overview character={character} token={token} run={run} />
+          <Overview
+            character={character}
+            token={token}
+            run={run}
+            isMyTurn={current?.id === character.id}
+            encounterActive={snapshot.state.encounter_status === "active"}
+          />
         )}
         {tab === "actions" && (
           <div className="sheet-two-column">
@@ -353,10 +359,14 @@ function Overview({
   character,
   token,
   run,
+  isMyTurn,
+  encounterActive,
 }: {
   character: Character;
   token: string;
   run: (type: string, payload?: Record<string, unknown>) => Promise<void>;
+  isMyTurn: boolean;
+  encounterActive: boolean;
 }) {
   const [amount, setAmount] = useState(1);
   return <div className="overview-grid">
@@ -378,6 +388,12 @@ function Overview({
           ))}
         </div>
       </section>
+      <DeathSaves
+        character={character}
+        isMyTurn={isMyTurn}
+        encounterActive={encounterActive}
+        run={run}
+      />
       <section className="sheet-panel">
         <h2>Pasif skorlar ve durum</h2>
         <div className="passive-row">
@@ -482,6 +498,65 @@ function Spells({
   </div>;
 }
 
+function DeathSaves({
+  character,
+  isMyTurn,
+  encounterActive,
+  run,
+}: {
+  character: Character;
+  isMyTurn: boolean;
+  encounterActive: boolean;
+  run: (type: string, payload?: Record<string, unknown>) => Promise<void>;
+}) {
+  const saves = character.resource_state?.death_saves;
+  if (!saves || character.hp > 0) return null;
+  const dead = saves.status === "dead";
+  const stable = saves.status === "stable";
+  const canRoll = !dead && !stable && encounterActive && isMyTurn;
+  const pips = (count: number, filled: number, kind: string) =>
+    Array.from({ length: count }, (_, index) => (
+      <span
+        key={`${kind}-${index}`}
+        className={`death-pip ${kind} ${index < filled ? "filled" : ""}`}
+      />
+    ));
+  return (
+    <section className="sheet-panel death-saves" role="status">
+      <h2>Ölüm kurtarma zarları</h2>
+      <p>
+        {dead
+          ? "Karakter öldü."
+          : stable
+            ? "Karakter stabil. Zar atılmaz."
+            : "0 HP'desin. Sıran geldiğinde ölüm kurtarma zarı at."}
+      </p>
+      <div className="death-track">
+        <div>
+          <small>Başarı</small>
+          <div className="death-pips">{pips(3, saves.successes, "success")}</div>
+        </div>
+        <div>
+          <small>Başarısızlık</small>
+          <div className="death-pips">{pips(3, saves.failures, "failure")}</div>
+        </div>
+      </div>
+      <button
+        className="primary-button"
+        disabled={!canRoll}
+        onClick={() => run("death_save", { character_id: character.id })}
+      >
+        Ölüm zarı at
+      </button>
+      {!canRoll && !dead && !stable && (
+        <small className="death-hint">
+          {encounterActive ? "Sıranı bekle." : "Encounter başlamadan atılamaz."}
+        </small>
+      )}
+    </section>
+  );
+}
+
 function Features({
   character,
   run,
@@ -491,11 +566,36 @@ function Features({
 }) {
   const resources = character.resource_state?.class_resources ?? {};
   const hitDice = character.resource_state?.hit_dice;
+  // Spending Hit Dice is the point of a short rest. The engine has always
+  // supported it; the button used to hard-code zero, so nobody could heal.
+  const [spend, setSpend] = useState(0);
+  const available = hitDice?.remaining ?? 0;
+  const wanted = Math.min(spend, available);
   return <div className="feature-grid">
     <section className="sheet-panel">
       <h2>Rest & Hit Dice</h2>
       <p>{hitDice ? `${hitDice.remaining}/${hitDice.maximum} d${hitDice.die_size}` : "Hit Dice verisi yok"}</p>
-      <div className="button-row"><button onClick={() => run("short_rest", { hit_dice: 0 })}>Short Rest</button><button onClick={() => run("long_rest")}>Long Rest</button></div>
+      {available > 0 && (
+        <label className="hit-dice-spend">
+          Short Rest'te harcanacak Hit Dice
+          <input
+            type="number"
+            min={0}
+            max={available}
+            value={wanted}
+            onChange={(event) => setSpend(
+              Math.max(0, Math.min(available, Math.trunc(Number(event.target.value) || 0))),
+            )}
+          />
+          <small>Her zar {`1d${hitDice?.die_size}`} + Constitution iyileştirir.</small>
+        </label>
+      )}
+      <div className="button-row">
+        <button onClick={async () => { await run("short_rest", { hit_dice: wanted }); setSpend(0); }}>
+          {wanted > 0 ? `Short Rest · ${wanted} Hit Dice` : "Short Rest"}
+        </button>
+        <button onClick={() => run("long_rest")}>Long Rest</button>
+      </div>
     </section>
     {Object.entries(resources).map(([id, resource]) => <section className="sheet-panel" key={id}><h2>{id === "second-wind" ? "Second Wind" : title(id)}</h2><p>{resource.remaining}/{resource.maximum} kullanım</p>{id === "second-wind" && <button className="primary-button" disabled={resource.remaining < 1} onClick={() => run("use_second_wind")}>Bonus Action kullan</button>}</section>)}
     <Conditions character={character} />

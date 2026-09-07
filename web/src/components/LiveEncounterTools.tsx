@@ -166,6 +166,17 @@ export default function LiveEncounterTools({
           <label>Süre<select disabled={!active || Boolean(busy)} value={durationKind} onChange={(event) => setDurationKind(event.target.value as typeof durationKind)}><option value="rounds">Rounds</option><option value="permanent">Permanent</option><option value="short_rest">Short Rest</option><option value="long_rest">Long Rest</option></select></label>
           {durationKind === "rounds" && <label>Round<input type="number" min={1} max={1000} disabled={!active || Boolean(busy)} value={rounds} onChange={(event) => setRounds(Number(event.target.value))} /></label>}
           <button disabled={!active || Boolean(busy) || !characterId || !conditionId.trim() || (durationKind === "rounds" && !roundsValid)}><HeartPulse /> Condition ekle</button>
+          <button
+            type="button"
+            disabled={!active || Boolean(busy) || !characterId || !conditionId.trim()}
+            onClick={() => {
+              void run("condition", "remove_condition", {
+                character_id: characterId, condition_id: conditionId,
+              });
+            }}
+          >
+            Condition kaldır
+          </button>
         </form>
         <form onSubmit={(event) => {
           event.preventDefault();

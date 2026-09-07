@@ -159,6 +159,7 @@ export default function MapWorkspace({
     type:
       | "sync_map_tokens"
       | "move_map_token"
+      | "remove_map_token"
       | "set_map_fog"
       | "paint_map_fog"
       | "map_ping"
@@ -213,6 +214,14 @@ export default function MapWorkspace({
     });
   }
 
+  // Tokens could be placed and moved but never taken off the board.
+  function removeToken(mapToken: MapToken) {
+    void mapCommand("remove_map_token", {
+      token_id: mapToken.id,
+      token_revision: mapToken.revision,
+    });
+  }
+
   return (
     <section className="map-workspace">
       <header>
@@ -245,6 +254,9 @@ export default function MapWorkspace({
         activeCombatantId={activeCombatantId}
         onMoveToken={
           canControl && !busy && !dirtyRef.current ? moveToken : undefined
+        }
+        onRemoveToken={
+          canControl && !busy && !dirtyRef.current ? removeToken : undefined
         }
         fogPaintMode={
           canControl && !busy && !dirtyRef.current ? fogPaintMode : null

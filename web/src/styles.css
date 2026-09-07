@@ -2122,3 +2122,34 @@ html, body, #root { max-width: 100%; overflow-x: clip; }
   border: 1px solid #e3b7ac;
   border-radius: 3px;
 }
+
+/* Death saves. The pips are drawn, so success and failure read at a glance
+   without relying on colour alone: failures are filled squares, successes
+   filled discs. */
+.death-saves { border-color: #e3b7ac; }
+.death-track { display: flex; gap: 26px; margin: 12px 0 14px; }
+.death-track small {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--display);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.death-pips { display: flex; gap: 6px; }
+.death-pip {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--gold);
+  border-radius: 50%;
+  background: transparent;
+}
+.death-pip.failure { border-radius: 2px; border-color: #c0796d; }
+.death-pip.success.filled { background: #4f7a4a; border-color: #4f7a4a; }
+.death-pip.failure.filled { background: var(--crimson-deep); border-color: var(--crimson-deep); }
+.death-hint { display: block; margin-top: 8px; color: var(--ink-soft); }
+.hit-dice-spend { margin: 10px 0 12px; }
+.hit-dice-spend input { max-width: 110px; }
+.hit-dice-spend small { font-weight: 400; color: var(--ink-soft); }
