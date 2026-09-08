@@ -22,7 +22,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from agent import build_engine
 from api.ai_dm import AIDMOrchestrator
 from api.character_draft_engine import (
     DRAFT_STEPS,
@@ -66,6 +65,12 @@ from api.observability import (
 )
 from api.rate_limit import RateLimiter
 from api.realtime import ConnectionManager
+from api.retrieval import (
+    RetrievalUnavailable,
+)
+from api.retrieval import aclose as aclose_retrieval
+from api.retrieval import ask as query_rules_engine
+from api.retrieval import is_available as retrieval_is_available
 from api.rules_catalog import CatalogValidationError
 from api.security import LOCAL_AUTH_PEPPER, validate_public_security
 from api.shared_runtime import (
@@ -83,8 +88,6 @@ from api.upload_scan import (
     UploadScanError,
     scan_with_clamav,
 )
-from retriever import aclose_clients as aclose_retrieval_clients
-from sources import extract_sources
 
 DB_PATH = Path(os.getenv("GAME_DB", "runtime/multiplayer.db"))
 PUBLIC_MODE = os.getenv("PUBLIC_MODE", "").strip().lower() in {
@@ -193,7 +196,7 @@ async def app_lifespan(_app: FastAPI):
             try:
                 await asyncio.to_thread(rate_limiter.close)
             finally:
-                await aclose_retrieval_clients()
+                await aclose_retrieval()
 
 
 app = FastAPI(
@@ -684,6 +687,10 @@ def health():
     return {
         "status": "ok",
         "coordination": "redis" if REDIS_URL else "process-local",
+        # The table runs without the retrieval stack, so "Kurala sor" can be
+        # missing while everything else is fine. Say so here rather than
+        # letting a player discover it by asking a question and getting a 503.
+        "rules_lookup": "ready" if retrieval_is_available() else "unavailable",
     }
 
 
@@ -2014,13 +2021,15 @@ async def command(request: CommandRequest, auth: AuthContext = Depends(require_a
 def ask_rules(request: RuleQuestionRequest, auth: AuthContext = Depends(require_auth)):
     enforce_rate_limit("rules", auth.member_id, 20)
     state = snapshot(auth)["state"]
-    engine = build_engine("ollama", rerank_enabled=False)
-    response = engine.query(
-        request.question,
-        game_context=f"Multiplayer game state: {state}",
-        response_mode=request.mode,
-    )
-    return {"answer": str(response), "sources": extract_sources(response)}
+    try:
+        answer, sources = query_rules_engine(
+            request.question,
+            game_context=f"Multiplayer game state: {state}",
+            response_mode=request.mode,
+        )
+    except RetrievalUnavailable as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    return {"answer": answer, "sources": sources}
 
 
 @app.post("/api/ai-dm/step")
