@@ -189,6 +189,63 @@ parası 0. Yani seviye 1 Fighter savaşa silahsız ve parasız giriyor.
 (seviye) beklemeden yapılabilecek küçük bir iş ve oyunun oynanabilirliğini
 tek başına en çok değiştiren düzeltme. Sıraya 1'den hemen sonra girer.
 
+## Kullanıcı beklentileri araştırması (2026-09-08)
+
+Kaynak notu: Reddit, Anthropic'in tarayıcısını engelliyor; oradan okunamadı.
+Bunun yerine D&D Beyond'un kendi geri bildirim forumu (kullanıcıların doğrudan
+talepleri), DM araç derlemeleri ve kampanya-ölümü yazıları okundu. Satıcı
+bloglarının kendi ürünlerini haklı çıkaran bir çerçevesi olduğu unutulmamalı.
+
+### İkisinde de eksik olanlar
+
+**1. Oturumlar arası hafıza.** DM araştırmalarında en yüksek etkili ihtiyaç
+olarak çıkan şey oturum notu ve geri çağırma sistemi: otomatik özet, aranabilir
+kampanya geçmişi, unutulan olay örgüsü ipleri. D&D Beyond'un Game Log'u yalnızca
+zar tutuyor. Tetsu'da oturum özeti/not/quest/loot var ama özet üretimi, arama ve
+oturumlar arası hafıza yok. **Tetsu bunu yapmaya benzersiz konumda**: RAG ve AI
+DM zaten burada; eksik olan olayları besleyip özet üretmek.
+
+**2. Takvim ve ivme.** Kampanyaların çoğu üçüncü ile beşinci oturum arasında
+ölüyor; sebepler takvim çakışması, oyuncu kaybı, DM tükenmişliği ve ivme kaybı
+("üst üste iki oturum kaçırılınca yeniden başlamanın psikolojik maliyeti
+büyüyor"). D&D Beyond'da takvim özelliği hiç yok. Tetsu'da tek bir
+`scheduled_at` alanı var -- uygunluk toplama, yoklama, "geçen sefer ne olmuştu"
+ile geri dönen oyuncuyu içeri alma yok.
+
+**3. Sohbet ve ses.** D&D Beyond kullanıcıları Maps için açıkça sohbet penceresi
+ve ortam sesi/soundboard istiyor. Tetsu'da sohbet **hiç yok** (`chat` için sıfır
+eşleşme), ses de yok. Yani her iki üründe de masa ikinci bir pencerede
+(Discord) yaşıyor -- bu, ikisinin de "all-in-one" iddiasını delen tek şey.
+
+**4. Dinamik ışık / görüş hattı.** D&D Beyond forumunda en çok istenen
+maddelerden biri: karakter hareket ettikçe haritanın otomatik açılması, karaktere
+özel görüş menzili, kişi başı fog. Tetsu'da yalnızca elle boyanan fog var.
+İkisi de bu konuda Foundry ve Roll20'nin gerisinde.
+
+**5. Haritada DM'e özel katman.** Forumda ayrı bir başlık açılmış: haritaya
+oyunculardan gizli not/etiket koyabilmek. İkisinde de yok.
+
+**6. Yeni oyuncunun sırası geldiğinde.** Yeni oyuncuların en sık dile getirdiği
+korku, sıra kendilerine gelince ne yapacaklarını bilememek ve masayı
+yavaşlatmak. İki ürün de bu anda **proaktif** değil: D&D Beyond kağıtta
+"Actions in Combat" listesi gösteriyor, Tetsu'da kural sorusu sorulabiliyor ama
+soran olmadan kimse konuşmuyor. "Sıra sende, şunları yapabilirsin" diyen bir
+yüzey ikisinde de yok.
+
+### Tetsu'da zaten olup D&D Beyond'da istenen şeyler
+
+Bu liste rekabet açısından önemli: aşağıdakiler D&D Beyond forumunda talep
+edilen maddeler ve Tetsu'da **zaten çalışıyor** (oyun testinde gözle görüldü).
+
+- Son işlemi geri alma (Ctrl+Z talebi)
+- Süreli condition ve tur sayacı ("condition time tracker")
+- Tur ortasında initiative değiştirme
+- Combatant HP'sini hızlı düzenleme
+- HP değişikliğinin DM onayından geçmesi ve olay kaydına düşmesi
+
+Yani Tetsu'nun encounter yönetimi, içerik ve PC-sıra bağlantısı düzeltilirse
+D&D Beyond'un kullanıcılarının istediği yerde zaten daha ileride.
+
 ## Mimari kararlar
 
 1. **Kuralların otoritesi sunucudur.** İstemci hiçbir kural değeri
