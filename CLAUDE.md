@@ -477,6 +477,16 @@ atlayamaz.
 Market/shop sistemi kasten beklemede: katalogda tek item varken dükkân
 tiyatrodur.
 
+**SaaS düzeltmesi (2026-09-08).** Aşağıdaki yığın kararı tek kurulum/LAN
+varsayımıyla verilmişti; hedef SaaS olunca **Postgres tetikleyici beklemez,
+ilk iştir.** Ölçüldü: tek WAL dosyasında eşzamanlı masa sayısı arttıkça
+aktarım hızı ~220 yazma/sn'de sabit kalıyor, p50 her ölçekte 3,5 ms, ama
+200 masada kilit hataları başlıyor (218) ve 500'de p95 10,9 saniyeye
+çıkıyor. Pratik sınır elli civarı eşzamanlı aktif masa. **Bu bir SQLite
+sınırı, Python sınırı değil** -- yazmaları seri hale getiren GIL değil,
+dosyanın kendisi; aynı kod Go'da da aynı duvara çarpardı. Detay:
+`docs/bilgi-grafigi-ve-altyapi-analizi.md` bölüm 5b.
+
 **Yığın kararı (2026-09-08).** Go backend + ayrı Python RAG + Postgres
 önerisi değerlendirildi. Karar: **RAG sınırı evet (yapıldı), Postgres
 tetikleyiciyle, Go hayır.** Go'ya taşınacak yüzey ölçüldü: `api/` 18.805

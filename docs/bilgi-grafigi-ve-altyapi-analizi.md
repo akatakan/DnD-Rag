@@ -151,6 +151,39 @@ indeksi.
 
 ---
 
+## 5b. SaaS senaryosu: duvar nerede? (2026-09-08 ölçümü)
+
+Yukarıdaki karar tek kurulum/LAN varsayımıyla verilmişti. Hedef SaaS ise soru
+değişir: **çok kiracılı bir kurulumda ilk ne kırılır?**
+
+Tetsu'nun gerçek yazma şekli ölçüldü — `BEGIN IMMEDIATE`, `state_json`
+güncellemesi ve olay eklemesi, tek WAL dosyasında, N eşzamanlı masayla:
+
+| Eşzamanlı masa | Yazma/sn | p50 | p95 | Kilit hatası |
+|---|---:|---:|---:|---:|
+| 1 | 247 | 3,51 ms | 4,84 ms | 0 |
+| 10 | 215 | 3,40 ms | 5,83 ms | 0 |
+| 50 | 208 | 3,45 ms | 6,49 ms | 0 |
+| 200 | 228 | 3,52 ms | 1.283 ms | 218 |
+| 500 | 264 | 3,68 ms | 10.878 ms | 1.608 |
+
+Üç şey okunuyor:
+
+1. **Aktarım hızı eşzamanlılıktan bağımsız olarak ~220 yazma/sn'de sabit.**
+   Bu tek yazar tavanı; ölçeklenmiyor.
+2. **Ortanca istek her ölçekte iyi** (3,5 ms). Bozulan kuyruk.
+3. **200 masada kilit hataları başlıyor, 500'de p95 11 saniyeye çıkıyor.**
+
+Pratik sınır: **elli civarı eşzamanlı aktif masa.** İki yüzde bozuluyor.
+
+**Bu bir SQLite sınırı, Python sınırı değil.** Yazmaları seri hale getiren şey
+GIL değil, veritabanı dosyasının kendisi. Aynı kod Go'da yazılsaydı aynı
+duvara aynı yerde çarpardı — çünkü Go da tek bir SQLite dosyasıyla konuşurdu.
+
+**Sonuç:** SaaS hedefi Postgres'i tetikleyici beklenen bir iş olmaktan
+çıkarıp **ilk iş** yapar. Go'yu ise hâlâ haklı çıkarmaz; bağlayıcı kısıt
+veritabanı katmanında ve Go orayı değiştirmiyor.
+
 ## 6. Dil değişmeli mi?
 
 Hayır, ve gerekçesi ölçüm:
