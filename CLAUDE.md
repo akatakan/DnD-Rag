@@ -191,10 +191,11 @@ tek başına en çok değiştiren düzeltme. Sıraya 1'den hemen sonra girer.
 
 ## Kullanıcı beklentileri araştırması (2026-09-08)
 
-Kaynak notu: Reddit, Anthropic'in tarayıcısını engelliyor; oradan okunamadı.
-Bunun yerine D&D Beyond'un kendi geri bildirim forumu (kullanıcıların doğrudan
-talepleri), DM araç derlemeleri ve kampanya-ölümü yazıları okundu. Satıcı
-bloglarının kendi ürünlerini haklı çıkaran bir çerçevesi olduğu unutulmamalı.
+Kaynak notu: Reddit, Anthropic'in tarayıcısına kapalı olduğu için önce
+okunamadı; Atakan'ın tarayıcısından girilerek okundu. Ayrıca D&D Beyond'un kendi
+geri bildirim forumu (kullanıcıların doğrudan talepleri), DM araç derlemeleri ve
+kampanya-ölümü yazıları. Satıcı bloglarının kendi ürünlerini haklı çıkaran bir
+çerçevesi olduğu unutulmamalı.
 
 ### İkisinde de eksik olanlar
 
@@ -231,6 +232,54 @@ yavaşlatmak. İki ürün de bu anda **proaktif** değil: D&D Beyond kağıtta
 "Actions in Combat" listesi gösteriyor, Tetsu'da kural sorusu sorulabiliyor ama
 soran olmadan kimse konuşmuyor. "Sıra sende, şunları yapabilirsin" diyen bir
 yüzey ikisinde de yok.
+
+### Reddit'te DM'lerin kendi sözleriyle asıl acı
+
+r/DMAcademy'de yüksek oylu bir hazırlık başlığı ve yorumları, sorunun VTT
+özelliği olmadığını gösteriyor. Başlığı açan DM'in tespiti: yıllarca
+**oynatılacak içerik değil düzyazı** yazmış; saatler kimsenin okumayacağı
+metni cilalamaya gitmiş. Topluluğun ortak çözümü madde işaretleri ve kontrol
+listeleri ("Lazy DM" yöntemi).
+
+Ama yorumlarda buna karşı bir ihtiyaç da var: birkaç kişi doğaçlama betimleme
+yapamadığını, mekânı anlatan cümleyi önceden yazmak zorunda kaldığını ve
+zamanın asıl orada gittiğini söylüyor. Yani ihtiyaç "daha az yazı" değil,
+**doğru anda hazır olan kısa betimleme**.
+
+Diğer tekrar eden temalar:
+- "Bütün o dünya detaylarını yazmadan aklımda tutamıyorum" -- hatırlama sorunu.
+- Bir DM bölge başına 6 NPC / 6 mekân / 6 eşya / 6 geçmiş olay / 6 fraksiyon /
+  6 tehdit hazırlayıp oyun sırasında zar atarak kullanıyor. **Üretici ve
+  rastgele tablo** ihtiyacı.
+- "Keşke biri WotC'ye de bunu öğretse; resmi modüller DM dostu değil" -- 115
+  yanıt almış.
+- DM'ler prep'i Notion gibi dış araçlarda tutuyor. Yani hem D&D Beyond hem
+  Tetsu için masa zaten üçüncü bir pencerede yaşıyor.
+- r/rpg'de yüksek oylu bir başlık: "iyi bir GM olmak esas olarak bir soft-skill
+  problemi." Araç, işin zor kısmını çözmüyor.
+
+### Sahiplik kaygısı -- Tetsu'nun konuşmadığı avantajı
+
+r/dndbeyond'un yılın en çok oy alan kullanıcı başlıklarından biri: *satın
+aldığın içeriği indirebilseydin oradan alışveriş yapmak seni daha rahat
+ettirir miydi?* Gerekçe, dijital ürünlerin iade edilmeden silinmesi. Bir
+diğeri, dokuz yıldır istenen bir arama filtresinin hâlâ eklenmemiş olması.
+Kullanıcılar ayrıca resmi karakter kağıdını değiştiren kendi tarayıcı
+eklentilerini yayınlıyor.
+
+Tetsu kendi sunucusunda, kendi verisiyle, internetsiz LAN'da çalışıyor.
+Bu, forumda dile getirilen kaygının doğrudan cevabı ve bugün hiçbir yerde
+söylenmiyor.
+
+### AI konumlandırması bir risk
+
+Tetsu'da AI DM var. Ama topluluğun en büyük mecralarında açık anti-AI normlar
+oluşmuş: r/dndbeyond kurallarında "No AI-generated content", r/rpg'de AI
+gönderileri için kural değişikliği ve LLM'le üretilmiş eleştirilere karşı
+yüksek oylu başlıklar. **Ayrım önemli:** "AI senin yerine kurgu üretsin"
+reddediliyor; "kuralı bul, oturumu özetle, hatırlat" ise araç olarak
+karşılanıyor. Tetsu'nun RAG'ı ikinci kategoride, AI DM ise birinci
+kategoride okunur. Dışa dönük anlatımda bunlar ayrı durmalı.
 
 ### Tetsu'da zaten olup D&D Beyond'da istenen şeyler
 
