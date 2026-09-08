@@ -271,15 +271,45 @@ Tetsu kendi sunucusunda, kendi verisiyle, internetsiz LAN'da çalışıyor.
 Bu, forumda dile getirilen kaygının doğrudan cevabı ve bugün hiçbir yerde
 söylenmiyor.
 
-### AI konumlandırması bir risk
+### AI konumlandırması: iki ayrı kitle, iki ayrı norm
 
-Tetsu'da AI DM var. Ama topluluğun en büyük mecralarında açık anti-AI normlar
-oluşmuş: r/dndbeyond kurallarında "No AI-generated content", r/rpg'de AI
-gönderileri için kural değişikliği ve LLM'le üretilmiş eleştirilere karşı
-yüksek oylu başlıklar. **Ayrım önemli:** "AI senin yerine kurgu üretsin"
-reddediliyor; "kuralı bul, oturumu özetle, hatırlat" ise araç olarak
-karşılanıyor. Tetsu'nun RAG'ı ikinci kategoride, AI DM ise birinci
-kategoride okunur. Dışa dönük anlatımda bunlar ayrı durmalı.
+İlk okumamda "AI DM bir risk" demiştim; bu fazla genişti ve düzeltiyorum.
+
+**Masa kitlesi (r/rpg, r/dndbeyond).** Açık anti-AI normlar var: r/dndbeyond
+kurallarında "No AI-generated content", r/rpg'de AI gönderileri için kural
+değişikliği ve LLM'le üretilmiş eleştirilere karşı yüksek oylu başlıklar.
+Burada reddedilen şey **AI'nın masaya kurgu üretmesi**.
+
+**Solo kitlesi (r/Solo_Roleplaying).** Tamamen farklı: subreddit'in başlığı
+bile "How I Learned to Stop Worrying and Love A.I. along with Oracles". Yılın
+en çok oy alan başlıklarından biri, topluluğun kendi ürettiği bir **kademe
+modeli** sunuyor. Bu model Tetsu için doğrudan bir tasarım rehberi:
+
+| Kademe | Ne yapar | Tetsu'daki karşılığı |
+|---|---|---|
+| 0 | AI yok | `dm_mode: human` |
+| 1 | **Kayıt tutucu** — oturum özeti, NPC takibi, çözülmemiş iplerin listesi, "aradan sonra oyuna dönüş" özeti. *Sınır: oyuna içerik eklemez.* | **Bilgi grafiği + oturum brifingi** (B hattı) |
+| 2 | **Gelişmiş oracle** — anlık tablo üretme ve sonuç yorumlama | Bölge tabloları (DM prep bulgusu) |
+| 3 | **NPC emülatörü** — oyuncu kendi karakterini oynarken AI NPC'yi oynar. Solo oyunun en tatsız yanı olan diyaloğu çözer. Şablon gerekir: ne istiyor, ne biliyor/bilmiyor, oyuncuya karşı ne hissediyor. | `campaign_npcs` + grafikten "ne biliyor" |
+| 4 | **Sahne/encounter asistanı** — yapılandırılmış girdiden tek bir sahne yürütür: durum, NPC'ler, gizli bilgi, baskı, çıkış koşulları, sonuçlar | `POST /api/ai-dm/step`, encounter kapsamlı |
+
+Yazarın iki cümlesi mimarimizi birebir doğruluyor:
+
+- *"Oyuncu kuralları ve zarları hâlâ kendi yürütür."* Tetsu'da bu zaten
+  değişmez kural: **katalog veridir, motorlar koddur**; AI hiçbir mekaniğe
+  karar vermez.
+- *"AI'dan tüm kampanyayı değil, yapılandırılmış tek bir oyun birimini
+  yürütmesi istenir. Bugün 'etkili AI GM'in pratik sınırı burasıdır."*
+  Tetsu'nun AI DM'i zaten encounter kapsamlı.
+
+Ve topluluğun hayal kırıklığı olarak işaret ettiği şey: *"AI'yı insan GM'in
+yerine koymaya çalışıyorum ve berbat."* Yani **tam ikame satılmaz**; kademe
+satılır.
+
+**Sonuç:** Tetsu'nun üç DM modu (`human` / `assisted` / `ai`) bu kademe
+modeliyle örtüşüyor — tesadüf değil, aynı problemi görmüşler. Dışa dönük
+anlatım "AI DM" değil, kademeler olmalı: *kuralı bul · oturumu hatırla ·
+NPC'yi canlandır · sahneyi yürüt*.
 
 ### Tetsu'da zaten olup D&D Beyond'da istenen şeyler
 
@@ -393,6 +423,32 @@ Araştırmanın en büyük boşluğu ve rakibin hiç dokunmadığı yer.
 6. Grafik görünümü (kampanya çapı, tür renkleri).
 
 Kampanya Game Log (oturum ötesi zar geçmişi) B hattının yan ürünü olarak gelir.
+
+**C — solo oyun (A1 ve B'nin üstüne oturur)**
+
+AI DM'in amacı masaya kurgu üretmek değil, **masası olmayana masa kurmak**.
+Araştırmanın bulduğu en yapısal sorun buydu: grup ve DM bulamamak, kampanyaların
+üçüncü-beşinci oturumda ölmesi. Solo hattı bu soruna doğrudan cevap ve
+çok oyunculu yüzeyin (davet, takvim, onay kuyruğu) hiçbirine ihtiyaç duymaz.
+
+Solo, r/Solo_Roleplaying'in kademe modeline göre sıralanır (yukarıdaki tablo):
+
+1. **Kademe 1 zaten B hattı.** Oturum brifingi ve "aradan sonra oyuna dönüş"
+   özeti, solo oyuncunun en çok ihtiyaç duyduğu şey — ve topluluğun en az
+   tartışmalı bulduğu AI kullanımı. Ayrıca yapılacak iş yok.
+2. **Kademe 3 için `campaign_npcs`'e üç alan:** ne istiyor, ne biliyor/bilmiyor,
+   partiye karşı ne hissediyor. "Ne biliyor" kısmını grafik besleyebilir.
+   Solo oyunun en tatsız yanı diyalog; bu onu çözüyor.
+3. **Kademe 4 için sahne şeması:** durum, NPC'ler, gizli bilgi, baskı, çıkış
+   koşulları, sonuçlar. Mevcut `POST /api/ai-dm/step` bunun yerini tutuyor ama
+   girdisi yapılandırılmamış.
+4. **Solo oturum kipi** — tek oyuncu, DM onay kuyruğu devre dışı, encounter
+   sırasına PC otomatik girer (A2 zaten bunu getiriyor).
+
+**Solo, içeriğe A hattından daha çok muhtaç.** İnsan DM eksik kuralı
+doğaçlar; AI DM katalogda ne varsa onu yürütür. Tek sınıfı Fighter olan bir
+katalogda solo oyun, çok oyunculu oyundan daha çabuk çöker. Yani C, A1'i
+atlayamaz.
 
 Market/shop sistemi kasten beklemede: katalogda tek item varken dükkân
 tiyatrodur.
