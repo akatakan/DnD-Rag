@@ -152,17 +152,28 @@ sunucuda anında güncellendi. Oyuncunun hasar talebi DM onayından sonra
 kurallarına göre seviye 1'de 2 kullanım veriyor ve tur dışında reddediliyor.
 Onay döngüsü ürünün en sağlam parçası.
 
-**Oyunu durduran bulgu — oyuncu karakteri sıraya hiç giremiyor.**
-Encounter başladığında sırada yalnızca canavarlar var. Motor bunu destekliyor:
-`add_combatant` payload'ında `character_id` verilirse combatant kimliği
-karakter kimliği olur ve tur kapısı açılır (`combatants[turn_index]["id"] ==
-character_id`). Bunu elle API'den gönderdim, Riva sıraya girdi ve Second Wind
-çalıştı. Ama **hiçbir arayüz bu alanı göndermiyor**: DM konsolundaki ekleme
-satırı yalnızca ad/HP/initiative yolluyor, encounter builder'ın tür literali
-ise `monster|npc` — `player` yok. Sonuç: turla kısıtlı her yetenek (Second
-Wind, death save, tur içi ekipman değişimi) canlı oyunda ulaşılamaz.
-`test_command_reachability` bunu yakalayamaz, çünkü komut *adının* istemcide
-geçip geçmediğine bakar, hangi payload şeklinin gönderildiğine değil.
+**Initiative bulgusu ve düzeltmesi (2026-09-08).** Oyun testinde "oyuncu
+karakteri sıraya hiç giremiyor" diye yazmıştım. **Bu yanlıştı.** İki ayrı
+arayüz karakteri sıraya sokuyor: DM konsolunda oyuncu satırının yanındaki "+"
+düğmesi (`DMConsole.tsx`) ve encounter kütüphanesindeki "Character ekle"
+(`EncounterLibrary.tsx`). Testte ikisini de görmedim.
+
+Gerçek kusur "giremiyor" değil, **iki düğmenin iki farklı kural uygulaması**
+idi: konsol istemciden sabit `initiative: 10` yolluyordu, taslak ise düz
+Dexterity modifierini kullanıyordu (atış yok). Yani oyuncunun Dexterity'si
+hiçbir yolda önemli değildi ve kayıtlı encounter'da her PC sıranın sonuna
+düşüyordu.
+
+Düzeltme: `api/encounter_engine.rolled_initiative()` tek kural olarak
+`1d20 + karakterin kendi modifieri` döndürüyor; her iki yol da oradan geçiyor.
+Zar motora ait, istemci yalnızca kimlik yolluyor. `add_combatant` payload'ından
+`id` anahtarı da kaldırıldı: `character_id` ile eş anlamlıydı ama farklı cevap
+veriyordu (biri adı reddediyor, diğeri sessizce atıyordu).
+
+**Ders:** oyun testinde bir düğmeyi bulamamak "özellik yok" demek değil.
+`test_command_reachability` bunu yakalayamaz çünkü komut *adının* istemcide
+geçip geçmediğine bakar, hangi payload şeklinin gönderildiğine değil — ve
+burada ad geçiyordu, yanlış olan payload'dı.
 
 **Fighter'ın saldırısı yok.** Actions sekmesi "DM henüz attack veya prepared
 spell tanımlamadı" diyor; ekranda yalnızca Perception ve Dex Save var.
@@ -344,6 +355,17 @@ D&D Beyond'un kullanıcılarının istediği yerde zaten daha ileride.
 6. **Üretilen varlıklar tohumdan yeniden üretilebilir olmalı.**
    `tools/generate_textures.py` örnektir; depoya gizemli binary girmez.
 
+7. **Retrieval tek bir sınırın arkasında.** `api/retrieval.py` masanın
+   llama-index ve Qdrant ile tek temas noktası; ağır import'lar çağrının
+   içinde. Masa retrieval kurulu olmadan açılır, "Kurala sor" temiz bir 503
+   döner. Ölçüldü: `api.app` tek başına 629 ms ve 465 modül, retrieval yığını
+   +3,6 sn ve ~2.000 modül daha. Bu sınır çekildiği için yığın ileride ayrı
+   bir servise taşınırsa hiçbir çağıran değişmez.
+8. **Bir kural bir yerde durur.** Initiative atışı (`rolled_initiative`) ve
+   tur sırası (`sort_turn_order`) `api/encounter_engine.py`'de; hem canlı
+   konsol hem kayıtlı taslak oradan geçer. İkisi de daha önce ayrı ayrı ve
+   yanlış uygulanıyordu.
+
 ### Verilmesi gereken mimari kararlar
 
 - **Karakterler `games.state_json` içinde yaşıyor**, tablo değil. Bu yüzden
@@ -377,8 +399,10 @@ Etkisine göre sıralı. Her madde neyi engellediğiyle birlikte.
    gerçek dark mode. Temanın yalnızca zemini değiştirebilmesinin sebebi bu.
 2. **Karakterler `state_json` içinde.** **Engellediği:** premade karakter,
    karakter kütüphanesi, seviye geçmişi, kampanyalar arası taşıma.
-3. **RAG bağımlılıkları VTT ile aynı ağaçta.** **Engellediği:** küçük saldırı
-   yüzeyi, hızlı CI, süreli güvenlik istisnasından kurtulmak.
+3. ~~RAG bağımlılıkları VTT ile aynı ağaçta.~~ **Kısmen kapandı
+   (2026-09-08).** Streamlit sohbet arayüzü kaldırıldı: kurulu ağaç 478,8 →
+   349,5 MB. Retrieval çekirdekte kaldı çünkü "Kurala sor" onun üstünde, ama
+   artık `api/retrieval.py` sınırının arkasında ve tembel yükleniyor.
 4. **README ürünü yanlış tanıtıyor.** **Engellediği:** yeni katılan birinin
    depoyu anlaması.
 5. **`CharacterBuilder.tsx` 1.237 satır.** Tek dosyada beş adımlı akış.
@@ -398,9 +422,9 @@ olduğu için paralel ilerleyebilir.
 
 1. **Katalog provenance kararı** → içeriği doldur. Bundan önce yapılan her
    şey Human Fighter için yapılır.
-2. **Oyuncu karakterini encounter sırasına bağla.** Motor destekliyor
-   (`add_combatant` payload'ında `character_id`); hiçbir arayüz göndermiyor.
-   Küçük iş, oynanabilirliği tek başına en çok değiştiren düzeltme.
+2. ~~Oyuncu karakterini encounter sırasına bağla.~~ **Yapıldı (2026-09-08).**
+   Bağlantı zaten vardı; kusur her iki yolun initiative'i yanlış hesaplamasıydı.
+   Artık tek kural: `rolled_initiative()`.
 3. **Karakterleri kendi tablosuna taşı.**
 4. **Seviye ve XP** — `award_xp`, `level_up`, HP/proficiency/feature
    yeniden hesabı, seviye geçmişi.
@@ -453,6 +477,15 @@ atlayamaz.
 Market/shop sistemi kasten beklemede: katalogda tek item varken dükkân
 tiyatrodur.
 
+**Yığın kararı (2026-09-08).** Go backend + ayrı Python RAG + Postgres
+önerisi değerlendirildi. Karar: **RAG sınırı evet (yapıldı), Postgres
+tetikleyiciyle, Go hayır.** Go'ya taşınacak yüzey ölçüldü: `api/` 18.805
+satır (4.017'si kural motoru, 2.383'ü migration), 62 dosyada 12.928 satır
+test, 69 komut, 52 route. Karşılığında kazanılacak şey ölçülmüş gecikmede
+yok ve katalogdaki 7 kaydı 8 yapmıyor. Go'yu haklı çıkaracak koşul -- tek
+süreçte binlerce eşzamanlı masa -- bugün yok, ve o gün ilk darboğaz dil
+değil tek yazarlı SQLite olur.
+
 **Altyapı kararı:** dil ve veritabanı değişmiyor. Ölçüldü — snapshot p50
 11,97 ms; grafik sorguları 50.000 düğüm / 200.000 kenarda komşuluk 0,02 ms,
 3 hop 4,37 ms. SQLite ihtiyacın iki mertebe üstünde. Neo4j/Postgres bugün
@@ -497,6 +530,12 @@ cd web && npm run build             # e2e'den önce şart, API dist'i servis ede
 cd web && npm run test:e2e
 uv run python tools/generate_textures.py --check
 ```
+
+**Testler.** Testleri ayrı bir ajan yazar ve koşturur; ana oturum üretim
+kodunu değiştirir. Ajana verilen brief her zaman mutasyon testi ister:
+davranışı bozacak bir değişiklik yap, testin kırıldığını gör, dosyayı
+geri koy. Bu tur iki kez işe yaradı -- bir testimin hiç kırılamayacağını
+ve bir başka testin %28 flaky olduğunu ajan buldu.
 
 **Commit.** Mesaj Türkçe, `tag: özet` biçiminde, en fazla beş kelimelik
 özet. Gövdede *ne* değil *neden*. Ortak yazar satırı yok.
