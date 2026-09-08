@@ -2300,6 +2300,110 @@ def _migration_032_refresh_derived_stats(db: sqlite3.Connection) -> None:
             )
 
 
+def _migration_033_campaign_graph(db: sqlite3.Connection) -> None:
+    """The campaign's knowledge graph: what is connected to what, and why.
+
+    Research into what DMs actually lose between sessions pointed at linking
+    rather than note-taking: not "who was Alvera" but "which session was the
+    oath sworn in and which item was it tied to". The raw material is already
+    in the events table -- every event is typed, attributed, time-stamped and
+    carries a visibility -- so edges are derived, not typed in twice.
+
+    Two rules are baked into the shape:
+
+    * Every edge names the event it came from. A link with no evidence is a
+      link somebody invented, and the graph is worthless if it can hold those.
+    * Every node and edge carries its own visibility. The graph is the surface
+      most likely to leak a DM's secret through the far end of an edge, so the
+      projection filters server-side, exactly as map fog does. A player's graph
+      is not a full graph with things hidden; it is a smaller graph.
+    """
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS graph_nodes (
+            id TEXT PRIMARY KEY,
+            campaign_id TEXT NOT NULL
+                REFERENCES campaigns(id) ON DELETE CASCADE,
+            kind TEXT NOT NULL CHECK (kind IN (
+                'character', 'npc', 'session', 'quest',
+                'item', 'location', 'faction', 'note'
+            )),
+            title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
+            body TEXT NOT NULL DEFAULT '' CHECK (length(body) <= 8000),
+            visibility TEXT NOT NULL,
+            source_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    db.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_graph_nodes_campaign
+        ON graph_nodes (campaign_id, kind, title)
+        """
+    )
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS graph_edges (
+            campaign_id TEXT NOT NULL
+                REFERENCES campaigns(id) ON DELETE CASCADE,
+            src TEXT NOT NULL REFERENCES graph_nodes(id) ON DELETE CASCADE,
+            dst TEXT NOT NULL REFERENCES graph_nodes(id) ON DELETE CASCADE,
+            relation TEXT NOT NULL CHECK (length(relation) BETWEEN 1 AND 40),
+            visibility TEXT NOT NULL,
+            event_id INTEGER REFERENCES events(id) ON DELETE SET NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (campaign_id, src, dst, relation)
+        ) WITHOUT ROWID
+        """
+    )
+    # Backlinks are the panel users actually live in, so the reverse
+    # direction gets an index of its own rather than a table scan.
+    db.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_graph_edges_dst
+        ON graph_edges (campaign_id, dst, src)
+        """
+    )
+    # FTS5 is compiled into the SQLite this project runs on and nothing in the
+    # repository used it yet. An external-content table keeps the text in one
+    # place; the triggers below keep the index honest.
+    db.execute(
+        """
+        CREATE VIRTUAL TABLE IF NOT EXISTS graph_nodes_fts USING fts5(
+            title, body, content='graph_nodes', content_rowid='rowid'
+        )
+        """
+    )
+    for statement in (
+        """
+        CREATE TRIGGER IF NOT EXISTS graph_nodes_fts_insert
+        AFTER INSERT ON graph_nodes BEGIN
+            INSERT INTO graph_nodes_fts (rowid, title, body)
+            VALUES (new.rowid, new.title, new.body);
+        END
+        """,
+        """
+        CREATE TRIGGER IF NOT EXISTS graph_nodes_fts_delete
+        AFTER DELETE ON graph_nodes BEGIN
+            INSERT INTO graph_nodes_fts (graph_nodes_fts, rowid, title, body)
+            VALUES ('delete', old.rowid, old.title, old.body);
+        END
+        """,
+        """
+        CREATE TRIGGER IF NOT EXISTS graph_nodes_fts_update
+        AFTER UPDATE ON graph_nodes BEGIN
+            INSERT INTO graph_nodes_fts (graph_nodes_fts, rowid, title, body)
+            VALUES ('delete', old.rowid, old.title, old.body);
+            INSERT INTO graph_nodes_fts (rowid, title, body)
+            VALUES (new.rowid, new.title, new.body);
+        END
+        """,
+    ):
+        db.execute(statement)
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "initial_multiplayer_schema", _migration_001_initial_multiplayer_schema),
     (2, "dm_handover", _migration_002_dm_handover),
@@ -2333,6 +2437,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     (30, "catalog_schema_v2", _migration_030_catalog_schema_v2),
     (31, "campaign_npcs", _migration_031_campaign_npcs),
     (32, "refresh_derived_stats", _migration_032_refresh_derived_stats),
+    (33, "campaign_graph", _migration_033_campaign_graph),
 )
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1][0]
 
