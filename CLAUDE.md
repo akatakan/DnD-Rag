@@ -360,19 +360,48 @@ Etkisine göre sıralı. Her madde neyi engellediğiyle birlikte.
 
 ## Sıradaki işler
 
-Bu sıra tesadüfi değil: her biri bir sonrakinin önkoşulu.
+İki hat var. Sol hat oyunu **oynanabilir** kılıyor ve sırayla ilerlemek
+zorunda; sağ hat oyunu **hatırlanabilir** kılıyor ve `events` kendi tablosunda
+olduğu için paralel ilerleyebilir.
+
+**A — oynanabilirlik (sıralı)**
 
 1. **Katalog provenance kararı** → içeriği doldur. Bundan önce yapılan her
    şey Human Fighter için yapılır.
-2. **Karakterleri kendi tablosuna taşı.**
-3. **Seviye ve XP** — `award_xp`, `level_up`, HP/proficiency/feature
+2. **Oyuncu karakterini encounter sırasına bağla.** Motor destekliyor
+   (`add_combatant` payload'ında `character_id`); hiçbir arayüz göndermiyor.
+   Küçük iş, oynanabilirliği tek başına en çok değiştiren düzeltme.
+3. **Karakterleri kendi tablosuna taşı.**
+4. **Seviye ve XP** — `award_xp`, `level_up`, HP/proficiency/feature
    yeniden hesabı, seviye geçmişi.
-4. **Premade karakter ve premade kampanya** (2 ve 3'ün üstüne oturur).
-5. **Defenses ve Inspiration** — kağıttaki son büyük boşluklar.
-6. **Kampanya Game Log** — oturum ötesi zar geçmişi.
+5. **Premade karakter ve premade kampanya** (3 ve 4'ün üstüne oturur).
+6. **Defenses ve Inspiration** — kağıttaki son büyük boşluklar.
+
+**B — hatırlanabilirlik: bilgi grafiği (A ile paralel)**
+
+Gerekçe ve teknik analiz: `docs/bilgi-grafigi-ve-altyapi-analizi.md`.
+Araştırmanın en büyük boşluğu ve rakibin hiç dokunmadığı yer.
+
+1. `graph_nodes` + `graph_edges` + FTS5 (migration 033), görünürlük
+   projeksiyonu testleriyle.
+2. **Olaylardan kenar türetici** + geri doldurma migration'ı. Ham madde
+   zaten `events` tablosunda: tipli, failli, görünürlüklü, zamanlı.
+3. **Backlink paneli** — "bu NPC nerelerde geçti". Obsidian'ın en çok
+   kullanılan özelliği grafik görünümü değil, backlink panelidir.
+4. Notlarda `[[bağ]]` yazımı ve otomatik tamamlama.
+5. **Oturum brifingi** — "geçen sefer ne olmuştu" otomatik.
+6. Grafik görünümü (kampanya çapı, tür renkleri).
+
+Kampanya Game Log (oturum ötesi zar geçmişi) B hattının yan ürünü olarak gelir.
 
 Market/shop sistemi kasten beklemede: katalogda tek item varken dükkân
 tiyatrodur.
+
+**Altyapı kararı:** dil ve veritabanı değişmiyor. Ölçüldü — snapshot p50
+11,97 ms; grafik sorguları 50.000 düğüm / 200.000 kenarda komşuluk 0,02 ms,
+3 hop 4,37 ms. SQLite ihtiyacın iki mertebe üstünde. Neo4j/Postgres bugün
+saf maliyet; SQLite'ı terk etme tetikleyicisi değişmedi (çok kiracılı bulut
+kurulumunda eşzamanlı yazar baskısı) ve grafik şeması o gün olduğu gibi taşınır.
 
 ## Bu depoda çalışma kuralları
 
