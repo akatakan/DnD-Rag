@@ -3,13 +3,17 @@ name = "dnd-rag"
 version = "0.4.0"
 description = "Multiplayer D&D assistant with authoritative game state and evaluated RAG"
 requires-python = ">=3.10"
+# The Streamlit chatbot UI was removed: Tetsu is the product and it never
+# imported Streamlit, which was dragging in pandas, pyarrow and altair --
+# 129 MB, a quarter of the installed tree. The retrieval stack stays in the
+# core set because the table's own "ask the rules" endpoint (POST /api/rules)
+# is built on it.
 dependencies = [
     "fastapi>=0.116.0",
     "fastembed>=0.7.3",
-    # Security floor only: gitpython arrives through streamlit and setuptools
-    # through llama-index-core. Neither is imported by Tetsu; both are listed
-    # so an audit finding can be floored without waiting on the parent package.
-    "gitpython>=3.1.59",
+    # Security floor only: setuptools arrives through llama-index-core and is
+    # not imported by Tetsu; it is listed so an audit finding can be floored
+    # without waiting on the parent package.
     "llama-index>=0.14.23",
     "llama-index-embeddings-ollama>=0.9.0",
     "llama-index-llms-ollama>=0.10.1",
@@ -22,7 +26,6 @@ dependencies = [
     "qdrant-client>=1.18.0",
     "redis>=5.2.0",
     "setuptools>=83.0.0",
-    "streamlit>=1.58.0",
     "uvicorn[standard]>=0.35.0",
 ]
 

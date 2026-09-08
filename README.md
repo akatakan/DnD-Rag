@@ -55,7 +55,7 @@ docker compose up -d
 ollama pull dolphin-llama3:8b
 ollama pull nomic-embed-text
 uv run python ingestion.py
-uv run streamlit run main.py
+uv run python run_api.py   # API + build edilmis React, tek adres
 ```
 
 ```dotenv
@@ -73,8 +73,14 @@ dosyadan değiştirilebilir.
 ## Kullanım
 
 ```bash
-uv run streamlit run main.py
+cd web && npm ci && npm run build && cd ..
+uv run python run_api.py
 ```
+
+Streamlit sohbet arayuzu (`main.py`) kaldirildi: Tetsu onu hic import etmiyordu
+ve Streamlit kurulu agacin dortte birini (pandas, pyarrow, altair; 129 MB)
+tasiyordu. Retrieval yigini cekirdekte kaldi cunku masanin kendi "Kurala sor"
+ucu (`POST /api/rules`) onun uzerine kurulu.
 
 Sidebar üzerinden kitap kapsamı, Dense/Hybrid modu, reranking ve PDF sayfa aralığı
 seçilebilir. Dense retrieval varsayılandır. Hybrid ve reranking ölçülmüş ancak bu
