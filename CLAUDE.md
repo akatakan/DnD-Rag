@@ -17,7 +17,7 @@ kararlarının yarısı bizim için geçersiz. Bizim avantajımız birleşik olm
 onlarda karakter kağıdı, kampanya, VTT ve encounter aracı hâlâ ayrı ayrı
 yerlerde yaşıyor.
 
-## Ölçüt: D&D Beyond (2026-09-08'de tarayıcıda incelendi)
+## Ölçüt: D&D Beyond (2026-09-08, DM ve oyuncu olarak elle test edildi)
 
 Araç seti: My Characters · My Campaigns · Maps VTT (beta) · Encounters ·
 Homebrew · My Dice · mobil uygulama · Avrae Discord botu · Event Finder.
@@ -40,6 +40,37 @@ Karakter kağıdında gördüklerimiz:
 - Actions filtreleri: Attack / Action / Bonus Action / Reaction / Other,
   saldırı tablosunda menzil, isabet, hasar; "Attacks per Action"
 - Sınıfa göre uyarlanan kağıt (Rogue'da Spells sekmesi yok)
+
+**Kendi hesabında bir test kampanyası kurup DM olarak yaşananlar:**
+- Kampanya oluşturma formu yalnızca **ad + açıklama**. DM modu, kural kaynağı
+  sabitleme, encumbrance politikası, subclass izni gibi hiçbir ayar yok --
+  Tetsu'nun kampanya ayarları bu konuda belirgin biçimde daha zengin.
+- **Davet linki sayfada her zaman görünür**, yanında COPY LINK ve ayrı bir
+  RESET INVITE LINK var. Tetsu'da kodu görmenin tek yolu onu yenilemek.
+- **DM Notes (Private)** ve **DM Notes (Public)** diye iki ayrı not yüzeyi.
+  Tetsu'da yalnızca oyuncuya açık `world_notes` var; DM'e özel not yok.
+- Encounter Builder filtrelenebilir tam canavar kütüphanesi + sağda **XP
+  zorluk hesabı** (Easy/Medium/Hard/Deadly eşikleri, Adjusted XP ×1.5, Daily
+  Budget) sunuyor ve **"Manage Characters" ile kampanyadaki oyuncu
+  karakterlerini encounter'a dahil ediyor** -- yani PC encounter'ın birinci
+  sınıf üyesi. Tetsu'nun en büyük oyun hatası tam burada.
+- Kendi araçları da bölünmüş: Encounters (beta) zorluğu **2014** kurallarıyla
+  hesaplıyor, 2024 için "Maps'te oluştur" diyor.
+
+**Oyuncu olarak yaşananlar:**
+- **Premade karakter tek tıkla oynanabilir geliyor.** Goliath Barbarian
+  seviye 1: HP 14, AC 13, hız 35 ft ve saldırıları hazır -- Maul 2d6+2
+  (Heavy/Two-Handed/Topple), Spear 1d6+2 / versatile 1d8+2 (Thrown 20/60),
+  Unarmed Strike. Tetsu'da aynı seviyedeki Fighter'ın hiç saldırısı yok.
+- **Hasar oyuncunun kendi kağıdından anında uygulanıyor** (14 → 9), DM onayı
+  yok -- ve **oyun günlüğüne hiç düşmüyor**. Bu bir Tetsu *avantajı*: talep →
+  DM onayı → olay kaydı zinciri masayı DM'in haberi olmadan değiştirilemez
+  kılıyor. D&D Beyond'da DM, HP değişikliklerini hiç görmüyor.
+- Zar görünürlüğü günlüğün üstünde "SEND TO: Everyone" olarak sürekli seçili
+  duruyor; Tetsu'daki roll mode'un kalıcı hâli.
+- Short Rest paneli kural metnini ve tam formülü ("Hit Die: 1d12+2") gösteriyor.
+  Tetsu'nun hit dice akışı bununla aynı seviyede.
+- Ücretsiz katman **6 karakterle sınırlı** ("Slots: 6/6 Used").
 
 **Kopyalamayacağımız şeyler:** içerik hak sahipliği ve paylaşım slotları,
 abonelik duvarı, ayrı ayrı yaşayan araçlar.
@@ -91,11 +122,17 @@ imported by Tetsu"*. 55 açıklık ve süreli nltk istisnası buradan geliyor.
 | Inspiration | Heroic Inspiration | yok |
 | Reaction takibi | Actions'ta ayrı sekme | komut yok |
 | Zar geçmişi | Kampanya Game Log | oturum içi log var, kampanya geçmişi yok |
+| Encounter zorluğu | Partiye göre XP hesabı | yok |
+| Encounter'da PC | Birinci sınıf üye | **sıraya hiç giremiyor** |
+| DM özel notu | Private + Public ayrı | yalnızca public |
+| Davet | Link her zaman görünür | kod yalnızca yenilenince görünür |
 | VTT | Ayrı ürün (beta) | **entegre** ✅ |
 | Fog of war | var | var ✅ |
 | Encounter aracı | Ayrı sayfa | **entegre** ✅ |
 | NPC kütüphanesi | Homebrew üzerinden | **entegre** ✅ |
 | Davet | Link | 8 karakterli kod ✅ |
+| HP değişikliği | Oyuncu tek başına uygular | **DM onayı + olay kaydı** ✅ |
+| Karakter sayısı | Ücretsizde 6 | sınırsız ✅ |
 | AI DM | yok | var ✅ |
 | Kural sorgusu (RAG) | yok | var ✅ |
 
