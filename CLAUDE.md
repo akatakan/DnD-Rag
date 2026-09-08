@@ -101,6 +101,57 @@ imported by Tetsu"*. 55 açıklık ve süreli nltk istisnası buradan geliyor.
 
 Entegre olduğumuz yerler gerçek avantaj. Fark, oynanabilirliğin temelinde.
 
+## Oyun testi (2026-09-08, DM + oyuncu olarak masaya oturarak)
+
+Bir masa kuruldu, Riva adında bir Fighter yaratıldı, encounter açıldı, hasar
+alındı ve Second Wind kullanıldı. Aşağıdakilerin hepsi bu oturumda yaşandı.
+
+**Çalışan ve iyi olan:** builder skill yetkinliklerinin *nereden geldiğini*
+gösteriyor (Acolyte sabit / Class seçeneği) ve üç ayrı bütçeyi ayrı ayrı
+sayıyor — bu konuda D&D Beyond'dan daha şeffaf. Background +2/+1 artışı ve
+Standard Array / 27 puan seçimi kurallara uygun. Kalkan kuşanınca AC 12→14
+sunucuda anında güncellendi. Oyuncunun hasar talebi DM onayından sonra
+11/11 → 6/11 olarak oyuncunun ekranına anında yansıdı. Second Wind 2024
+kurallarına göre seviye 1'de 2 kullanım veriyor ve tur dışında reddediliyor.
+Onay döngüsü ürünün en sağlam parçası.
+
+**Oyunu durduran bulgu — oyuncu karakteri sıraya hiç giremiyor.**
+Encounter başladığında sırada yalnızca canavarlar var. Motor bunu destekliyor:
+`add_combatant` payload'ında `character_id` verilirse combatant kimliği
+karakter kimliği olur ve tur kapısı açılır (`combatants[turn_index]["id"] ==
+character_id`). Bunu elle API'den gönderdim, Riva sıraya girdi ve Second Wind
+çalıştı. Ama **hiçbir arayüz bu alanı göndermiyor**: DM konsolundaki ekleme
+satırı yalnızca ad/HP/initiative yolluyor, encounter builder'ın tür literali
+ise `monster|npc` — `player` yok. Sonuç: turla kısıtlı her yetenek (Second
+Wind, death save, tur içi ekipman değişimi) canlı oyunda ulaşılamaz.
+`test_command_reachability` bunu yakalayamaz, çünkü komut *adının* istemcide
+geçip geçmediğine bakar, hangi payload şeklinin gönderildiğine değil.
+
+**Fighter'ın saldırısı yok.** Actions sekmesi "DM henüz attack veya prepared
+spell tanımlamadı" diyor; ekranda yalnızca Perception ve Dex Save var.
+Sebep katalogda silah olmaması. Başlangıç ekipmanı tek bir Shield, başlangıç
+parası 0. Yani seviye 1 Fighter savaşa silahsız ve parasız giriyor.
+
+**Daha küçük ama gerçek pürüzler:**
+- Davet kodu yalnızca *yenilendiği anda* görünüyor. DM sayfayı yenilerse kodu
+  bir daha göremez; görmek için yenilemek zorunda, o da önceden kod verdiği
+  oyuncuları dışarıda bırakır. Giriş ekranındaki rehber ise "kod DM'in
+  ekranında görünür" diyor.
+- Encounter başladıktan sonra combatant ekleme satırı hâlâ açık duruyor ama
+  her kullanımı 400 dönüyor ("Canli encounter listesi builder disindan
+  degistirilemez") ve **bu hata DM'e hiç gösterilmiyor**.
+- DM'in onay kuyruğunda talep "damage 5 HP" olarak görünüyor, **hangi
+  karakter olduğu yazmıyor**. Birden fazla oyuncuda ayırt edilemez.
+- Oyuncu hasar talebi gönderince ekranda hiçbir geri bildirim yok.
+- Oyun akışı "character check rolled" yazıyor; hangi kontrol ve sonuç ne
+  belli değil. D&D Beyond'un Game Log'u "Perception: 11" gösterir.
+- Builder "Seviye değişiklikleri aktif DM tarafından yönetilir" diyor. Öyle
+  bir mekanizma yok; arayüz var olmayan bir söz veriyor.
+
+**Bu testin sıralamaya etkisi:** karakteri sıraya sokmak, listedeki 3. maddeyi
+(seviye) beklemeden yapılabilecek küçük bir iş ve oyunun oynanabilirliğini
+tek başına en çok değiştiren düzeltme. Sıraya 1'den hemen sonra girer.
+
 ## Mimari kararlar
 
 1. **Kuralların otoritesi sunucudur.** İstemci hiçbir kural değeri
