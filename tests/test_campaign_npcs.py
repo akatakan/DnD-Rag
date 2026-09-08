@@ -142,7 +142,7 @@ class CampaignNpcTest(unittest.TestCase):
         )
         # Payload shape is rejected by the request model, so this is a 422.
         self.assertEqual(refused.status_code, 422, refused.text)
-        self.assertIn("ad NPC kaydindan gelir", refused.text)
+        self.assertIn("ad kaydin kendisinden gelir", refused.text)
 
     def test_an_unknown_npc_is_not_found(self):
         missing = self.command(

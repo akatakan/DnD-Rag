@@ -424,12 +424,7 @@ class MultiplayerAPITest(unittest.TestCase):
         self.command(
             self.dm["token"],
             "add_combatant",
-            {
-                "id": character_id,
-                "name": "Riva",
-                "initiative": 10,
-                "kind": "player",
-            },
+            {"character_id": character_id, "initiative": 10},
         )
         self.command(self.dm["token"], "start_encounter")
         blocked = self.command(
@@ -673,12 +668,7 @@ class MultiplayerAPITest(unittest.TestCase):
         self.command(
             self.dm["token"],
             "add_combatant",
-            {
-                "id": character_id,
-                "name": "Riva",
-                "initiative": 10,
-                "kind": "player",
-            },
+            {"character_id": character_id, "initiative": 10},
         )
         self.command(self.dm["token"], "start_encounter")
         first = self.command(
@@ -1009,7 +999,6 @@ class MultiplayerAPITest(unittest.TestCase):
             self.dm["token"],
             "add_combatant",
             {
-                "id": "hidden-imp",
                 "name": "Hidden Imp",
                 "initiative": 20,
                 "hp": 10,
@@ -1479,12 +1468,7 @@ class MultiplayerAPITest(unittest.TestCase):
         self.command(
             self.dm["token"],
             "add_combatant",
-            {
-                "id": self.player["character_id"],
-                "name": "Riva",
-                "initiative": 10,
-                "kind": "player",
-            },
+            {"character_id": self.player["character_id"], "initiative": 10},
         )
         self.command(self.dm["token"], "start_encounter")
         advanced = self.command(self.dm["token"], "next_turn")
@@ -1507,12 +1491,7 @@ class MultiplayerAPITest(unittest.TestCase):
         self.command(
             self.dm["token"],
             "add_combatant",
-            {
-                "id": self.player["character_id"],
-                "name": "Riva",
-                "initiative": 10,
-                "kind": "player",
-            },
+            {"character_id": self.player["character_id"], "initiative": 10},
         )
         self.command(self.dm["token"], "start_encounter")
         first = self.command(self.player["token"], "death_save")
@@ -1534,12 +1513,7 @@ class MultiplayerAPITest(unittest.TestCase):
         self.command(
             self.dm["token"],
             "add_combatant",
-            {
-                "id": self.player["character_id"],
-                "name": "Riva",
-                "initiative": 10,
-                "kind": "player",
-            },
+            {"character_id": self.player["character_id"], "initiative": 10},
         )
         self.command(self.dm["token"], "start_encounter")
         short_rest = self.command(
@@ -1554,22 +1528,12 @@ class MultiplayerAPITest(unittest.TestCase):
         self.command(
             self.dm["token"],
             "add_combatant",
-            {
-                "id": "monster-1",
-                "name": "Goblin",
-                "initiative": 20,
-                "kind": "monster",
-            },
+            {"name": "Goblin", "initiative": 20, "kind": "monster"},
         )
         self.command(
             self.dm["token"],
             "add_combatant",
-            {
-                "id": self.player["character_id"],
-                "name": "Riva",
-                "initiative": 10,
-                "kind": "player",
-            },
+            {"character_id": self.player["character_id"], "initiative": 10},
         )
         self.command(self.dm["token"], "start_encounter")
         off_turn = self.command(self.player["token"], "use_second_wind")
@@ -1836,22 +1800,12 @@ class MultiplayerAPITest(unittest.TestCase):
         self.command(
             self.dm["token"],
             "add_combatant",
-            {
-                "id": "monster-1",
-                "name": "Goblin",
-                "initiative": 20,
-                "kind": "monster",
-            },
+            {"name": "Goblin", "initiative": 20, "kind": "monster"},
         )
         self.command(
             self.dm["token"],
             "add_combatant",
-            {
-                "id": self.player["character_id"],
-                "name": "Riva",
-                "initiative": 10,
-                "kind": "player",
-            },
+            {"character_id": self.player["character_id"], "initiative": 10},
         )
         self.command(self.dm["token"], "start_encounter")
         off_turn = self.command(

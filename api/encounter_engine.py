@@ -4,6 +4,44 @@ from copy import deepcopy
 from typing import Any
 from uuid import uuid4
 
+from dice import roll
+
+
+def rolled_initiative(character: dict[str, Any]) -> int:
+    """Initiative for a player character: 1d20 plus their own modifier.
+
+    Both ways a character reaches the initiative order -- the DM console's
+    button and a saved encounter draft -- go through here. They used to
+    disagree: the console sent a flat 10 from the client and the draft used
+    the bare Dexterity modifier, so the same DM got two different rules from
+    two different buttons and a player's Dexterity never mattered either way.
+    """
+    return roll(f"1d20{int(character['derived']['initiative']):+d}").total
+
+
+def sort_turn_order(combatants: list[dict[str, Any]]) -> None:
+    """Order a turn list: initiative, then tie-breaker, then name, then id.
+
+    A saved draft used to sort on initiative alone, so two combatants on the
+    same count started in the order they happened to be added in -- while the
+    live table resolved the same tie by a stated rule. One rule, one place, so
+    a draft cannot start in an order the table would never have produced.
+
+    Note the tie-breaker itself is inert on the draft path today: it is not in
+    COMBATANT_FIELDS, so a builder cannot store one and hydrate defaults every
+    combatant to 0. Draft ties therefore fall through to name, then id --
+    deterministic, which was the point. Letting the DM set a tie-breaker in the
+    builder is the follow-up that makes this branch live.
+    """
+    combatants.sort(
+        key=lambda item: (
+            -int(item.get("initiative", 0)),
+            -int(item.get("tie_breaker", 0)),
+            str(item.get("name", "")).casefold(),
+            str(item.get("id", "")),
+        )
+    )
+
 ENCOUNTER_SCHEMA_VERSION = 1
 ENCOUNTER_FIELDS = {"schema_version", "name", "description", "combatants"}
 COMBATANT_FIELDS = {
@@ -178,12 +216,14 @@ class EncounterEngine:
                     id=character["id"],
                     name=character["name"],
                     kind="player",
-                    initiative=int(character["derived"]["initiative"]),
+                    initiative=rolled_initiative(character),
                     hp=int(character["hp"]),
                     max_hp=int(character["max_hp"]),
                     armor_class=int(character["ac"]),
                     hidden=False,
                 )
             hydrated.append(result)
-        hydrated.sort(key=lambda item: item["initiative"], reverse=True)
+        for item in hydrated:
+            item.setdefault("tie_breaker", 0)
+        sort_turn_order(hydrated)
         return hydrated

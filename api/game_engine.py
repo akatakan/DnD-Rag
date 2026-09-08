@@ -7,7 +7,12 @@ from uuid import uuid4
 from api.action_engine import ActionEngine, ActionValidationError
 from api.character_draft_engine import CharacterDraftValidationError
 from api.character_engine import CharacterEngine, CharacterValidationError
-from api.encounter_engine import EncounterDraftConflict, EncounterValidationError
+from api.encounter_engine import (
+    EncounterDraftConflict,
+    EncounterValidationError,
+    rolled_initiative,
+    sort_turn_order,
+)
 from api.inventory_engine import InventoryEngine, InventoryValidationError
 from api.models import AuthContext, CommandRequest
 from api.resource_engine import ResourceEngine, ResourceValidationError
@@ -1306,8 +1311,6 @@ class GameEngine:
                     raise CommandError(
                         "Encounter baslatmak icin combatant ekleyin."
                     )
-                for combatant in combatants:
-                    combatant.setdefault("tie_breaker", 0)
                 state.update(
                     combatants=combatants,
                     active_encounter_id=encounter["id"],
@@ -1499,16 +1502,30 @@ class GameEngine:
                     "name": npc["name"],
                     "kind": npc["kind"],
                     "hp": payload.get("hp", npc["max_hp"]),
-                    "initiative": payload.get(
-                        "initiative",
-                        roll(f"1d20{npc['initiative_modifier']:+d}").total,
+                    "initiative": (
+                        payload["initiative"] if "initiative" in payload
+                        else roll(f"1d20{npc['initiative_modifier']:+d}").total
                     ),
                 }
-            combatant_id = str(
-                payload.get("id") or payload.get("character_id") or uuid4().hex
-            )
+            combatant_id = str(payload.get("character_id") or uuid4().hex)
             if any(item["id"] == combatant_id for item in state["combatants"]):
                 raise CommandError("Combatant zaten initiative listesinde.")
+            character = state["characters"].get(combatant_id)
+            if character is not None:
+                # Initiative is a roll and rolls belong to the engine, so the
+                # client sends identity and nothing else. Name, HP, max HP and
+                # AC are deliberately not set here: _sync_character_combatants
+                # copies them from the sheet on every command, so writing them
+                # now would only be a second, staler source of the same truth.
+                payload = {
+                    **payload,
+                    "name": character["name"],
+                    "kind": "player",
+                    "initiative": (
+                        payload["initiative"] if "initiative" in payload
+                        else rolled_initiative(character)
+                    ),
+                }
             state["combatants"].append({
                 "id": combatant_id,
                 "source": (
@@ -1603,14 +1620,7 @@ class GameEngine:
 
     @staticmethod
     def _sort_turn_order(combatants: list[dict]) -> None:
-        combatants.sort(
-            key=lambda item: (
-                -int(item.get("initiative", 0)),
-                -int(item.get("tie_breaker", 0)),
-                str(item.get("name", "")).casefold(),
-                str(item.get("id", "")),
-            )
-        )
+        sort_turn_order(combatants)
 
     @staticmethod
     def _sync_character_combatants(state: dict) -> None:

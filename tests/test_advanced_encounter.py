@@ -53,12 +53,19 @@ class AdvancedEncounterTest(unittest.TestCase):
             },
         )
 
+    @staticmethod
+    def combatant_id(state, name):
+        # Manual combatants get an engine-minted id, so a test that needs to
+        # address one later has to read it back rather than name it up front.
+        return next(
+            item["id"] for item in state["combatants"] if item["name"] == name
+        )
+
     def test_ties_environment_and_current_turn_preservation(self):
         first = self.command(
             self.dm,
             "add_combatant",
             {
-                "id": "tie-first",
                 "name": "Zulu",
                 "initiative": 15,
                 "tie_breaker": 5,
@@ -71,7 +78,6 @@ class AdvancedEncounterTest(unittest.TestCase):
             self.dm,
             "add_combatant",
             {
-                "id": "tie-second",
                 "name": "Alpha",
                 "initiative": 15,
                 "tie_breaker": 1,
@@ -82,13 +88,15 @@ class AdvancedEncounterTest(unittest.TestCase):
         )
         self.assertEqual(first.status_code, 200, first.text)
         self.assertEqual(second.status_code, 200, second.text)
+        zulu = self.combatant_id(second.json()["state"], "Zulu")
+        alpha = self.combatant_id(second.json()["state"], "Alpha")
         started = self.command(
             self.dm, "start_encounter", {}, "advanced-tie-start"
         )
         state = started.json()["state"]
         self.assertEqual(
             [item["id"] for item in state["combatants"]],
-            ["tie-first", "tie-second"],
+            [zulu, alpha],
         )
         current_id = state["combatants"][state["turn_index"]]["id"]
 
@@ -113,13 +121,13 @@ class AdvancedEncounterTest(unittest.TestCase):
         reordered = self.command(
             self.dm,
             "set_initiative_tiebreaker",
-            {"combatant_id": "tie-second", "tie_breaker": 9},
+            {"combatant_id": alpha, "tie_breaker": 9},
             "advanced-tie-reorder",
         )
         reorder_state = reordered.json()["state"]
         self.assertLess(
-            next(i for i, item in enumerate(reorder_state["combatants"]) if item["id"] == "tie-second"),
-            next(i for i, item in enumerate(reorder_state["combatants"]) if item["id"] == "tie-first"),
+            next(i for i, item in enumerate(reorder_state["combatants"]) if item["id"] == alpha),
+            next(i for i, item in enumerate(reorder_state["combatants"]) if item["id"] == zulu),
         )
         self.assertEqual(
             reorder_state["combatants"][reorder_state["turn_index"]]["id"],
@@ -131,13 +139,7 @@ class AdvancedEncounterTest(unittest.TestCase):
         added = self.command(
             self.dm,
             "add_combatant",
-            {
-                "id": character_id,
-                "name": "Riva",
-                "initiative": 20,
-                "hp": 10,
-                "kind": "player",
-            },
+            {"character_id": character_id, "initiative": 20},
             "advanced-character-add",
         )
         self.assertEqual(added.status_code, 200, added.text)
@@ -145,7 +147,6 @@ class AdvancedEncounterTest(unittest.TestCase):
             self.dm,
             "add_combatant",
             {
-                "id": "training-dummy",
                 "name": "Dummy",
                 "initiative": 1,
                 "hp": 20,
@@ -221,11 +222,10 @@ class AdvancedEncounterTest(unittest.TestCase):
         )
 
     def test_failed_undo_event_rolls_back_state_and_history_pop(self):
-        self.command(
+        added = self.command(
             self.dm,
             "add_combatant",
             {
-                "id": "undo-target",
                 "name": "Target",
                 "initiative": 10,
                 "hp": 8,
@@ -233,13 +233,14 @@ class AdvancedEncounterTest(unittest.TestCase):
             },
             "advanced-undo-target-add",
         )
+        target_id = self.combatant_id(added.json()["state"], "Target")
         self.command(
             self.dm, "start_encounter", {}, "advanced-undo-start"
         )
         self.command(
             self.dm,
             "adjust_combatant_hp",
-            {"combatant_id": "undo-target", "delta": -2},
+            {"combatant_id": target_id, "delta": -2},
             "advanced-undo-damage",
         )
         before = self.store.game(self.dm["game_id"])["state"]
@@ -276,13 +277,7 @@ class AdvancedEncounterTest(unittest.TestCase):
         self.command(
             self.dm,
             "add_combatant",
-            {
-                "id": character_id,
-                "name": "Riva",
-                "initiative": 10,
-                "hp": 10,
-                "kind": "player",
-            },
+            {"character_id": character_id, "initiative": 10},
             "advanced-dead-add",
         )
         self.command(
@@ -327,11 +322,10 @@ class AdvancedEncounterTest(unittest.TestCase):
         self.assertEqual(paused_damage.status_code, 400, paused_damage.text)
 
     def test_hidden_mutation_events_are_dm_only(self):
-        self.command(
+        added = self.command(
             self.dm,
             "add_combatant",
             {
-                "id": "hidden-live-target",
                 "name": "Hidden Target",
                 "initiative": 10,
                 "tie_breaker": 0,
@@ -341,19 +335,20 @@ class AdvancedEncounterTest(unittest.TestCase):
             },
             "advanced-hidden-add",
         )
+        hidden_id = self.combatant_id(added.json()["state"], "Hidden Target")
         self.command(
             self.dm, "start_encounter", {}, "advanced-hidden-start"
         )
         tie = self.command(
             self.dm,
             "set_initiative_tiebreaker",
-            {"combatant_id": "hidden-live-target", "tie_breaker": 2},
+            {"combatant_id": hidden_id, "tie_breaker": 2},
             "advanced-hidden-tie",
         )
         damage = self.command(
             self.dm,
             "adjust_combatant_hp",
-            {"combatant_id": "hidden-live-target", "delta": -1},
+            {"combatant_id": hidden_id, "delta": -1},
             "advanced-hidden-damage",
         )
         self.assertEqual(tie.json()["event"]["visibility"], "dm_only")
@@ -370,13 +365,7 @@ class AdvancedEncounterTest(unittest.TestCase):
         self.command(
             self.dm,
             "add_combatant",
-            {
-                "id": character_id,
-                "name": "Riva",
-                "initiative": 10,
-                "hp": 10,
-                "kind": "player",
-            },
+            {"character_id": character_id, "initiative": 10},
             "advanced-environment-character",
         )
         self.command(

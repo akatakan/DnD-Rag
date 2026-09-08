@@ -74,10 +74,8 @@ class CharacterConcurrencyTest(unittest.TestCase):
                 CommandRequest(
                     type="add_combatant",
                     payload={
-                        "id": joined["character_id"],
-                        "name": "Riva",
+                        "character_id": joined["character_id"],
                         "initiative": 10,
-                        "kind": "player",
                     },
                 ),
             )
@@ -155,10 +153,8 @@ class CharacterConcurrencyTest(unittest.TestCase):
                 CommandRequest(
                     type="add_combatant",
                     payload={
-                        "id": joined["character_id"],
-                        "name": "Riva",
+                        "character_id": joined["character_id"],
                         "initiative": 10,
-                        "kind": "player",
                     },
                 ),
             )

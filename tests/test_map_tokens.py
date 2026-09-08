@@ -107,13 +107,7 @@ class MapTokenAPITest(unittest.TestCase):
             response = self.command(
                 self.dm["token"],
                 "add_combatant",
-                {
-                    "id": player["character_id"],
-                    "name": "Riva" if player is self.riva else "Brann",
-                    "initiative": 12,
-                    "hp": 10,
-                    "kind": "player",
-                },
+                {"character_id": player["character_id"], "initiative": 12},
                 revision,
             )
             self.assertEqual(response.status_code, 200, response.text)
@@ -122,7 +116,6 @@ class MapTokenAPITest(unittest.TestCase):
             self.dm["token"],
             "add_combatant",
             {
-                "id": "hidden-goblin",
                 "name": "Hidden Goblin",
                 "initiative": 8,
                 "hp": 7,
@@ -133,6 +126,13 @@ class MapTokenAPITest(unittest.TestCase):
         )
         self.assertEqual(monster.status_code, 200, monster.text)
         revision = monster.json()["revision"]
+        # A manual combatant's id is minted by the engine, so the tests that
+        # address the goblin later have to read it back from the state.
+        self.goblin_id = next(
+            item["id"]
+            for item in monster.json()["state"]["combatants"]
+            if item["name"] == "Hidden Goblin"
+        )
         started = self.command(
             self.dm["token"], "start_encounter", {}, revision
         )
@@ -187,7 +187,7 @@ class MapTokenAPITest(unittest.TestCase):
         self.assertEqual(len(dm_tokens), 3)
         hidden = next(
             token for token in dm_tokens
-            if token["combatant_id"] == "hidden-goblin"
+            if token["combatant_id"] == self.goblin_id
         )
         self.assertEqual(hidden["hp"], 7)
         self.assertTrue(all(token["can_move"] for token in dm_tokens))
@@ -195,7 +195,7 @@ class MapTokenAPITest(unittest.TestCase):
         player_tokens = self.scene(self.riva["token"])["tokens"]
         self.assertEqual(len(player_tokens), 2)
         self.assertNotIn(
-            "hidden-goblin",
+            self.goblin_id,
             {token["combatant_id"] for token in player_tokens},
         )
         own = next(
@@ -453,7 +453,7 @@ class MapTokenAPITest(unittest.TestCase):
     def test_hidden_token_movement_event_is_dm_only(self):
         hidden = next(
             token for token in self.scene(self.dm["token"])["tokens"]
-            if token["combatant_id"] == "hidden-goblin"
+            if token["combatant_id"] == self.goblin_id
         )
         revision = self.snapshot(self.dm["token"])["revision"]
         moved = self.command(
@@ -477,7 +477,7 @@ class MapTokenAPITest(unittest.TestCase):
         self.assertFalse(
             any(
                 event["type"] == "map_token_moved"
-                and event["payload"].get("combatant_id") == "hidden-goblin"
+                and event["payload"].get("combatant_id") == self.goblin_id
                 for event in events
             )
         )

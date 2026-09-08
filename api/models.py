@@ -834,7 +834,7 @@ class CommandRequest(BaseModel):
 
         if self.type == "add_combatant":
             if set(payload) - {
-                "id", "character_id", "npc_id", "name", "initiative",
+                "character_id", "npc_id", "name", "initiative",
                 "tie_breaker", "hp", "kind", "hidden",
             }:
                 raise ValueError("Bilinmeyen combatant alani.")
@@ -843,14 +843,24 @@ class CommandRequest(BaseModel):
                 not isinstance(npc_id, str) or not 1 <= len(npc_id) <= 64
             ):
                 raise ValueError("npc_id gecersiz.")
+            character_id = payload.get("character_id")
+            if character_id is not None and (
+                not isinstance(character_id, str) or not 1 <= len(character_id) <= 64
+            ):
+                raise ValueError("character_id gecersiz.")
+            if npc_id is not None and character_id is not None:
+                raise ValueError("Bir katilimci hem NPC hem karakter olamaz.")
             name = payload.get("name")
-            # An NPC brings its own name, so the caller need not repeat it.
-            if npc_id is None and (
+            # A stored record -- an NPC or a published character -- brings its own
+            # name, so the caller neither needs to repeat it nor may override it.
+            # Retyping is how a combatant drifts from the sheet the table sees.
+            from_record = npc_id is not None or character_id is not None
+            if not from_record and (
                 not isinstance(name, str) or not 1 <= len(name.strip()) <= 80
             ):
                 raise ValueError("Katilimci adi 1 ile 80 karakter arasinda olmalidir.")
-            if npc_id is not None and name is not None:
-                raise ValueError("NPC eklerken ad NPC kaydindan gelir.")
+            if from_record and name is not None:
+                raise ValueError("Kayittan eklerken ad kaydin kendisinden gelir.")
             if payload.get("kind", "monster") not in {"monster", "player", "npc"}:
                 raise ValueError("Gecersiz katilimci turu.")
             for field in ("initiative", "tie_breaker"):

@@ -134,7 +134,14 @@ class EncounterLibraryTest(unittest.TestCase):
         self.assertEqual(state["active_encounter_id"], encounter_id)
         self.assertEqual(state["active_encounter_revision"], 2)
         self.assertEqual(state["encounter_status"], "active")
-        self.assertEqual(state["combatants"][0]["name"], "Goblin Scout")
+        # Turn order is no longer fixed: the character's initiative is rolled
+        # at start, so it may land above or below the goblin's 14. Address the
+        # manual combatant by id instead of assuming it sorts first.
+        goblin = next(
+            item for item in state["combatants"]
+            if item["id"] == "manual-goblin-001"
+        )
+        self.assertEqual(goblin["name"], "Goblin Scout")
         self.assertEqual(
             {item["id"] for item in state["combatants"]},
             {"manual-goblin-001", self.player["character_id"]},
